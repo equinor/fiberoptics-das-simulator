@@ -126,7 +126,7 @@ Run this in the current directory as this readme.adoc file is in (for Linux):
 [source,bash]
 ----
 ./mvnw clean package spring-boot:repackage
-docker-compose -f ./dependson-services/compose-kafka.yml up
+docker-compose --env-file .env -f ./dependson-services/compose-kafka.yml up
 source ./defaults.env
 java -jar target/fiberoptics-das-producer-<version>.jar
 ----
