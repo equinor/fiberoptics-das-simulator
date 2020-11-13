@@ -1,0 +1,8 @@
+.idea
+*.iml
+target
+data
+node_modules
+maven-wrapper.jar
+MavenWrapperDownloader.java
+*.tgz

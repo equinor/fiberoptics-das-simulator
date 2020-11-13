@@ -1,0 +1,198 @@
+:includedir: /
+= DAS amplitude simulator reference implementation
+:icons: font
+:toc:
+
+image::https://github.com/equinor/jsv-avro-rnd/workflows/CI%20Release/badge.svg[]
+
+Latest version: 1.0.0
+
+The DAS amplitude simulator simulates a real DAS interrogators communication into an Equinor DAS streaming
+platform. This version simulates the back-end system of the streaming platform via a Docker compose file
+
+
+We have implemented a simple Distributed Acoustic Sensing (DAS) simulator that queues up a configurable number of amplitudes that matches the number of loci for an
+imaginary well. The samples are grouped in the time axis so that they represent a full "fiber vector shot".
+The data is sent trying to match the actual rate that a real interrogator would, but for this implementation only a rudimentary
+control is made for the actual timing of the send operation. A real interrogator would try to send as fast as it received the signal from the
+upstream laser interrogator but needless to say we don't have that available for this example.
+
+You can make adjustment to most variables by updating the environment that the simulator starts in. Check the defaults.env file
+found int the same directory as this file.
+
+== Basic data flow
+
+
+A successful DAS acquisition is made by initially contacting the Stream initiator (INITIATOR_URL variable).
+[source,json]
+----
+{
+  "SchemaVersion": "2.0",
+  "AcquisitionId": "86287b85-7176-4bde-864f-62e55c5996d7",
+  "OpticalPathUUID": "25be8bc6-cd35-4c9f-9f8d-cabe43326163",
+  "PulseWidth": 100.50,
+  "PulseWidthUnit": "ns",
+  "MaximumFrequency": 5000.0,
+  "DasInstrumentBoxUUID": "25be8bc6-cd35-4c9f-9f8d-cabe43326163",
+  "SpatialSamplingInterval": 1.1,
+  "GaugeLength": 10.209524,
+  "NumberOfLoci": 4096,
+  "PulseRate": 10000.0,
+  "Custom": {
+    "AnyCustomStuffHere": "XYZ",
+    "SuchAsFirmwareId": "1.7.2-Rev5",
+    "OrSoftwareVersion": "0.1-Beta"
+  },
+  "MeasurementStartTime": "2020-11-01T19:02:03.0Z",
+  "VendorCode": "Simulator",
+  "StartLocusIndex": 0
+}
+----
+*Note* that we only accept positive int values for StartLocusIndex, and that even with a StartLocusIndex > 0 the numbering of the actual channel should always start at 0.
+
+The initiator responds with a configuration object that provides information on how to proceed sending data to the Kafka platform.
+[source,json]
+----
+{
+  "BootstrapServers": "broker1:9092,broker2:9092",
+  "Topic": "608931017-amp",
+  "SchemaRegistryUrl": "http://schemaregistry:8081",
+  "NumberOfPartitions": 2,
+  "PartitionAssignments": {
+    "0":"0",
+    "1":"1",
+    "2":"0",
+    "3":"1",
+    "4":"0",
+    "5":"1",
+     ......
+  }
+}
+----
+To notable value here is the partition assignments map. It tells the kafka producer part of the code to send specific loci (key)
+to a specific partition. It is very important that this is being followed as strict ordering of loci-data can only be guaranteed in
+Kafka within the same partition.
+
+
+== Environment values
+Control of the parameters of the process in this example is done via environment values.
+
+
+.DAS simulator config
+|===
+|Setting |Default value |Description
+
+|PACKAGE_SIZE|8192|The number of amplitude delivered pr Kafka message.
+|INITIATOR_URL| http://localhost:8080| The API endpoint base URL for the stream initiation service.
+|INITIATOR_API_KEY| No value| An API key that needs to be set in the service behind the initiator url e.g. 1aa111a11aa11a0a1a1aa1111a1a1a1a
+|KAFKA_SERVER_OVERRIDE| No value| If the Kafka server is on a network that has a specific naming that has no meaning on the calling end (e.g. inside a docker container where you would use localhost:9092) you might get a service name. Here you can override the name with an IP address.
+|SCHEMA_REGISTRY_URL_OVERRIDE| No value| If the Schema registry server is on a network that has a specific naming that has no meaning on the calling end (e.g. inside a docker container where you would use http://localhost:8081) you might get a service name. Here you can override the name with an IP address.
+|SECONDS_TO_RUN| 120| Use this to limit the time the simulator should run.
+|PULSE_RATE| 10000| as pr ProdML - laser pulse rate.
+|MAX_NYQ_FREQ| 5000| as pr ProdML - max frequency available in signal (Nyquist).
+|MIN_NYQ_FREQ| 0| as pr ProdML - min frequency available in signal (Nyquist).
+|BOX_UUID| No value| the id (UUID) assigned by the stream initiator server.
+|OPTICAL_PATH_UUID| No value| the id (UUID) assigned to the optical fiber where the data is aquisitioned.
+|SPATIAL_SAMPLING_INTERVAL| 1.1| as pr ProdML - distance between data channel(loci) on the fiber.
+|PULSE_WIDTH| 100.50| as pr ProdML - laser pulse width
+|START_LOCUS_INDEX| 0| the point (index as in integer) where locus (channel) 0 is on the fiber.
+|DISABLE_THROTTLING| 0| Ignore the time interval between data as pr. sampling frequency and package size. Instead deliver data as fast as possible.
+|GAUGE_LENGTH|10.209524| as pr ProdML
+|NUMBER_OF_LOCI| No value| The total number of data channels that will be delivered
+|DAS_PRODUCER_KAFKA_CONFIG_CLIENT_ID|Simulator| http://kafka.apache.org/documentation.html#producerconfigs
+|DAS_PRODUCER_KAFKA_CONFIG_ACKS|1|  http://kafka.apache.org/documentation.html#producerconfigs
+|DAS_PRODUCER_KAFKA_CONFIG_BATCH_SIZE|500000| http://kafka.apache.org/documentation.html#producerconfigs
+|DAS_PRODUCER_KAFKA_CONFIG_BUFFER_MEMORY|33554432| http://kafka.apache.org/documentation.html#producerconfigs
+|DAS_PRODUCER_KAFKA_CONFIG_COMPRESSION_TYPE|none| http://kafka.apache.org/documentation.html#producerconfigs
+|DAS_PRODUCER_KAFKA_CONFIG_LINGER_MS|5| http://kafka.apache.org/documentation.html#producerconfigs
+|DAS_PRODUCER_KAFKA_CONFIG_MAX_REQ_SIZE|104857| http://kafka.apache.org/documentation.html#producerconfigs
+|DAS_PRODUCER_KAFKA_CONFIG_MAX_BLOCK_MS|60000| http://kafka.apache.org/documentation.html#producerconfigs
+|DAS_PRODUCER_KAFKA_CONFIG_MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION|5| http://kafka.apache.org/documentation.html#producerconfigs
+|DAS_PRODUCER_KAFKA_CONFIG_SEND_BUFFER_BYTES|-1| http://kafka.apache.org/documentation.html#producerconfigs
+|===
+
+Note that any env value that starts with DAS_PRODUCER_KAFKA_CONFIG_ will be applied to the Kafka client: http://kafka.apache.org/documentation.html#producerconfigs
+
+Details for ProdML can be found here: http://w3.energistics.org/energyML/data/prodml/v2.0/doc/prodml_schema_overview.html
+
+
+== Building and running
+
+Note:
+
+You need Java 13 and you need docker and docker-compose installed to compile and run this.
+
+Run this in the current directory as this readme.adoc file is in (for Linux):
+[source,bash]
+----
+./mvnw clean package spring-boot:repackage
+docker-compose -f ./dependson-services/compose-kafka.yml up
+source ./defaults.env
+java -jar target/fiberoptics-das-producer-<version>.jar
+----
+
+
+== Data that can be used in the configuration of simulator box
+
+Fiber optic path UUIDs:
+[source,text]
+----
+00528e45-06d0-4110-bba4-e904afe02657
+9f79c244-1fec-4c78-83f9-e4b001f1c40f
+966a5bdb-c170-4c5b-b84c-6cfc201b3654
+4ab4497f-a227-4347-85cf-35a47a8d6fde
+083a625f-5f86-4ff2-8f07-11156d305262
+20e963bb-5790-4f30-a8cc-6ee6d8c43977
+fbbc72c7-e915-4a9f-ab0b-31d5eb61e459
+300b8ec2-b809-47bc-9b9c-844400a08f0a
+11708574-3e9b-43cb-bd88-cd092cf55dd1
+0e3212e7-42d2-4862-978a-5f424772cec1
+1dc1c586-3136-45fa-aeba-7a04aaa8a6d3
+a6f7bad1-4873-4cb7-8069-ef808365d454
+f6d8b766-7246-4bd6-aafb-95c4cd0da91c
+9e554c66-faae-43cb-a684-c7cc4dada609
+8f52928e-fd26-438f-82a8-4cb35d139de6
+622fba2c-9db3-4427-8330-69b56949fdd8
+39f18236-7be1-44a2-aa43-18b1c80729dd
+11760dd4-c484-4ec8-bb78-963416841412
+f0cd6585-fcd8-412f-b44f-698c0c3a9ac3
+4409eac5-ffe7-4433-9e5c-d0e0e1c2f1b8
+d55a69cc-a3e8-4c95-be94-6dcf3b1c04b6
+6d31c0c8-e6bd-4229-8920-84726d2f4cdf
+81d75148-cfa1-48b5-9743-cff7e815a257
+125109a7-406f-49ba-8839-c7002c735a55
+e8b1f64b-1de5-47eb-97bc-7d645bc97c50
+e8ce7b82-c4c5-4cfd-820a-06dc73ea3c72
+b63f430f-e20a-4930-8613-3e07c5c4d51e
+f293fe65-80ce-4846-8b3e-bab530ecc083
+b2b9f48e-b8d7-4a1d-9ddf-89fd1c913d94
+4ef35ba7-6167-4f01-be50-6df5fc7dc7e5
+e56af441-40c6-4d82-a664-5c5c7cea2c6d
+2f985cc0-8ada-4428-8554-912b72d58e8a
+1d01ff83-c751-4a45-b1f9-6dc9056290f8
+2585e913-9d3e-4b33-b187-f6074d4e7bad
+99ec2d16-1d54-4766-8351-0398e903f1db
+843fb17a-cdfa-47af-8812-aef791697600
+ec9e0f9f-7100-4207-81df-b1eabf99bbda
+28a795d5-6250-42ca-94b9-e1803299199f
+dd6184a6-a25f-4bfd-94f6-abab8412812a
+70c58966-dc28-4182-829e-532a5e6ae23b
+326c9650-27fe-4c72-96af-6cef612a370a
+e22c9119-027c-438f-b8fa-51f23cbb5cb0
+61edef00-17c1-4777-854f-a54bbcc900fb
+c166895f-6c64-47b7-9e35-e68bd0d41948
+11763a71-627f-4c25-a955-a8b59301e536
+8f0c8e8e-2ed6-4e4b-9e19-3309b6af184a
+2ebcc749-3b37-4fb8-8234-4a56d918a88c
+1118e763-9d7c-4466-b126-0d64aee850a2
+a24c5a9e-510f-45ef-8112-3c6e6469e9c4
+----
+
+Simulator box UUIDs:
+[source,text]
+----
+6fc8a265-1ec5-4daf-b6b5-f7649af2a07a
+1deb5d57-2fb9-418a-990b-4cf7252a0450
+1deb5d57-3fb9-418a-990b-4cf7252a0450
+1deb5d57-4fb9-418a-990b-4cf7252a0450
+----
