@@ -3,9 +3,7 @@
 :icons: font
 :toc:
 
-image::https://github.com/equinor/jsv-avro-rnd/workflows/CI%20Release/badge.svg[]
-
-Latest version: 1.0.0
+Latest version: 1.0.1
 
 The DAS amplitude simulator simulates a real DAS interrogators communication into an Equinor DAS streaming
 platform. This version simulates the back-end system of the streaming platform via a Docker compose file

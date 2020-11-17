@@ -57,8 +57,8 @@ public class PackageStepCalculator {
     _loci = loci;
     _currentStep = 0;
 
-    logger.info("Package step calculator initialized for start: {}, maximumFrequency, {}, amplitudesPrPackage:{}, giving packagesPrSecond: {}",
-      Instant.ofEpochMilli(startTimeEpochNano / 1_000_000), maximumFrequency, amplitudesPrPackage, _nanosPrPackage / nanosInSecond);
+    logger.info("Package step calculator initialized for start: {}, maximumFrequency, {}, amplitudesPrPackage:{}, loci: {}",
+      Instant.ofEpochMilli(startTimeEpochNano / 1_000_000), maximumFrequency, amplitudesPrPackage, loci);
   }
 
   /**
