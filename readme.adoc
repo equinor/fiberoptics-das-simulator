@@ -99,10 +99,10 @@ Control of the parameters of the process in this example is done via environment
 |NUMBER_OF_LOCI| No value| The total number of data channels that will be delivered
 |DAS_PRODUCER_KAFKA_CONFIG_CLIENT_ID|Simulator| http://kafka.apache.org/documentation.html#producerconfigs
 |DAS_PRODUCER_KAFKA_CONFIG_ACKS|1|  http://kafka.apache.org/documentation.html#producerconfigs
-|DAS_PRODUCER_KAFKA_CONFIG_BATCH_SIZE|500000| http://kafka.apache.org/documentation.html#producerconfigs
+|DAS_PRODUCER_KAFKA_CONFIG_BATCH_SIZE|2500| http://kafka.apache.org/documentation.html#producerconfigs
 |DAS_PRODUCER_KAFKA_CONFIG_BUFFER_MEMORY|33554432| http://kafka.apache.org/documentation.html#producerconfigs
 |DAS_PRODUCER_KAFKA_CONFIG_COMPRESSION_TYPE|none| http://kafka.apache.org/documentation.html#producerconfigs
-|DAS_PRODUCER_KAFKA_CONFIG_LINGER_MS|5| http://kafka.apache.org/documentation.html#producerconfigs
+|DAS_PRODUCER_KAFKA_CONFIG_LINGER_MS|15| http://kafka.apache.org/documentation.html#producerconfigs
 |DAS_PRODUCER_KAFKA_CONFIG_MAX_REQ_SIZE|104857| http://kafka.apache.org/documentation.html#producerconfigs
 |DAS_PRODUCER_KAFKA_CONFIG_MAX_BLOCK_MS|60000| http://kafka.apache.org/documentation.html#producerconfigs
 |DAS_PRODUCER_KAFKA_CONFIG_MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION|5| http://kafka.apache.org/documentation.html#producerconfigs
