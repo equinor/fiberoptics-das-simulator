@@ -52,11 +52,11 @@ The initiator responds with a configuration object that provides information on 
 [source,json]
 ----
 {
-  "BootstrapServers": "broker1:9092,broker2:9092",
-  "Topic": "608931017-amp",
-  "SchemaRegistryUrl": "http://schemaregistry:8081",
-  "NumberOfPartitions": 2,
-  "PartitionAssignments": {
+  "bootstrapServers": "broker1:9092,broker2:9092",
+  "topic": "608931017-amp",
+  "schemaRegistryUrl": "http://schemaregistry:8081",
+  "numberOfPartitions": 2,
+  "partitionAssignments": {
     "0":"0",
     "1":"1",
     "2":"0",
