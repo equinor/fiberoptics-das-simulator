@@ -3,7 +3,7 @@
 :icons: font
 :toc:
 
-Latest version: 1.0.1
+Latest version: 1.0.3
 
 The DAS amplitude simulator simulates a real DAS interrogators communication into an Equinor DAS streaming
 platform. This version simulates the back-end system of the streaming platform via a Docker compose file
