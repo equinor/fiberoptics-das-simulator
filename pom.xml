@@ -14,7 +14,7 @@
   <groupId>com.equinor.fiberoptics</groupId>
   <artifactId>fiberoptics-das-simulator</artifactId>
   <description>A Fiberoptics DAS producer reference implementation</description>
-  <version>1.0.2</version>
+  <version>1.0.3</version>
   <packaging>jar</packaging>
   <licenses>
     <license>
@@ -50,11 +50,6 @@
       <id>central</id>
       <name>Main Maven repo</name>
       <url>https://repo1.maven.org/maven2/</url>
-    </repository>
-    <repository>
-      <id>jcenter</id>
-      <name>JCenter repo</name>
-      <url>https://jcenter.bintray.com/</url>
     </repository>
     <repository>
       <id>Confluent</id>
@@ -122,7 +117,7 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <version>28.2-jre</version>
+      <version>30.1.1-jre</version>
     </dependency>
     <dependency>
       <groupId>commons-collections</groupId>
