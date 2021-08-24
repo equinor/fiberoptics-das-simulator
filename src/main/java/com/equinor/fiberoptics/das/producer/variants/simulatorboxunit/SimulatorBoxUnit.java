@@ -151,7 +151,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
             new ProducerRecord(_kafkaConf.getTopic(),
               currentPartition,
               stepCalculator.currentEpochMillis(),
-              null, partitionEntry.value);
+              partitionEntry.key, partitionEntry.value);
 
 
           _dasProducerConfig.signalSending();
