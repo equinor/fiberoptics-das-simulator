@@ -54,7 +54,7 @@
     <repository>
       <id>Confluent</id>
       <name>Confluent repo</name>
-      <url>http://packages.confluent.io/maven</url>
+      <url>https://packages.confluent.io/maven</url>
     </repository>
     <repository>
       <id>publicshemas</id>
