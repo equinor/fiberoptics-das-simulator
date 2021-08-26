@@ -7,14 +7,14 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>2.3.4.RELEASE</version>
+    <version>2.5.4</version>
     <relativePath/>
   </parent>
 
   <groupId>com.equinor.fiberoptics</groupId>
   <artifactId>fiberoptics-das-simulator</artifactId>
   <description>A Fiberoptics DAS producer reference implementation</description>
-  <version>1.0.3</version>
+  <version>1.0.4</version>
   <packaging>jar</packaging>
   <licenses>
     <license>
@@ -37,9 +37,9 @@
   </developers>
   <properties>
     <dasschemas.version>1.0.7</dasschemas.version>
-    <spring-cloud.version>Hoxton.SR8</spring-cloud.version>
+    <spring-cloud.version>2020.0.3</spring-cloud.version>
     <java.version>13</java.version>
-    <confluent.version>6.0.0</confluent.version>
+    <confluent.version>6.2.0</confluent.version>
     <docker.image.prefix>ingressplatform</docker.image.prefix>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -54,7 +54,7 @@
     <repository>
       <id>Confluent</id>
       <name>Confluent repo</name>
-      <url>https://packages.confluent.io/maven</url>
+      <url>http://packages.confluent.io/maven</url>
     </repository>
     <repository>
       <id>publicshemas</id>
