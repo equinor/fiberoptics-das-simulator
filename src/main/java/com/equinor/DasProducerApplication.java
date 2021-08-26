@@ -25,8 +25,8 @@ import com.equinor.fiberoptics.das.producer.variants.simulatorboxunit.SimulatorB
 import com.equinor.kafka.KafkaConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -50,10 +50,14 @@ import org.springframework.retry.annotation.EnableRetry;
 public class DasProducerApplication {
 
   private static final Logger logger = LoggerFactory.getLogger(DasProducerApplication.class);
+  private final BeanFactory _beanFactory;
+  private final DasProducerConfiguration _dasProducerConfig;
 
   @Autowired
-  @Qualifier("SimulatorBoxUnit")
-  private GenericDasProducer simulatorBoxUnit;
+  public DasProducerApplication(BeanFactory beanFactory, DasProducerConfiguration dasProducerConfig) {
+    this._beanFactory = beanFactory;
+    this._dasProducerConfig = dasProducerConfig;
+  }
 
   public static void main(final String[] args) {
     SpringApplication.run(DasProducerApplication.class, args);
@@ -63,8 +67,9 @@ public class DasProducerApplication {
   public void onApplicationEvent(ApplicationReadyEvent event) {
     logger.info("ApplicationReadyEvent");
 
+    GenericDasProducer simulatorBoxUnit = _beanFactory.getBean(_dasProducerConfig.getVariant(), GenericDasProducer.class);
     if (!simulatorBoxUnit.isDone()) {
-      simulatorBoxUnit.startDatastreaming();
+      simulatorBoxUnit.startDataStreaming();
       logger.info("Application finished");
 
       int exitValue = SpringApplication.exit(event.getApplicationContext());

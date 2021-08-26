@@ -25,5 +25,5 @@ package com.equinor.fiberoptics.das.producer.variants;
  */
 public interface GenericDasProducer {
   boolean isDone();
-  void startDatastreaming();
+  void startDataStreaming();
 }

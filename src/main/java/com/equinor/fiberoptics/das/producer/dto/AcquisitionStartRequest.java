@@ -21,10 +21,14 @@ package com.equinor.fiberoptics.das.producer.dto;
 
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.HashMap;
 import java.util.Map;
 
+@Getter
+@Setter
 public class AcquisitionStartRequest {
 
   @JsonProperty("SchemaVersion")
@@ -68,7 +72,6 @@ public class AcquisitionStartRequest {
   @JsonProperty("Custom")
   private Map<String, String> custom = new HashMap<>();
 
-
   public AcquisitionStartRequest(String acquisitionId, String dasInstrumentBoxUUID, String opticalPathUUID,
                                  float gaugeLength, float spatialSamplingInterval,
                                  float pulseRate, float pulseWidth,
@@ -94,162 +97,6 @@ public class AcquisitionStartRequest {
   @JsonAnySetter
   public void setCustom(String key, String value) {
       custom.put(key, value);
-  }
-
-  public Map<String, String> getCustom() {
-    return custom;
-  }
-
-  public String getSchemaVersion() {
-    return schemaVersion;
-  }
-
-  public void setSchemaVersion(String schemaVersion) {
-    this.schemaVersion = schemaVersion;
-  }
-
-  public String getAquisitionId() {
-    return aquisitionId;
-  }
-
-  public void setAquisitionId(String aquisitionId) {
-    this.aquisitionId = aquisitionId;
-  }
-
-  public String getOpticalPath() {
-    return opticalPath;
-  }
-
-  public void setOpticalPath(String opticalPath) {
-    this.opticalPath = opticalPath;
-  }
-
-  public float getPulseWidth() {
-    return pulseWidth;
-  }
-
-  public void setPulseWidth(float pulseWidth) {
-    this.pulseWidth = pulseWidth;
-  }
-
-  public String getPulseWidthUnit() {
-    return pulseWidthUnit;
-  }
-
-  public void setPulseWidthUnit(String pulseWidthUnit) {
-    this.pulseWidthUnit = pulseWidthUnit;
-  }
-
-  public String getFacilityId() {
-    return facilityId;
-  }
-
-  public void setFacilityId(String facilityId) {
-    this.facilityId = facilityId;
-  }
-
-  public float getMinimumFrequency() {
-    return minimumFrequency;
-  }
-
-  public void setMinimumFrequency(float minimumFrequency) {
-    this.minimumFrequency = minimumFrequency;
-  }
-
-  public float getMaximumFrequency() {
-    return maximumFrequency;
-  }
-
-  public void setMaximumFrequency(float maximumFrequency) {
-    this.maximumFrequency = maximumFrequency;
-  }
-
-  public String getDasInstrumentBox() {
-    return dasInstrumentBox;
-  }
-
-  public void setDasInstrumentBox(String dasInstrumentBox) {
-    this.dasInstrumentBox = dasInstrumentBox;
-  }
-
-  public float getSpatialSamplingInterval() {
-    return spatialSamplingInterval;
-  }
-
-  public void setSpatialSamplingInterval(float spatialSamplingInterval) {
-    this.spatialSamplingInterval = spatialSamplingInterval;
-  }
-
-  public String getSpatialSamplingIntervalUnit() {
-    return spatialSamplingIntervalUnit;
-  }
-
-  public void setSpatialSamplingIntervalUnit(String spatialSamplingIntervalUnit) {
-    this.spatialSamplingIntervalUnit = spatialSamplingIntervalUnit;
-  }
-
-  public float getGaugeLength() {
-    return gaugeLength;
-  }
-
-  public void setGaugeLength(float gaugeLength) {
-    this.gaugeLength = gaugeLength;
-  }
-
-  public String getGaugeLengthUnit() {
-    return gaugeLengthUnit;
-  }
-
-  public void setGaugeLengthUnit(String gaugeLengthUnit) {
-    this.gaugeLengthUnit = gaugeLengthUnit;
-  }
-
-  public boolean isTriggeredMeasurement() {
-    return triggeredMeasurement;
-  }
-
-  public void setTriggeredMeasurement(boolean triggeredMeasurement) {
-    this.triggeredMeasurement = triggeredMeasurement;
-  }
-
-  public int getNumberOfLoci() {
-    return numberOfLoci;
-  }
-
-  public void setNumberOfLoci(int numberOfLoci) {
-    this.numberOfLoci = numberOfLoci;
-  }
-
-  public float getPulseRate() {
-    return pulseRate;
-  }
-
-  public void setPulseRate(float pulseRate) {
-    this.pulseRate = pulseRate;
-  }
-
-  public String getMeasurementStartTime() {
-    return measurementStartTime;
-  }
-
-  public void setMeasurementStartTime(String measurementStartTime) {
-    this.measurementStartTime = measurementStartTime;
-  }
-
-  public String getVendorCode() {
-    return vendorCode;
-  }
-
-  public void setVendorCode(String vendorCode) {
-    this.vendorCode = vendorCode;
-  }
-
-  public int getStartLocusIndex() {
-    return startLocusIndex;
-  }
-
-  public void setStartLocusIndex(int startLocusIndex) {
-    this.startLocusIndex = startLocusIndex;
   }
 
   public class Custom {

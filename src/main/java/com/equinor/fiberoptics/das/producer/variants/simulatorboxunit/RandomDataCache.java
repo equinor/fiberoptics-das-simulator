@@ -43,11 +43,19 @@ public class RandomDataCache {
 
   private static final Logger logger = LoggerFactory.getLogger(RandomDataCache.class);
 
-  public RandomDataCache(int numberOfPrepoluatedValues, int amplitudesPrPackage, int pulseRate) {
+  public RandomDataCache(int numberOfPrePopuluatedValues, int amplitudesPrPackage, int pulseRate) {
     _amplitudesPrPackage = amplitudesPrPackage;
     _pulseRate = pulseRate;
-    _numberOfPrepoluatedValues = numberOfPrepoluatedValues;
+    _numberOfPrepoluatedValues = numberOfPrePopuluatedValues;
     _amplitudesPrLocus = prepareFloatEntries();
+  }
+
+  public List<Float> getFloat() {
+    if (_currentIndex >= _numberOfPrepoluatedValues) {
+      _currentIndex = 0;
+    }
+    return _amplitudesPrLocus.get(_currentIndex++);
+
   }
 
   private Map<Integer, List<Float>> prepareFloatEntries() {
@@ -58,14 +66,6 @@ public class RandomDataCache {
     }
     logger.info("Done.");
     return toReturn;
-  }
-
-  public List<Float> getFloat() {
-    if (_currentIndex >= _numberOfPrepoluatedValues) {
-      _currentIndex = 0;
-    }
-    return _amplitudesPrLocus.get(_currentIndex++);
-
   }
 
   private List<Float> getAmplitudesFloat(long timeIndex) {
@@ -80,20 +80,4 @@ public class RandomDataCache {
     }
     return toReturn;
   }
-
-  /*private List<Long> getAmplitudeListLong(long timePoint) {
-
-    List<Long> toReturn = new ArrayList<>();
-
-    Random myRand = new Random();
-
-    for (int currentTimePoint = 0; currentTimePoint < _amplitudesPrPackage; currentTimePoint++) {
-      double val =
-        Math.sin((double) timePoint / _pulseRate * myRand.nextFloat() * 2 * Math.PI);
-      toReturn.add((long) (val * _simConfig.getConversionConstant()));
-    }
-    return toReturn;
-  }*/
-
-
 }

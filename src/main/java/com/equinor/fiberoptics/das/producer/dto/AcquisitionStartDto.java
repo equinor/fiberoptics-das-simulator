@@ -19,64 +19,21 @@
  */
 package com.equinor.fiberoptics.das.producer.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.util.Map;
 
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class AcquisitionStartDto {
   private String topic;
   private String bootstrapServers;
   private String schemaRegistryUrl;
   private int numberOfPartitions;
   private Map<Integer, Integer> partitionAssignments;
-
-  public AcquisitionStartDto() {
-  }
-
-  public AcquisitionStartDto(String topic, String bootstrapServers, String schemaRegistryUrl,
-                      int numberOfPartitions, Map<Integer, Integer> partitionAssignments) {
-    this.topic = topic;
-    this.bootstrapServers = bootstrapServers;
-    this.schemaRegistryUrl = schemaRegistryUrl;
-    this.numberOfPartitions = numberOfPartitions;
-    this.partitionAssignments = partitionAssignments;
-  }
-
-  public String getTopic() {
-    return topic;
-  }
-
-  public void setTopic(String topic) {
-    this.topic = topic;
-  }
-
-  public String getBootstrapServers() {
-    return bootstrapServers;
-  }
-
-  public void setBootstrapServers(String bootstrapServers) {
-    this.bootstrapServers = bootstrapServers;
-  }
-
-  public String getSchemaRegistryUrl() {
-    return schemaRegistryUrl;
-  }
-
-  public void setSchemaRegistryUrl(String schemaRegistryUrl) {
-    this.schemaRegistryUrl = schemaRegistryUrl;
-  }
-
-  public int getNumberOfPartitions() {
-    return numberOfPartitions;
-  }
-
-  public void setNumberOfPartitions(int numberOfPartitions) {
-    this.numberOfPartitions = numberOfPartitions;
-  }
-
-  public Map<Integer, Integer> getPartitionAssignments() {
-    return partitionAssignments;
-  }
-
-  public void setPartitionAssignments(Map<Integer, Integer> partitionAssignments) {
-    this.partitionAssignments = partitionAssignments;
-  }
 }

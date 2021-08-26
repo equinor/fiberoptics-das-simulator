@@ -23,6 +23,7 @@ das:
     initiatorserviceApiKey: ${INITIATOR_API_KEY}
     overrideBootstrapServersWith: ${KAFKA_SERVER_OVERRIDE:}
     overrideSchemaRegistryWith: ${SCHEMA_REGISTRY_URL_OVERRIDE:}
+    variant: ${VARIANT_PLUGIN:SimulatorBoxUnit}
     box:
       simulator:
         amplitudeDataType: float

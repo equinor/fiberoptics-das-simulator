@@ -19,6 +19,8 @@
  */
 package com.equinor.fiberoptics.das.producer;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.Map;
@@ -29,6 +31,8 @@ import java.util.Map;
  * @author Espen Tjonneland, espen@tjonneland.no
  */
 @ConfigurationProperties(prefix = "das.producer")
+@Getter
+@Setter
 public class DasProducerConfiguration {
 
   private int amplitudesPrPackage;
@@ -39,93 +43,21 @@ public class DasProducerConfiguration {
   private Boolean sending;
   private String overrideBootstrapServersWith;
   private String overrideSchemaRegistryWith;
+  private String variant;
 
   private Map<Integer, Integer> partitionAssignments;
 
-  public Map<Integer, Integer> getPartitionAssignments() {
-    return partitionAssignments;
-  }
-
-  public void setPartitionAssignments(Map<Integer, Integer> partitionAssignments) {
-    this.partitionAssignments = partitionAssignments;
-  }
-
-  public String getOverrideBootstrapServersWith() {
-    return overrideBootstrapServersWith;
-  }
-
-  public void setOverrideBootstrapServersWith(String overrideBootstrapServersWith) {
-    this.overrideBootstrapServersWith = overrideBootstrapServersWith;
-  }
-
-  public String getOverrideSchemaRegistryWith() {
-    return overrideSchemaRegistryWith;
-  }
-
-  public void setOverrideSchemaRegistryWith(String overrideSchemaRegistryWith) {
-    this.overrideSchemaRegistryWith = overrideSchemaRegistryWith;
-  }
-
-  public String getKafkaTopicName() {
-    return kafkaTopicName;
-  }
-
-  public void setKafkaTopicName(String kafkaTopicName) {
-    this.kafkaTopicName = kafkaTopicName;
-  }
-
-  public Boolean isRunning() {
-    return running;
-  }
-
-  public void setIsRunning(boolean should) {
-    running = should;
-  }
-
+  public Boolean isRunning() { return running; }
+  public void setIsRunning(boolean should) { running = should; }
   public void signalRunning() {
     this.running = true;
   }
-
   public void signalStopped() {
     this.running = false;
   }
-
-  public Boolean isSending() {
-    return sending;
-  }
-
-  public void signalSending() {
-    this.sending = true;
-  }
-
+  public Boolean isSending() { return sending; }
+  public void signalSending() { this.sending = true; }
   public void signalNotSending() {
     this.sending = false;
   }
-
-  public String getInitiatorserviceUrl() {
-    return initiatorserviceUrl;
-  }
-
-  public void setInitiatorserviceUrl(String initiatorserviceUrl) {
-    this.initiatorserviceUrl = initiatorserviceUrl;
-  }
-
-  public String getInitiatorserviceApiKey() {
-    return initiatorserviceApiKey;
-  }
-
-  public void setInitiatorserviceApiKey(String initiatorserviceApiKey) {
-    this.initiatorserviceApiKey = initiatorserviceApiKey;
-  }
-
-
-  public int getAmplitudesPrPackage() {
-    return amplitudesPrPackage;
-  }
-
-  public void setAmplitudesPrPackage(int amplitudesPrPackage) {
-    this.amplitudesPrPackage = amplitudesPrPackage;
-  }
-
-
 }

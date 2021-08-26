@@ -79,7 +79,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
     return done;
   }
 
-  public void startDatastreaming() {
+  public void startDataStreaming() {
     scheduler.setPoolSize(1);
     scheduler.initialize();
 
@@ -101,7 +101,6 @@ public class SimulatorBoxUnit implements GenericDasProducer {
       trigger = new PeriodicTrigger(millisIntervalBetweenShots, TimeUnit.MILLISECONDS);
       trigger.setFixedRate(true);
     }
-
 
     ScheduledFuture<?> schedule = scheduler.schedule(getTask(), trigger);
     _dasProducerConfig.signalRunning();
@@ -144,7 +143,6 @@ public class SimulatorBoxUnit implements GenericDasProducer {
             constructAvroObjects(currentLocus, _randomDataCache.getFloat());
           int currentPartition = _dasProducerConfig.getPartitionAssignments().get(partitionEntry.value.getLocus()); //Use the one from stream initiator (Simulator mode)
 
-
           logger.debug("Sending amplitude array for locus: {} to partition: {} total partitions: {}",
             partitionEntry.value.getLocus(), currentPartition, _kafkaConf.getPartitions());
           ProducerRecord<DASMeasurementKey, DASMeasurement> data =
@@ -152,7 +150,6 @@ public class SimulatorBoxUnit implements GenericDasProducer {
               currentPartition,
               stepCalculator.currentEpochMillis(),
               partitionEntry.key, partitionEntry.value);
-
 
           _dasProducerConfig.signalSending();
           _kafkaSendChannel.send(data);

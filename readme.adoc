@@ -80,6 +80,7 @@ Control of the parameters of the process in this example is done via environment
 |===
 |Setting |Default value |Description
 
+|VARIANT_PLUGIN|SimulatorBoxUnit|The plugin producing data for simulation. The component need to be available on classpath as it is loaded at runtime
 |PACKAGE_SIZE|8192|The number of amplitude delivered pr Kafka message.
 |INITIATOR_URL| http://localhost:8080| The API endpoint base URL for the stream initiation service.
 |INITIATOR_API_KEY| No value| An API key that needs to be set in the service behind the initiator url e.g. 1aa111a11aa11a0a1a1aa1111a1a1a1a
