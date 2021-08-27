@@ -24,11 +24,11 @@ import com.equinor.fiberoptics.das.producer.variants.PackageStepCalculator;
 import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.function.Supplier;
@@ -43,25 +43,27 @@ import java.util.function.Supplier;
 @Component("SimulatorBoxUnit")
 @EnableConfigurationProperties({ SimulatorBoxUnitConfiguration.class})
 public class SimulatorBoxUnit implements GenericDasProducer {
-  @Autowired
-  private SimulatorBoxUnitConfiguration configuration;
+  private final SimulatorBoxUnitConfiguration _configuration;
 
-  @Override
-  public boolean isDone() {
-    return true;
+  public SimulatorBoxUnit(SimulatorBoxUnitConfiguration configuration) {
+    this._configuration = configuration;
   }
 
   @Override
   public Supplier<Flux<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> produce() {
-    RandomDataCache dataCache = new RandomDataCache(100, 8, configuration.getPulseRate());
+    RandomDataCache dataCache = new RandomDataCache(_configuration.getNumberOfPrePopulatedValues(), _configuration.getAmplitudesPrPackage(), _configuration.getPulseRate());
 
     PackageStepCalculator stepCalculator = new PackageStepCalculator(Instant.now(),
-      configuration.getMaxFreq(), 8, configuration.getNumberOfLoci());
+      _configuration.getMaxFreq(), _configuration.getAmplitudesPrPackage(), _configuration.getNumberOfLoci());
+
+    long delay = _configuration.isDisableThrottling () ? 0 : (long)stepCalculator.millisPrPackage();
 
     return () ->
-      Flux.range(0, 10)
+      Flux
+        .interval(Duration.ofMillis(delay))
+        .take(_configuration.getSecondsToRun())
         .map(index ->
-          constructAvroObjects(stepCalculator, index, dataCache.getFloat())
+          constructAvroObjects(stepCalculator, index.intValue(), dataCache.getFloat())
         )
         .log();
   }

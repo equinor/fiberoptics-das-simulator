@@ -23,13 +23,11 @@ import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
 import reactor.core.publisher.Flux;
 
-import java.util.List;
 import java.util.function.Supplier;
 
 /**
  * Minimal
  */
 public interface GenericDasProducer {
-  boolean isDone();
   Supplier<Flux<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> produce();
 }

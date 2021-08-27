@@ -3,7 +3,7 @@ das:
     box:
       simulator:
         amplitudeDataType: float
-        secondsToRun: ${SECONDS_TO_RUN:120}
+        secondsToRun: ${SECONDS_TO_RUN:10}
         pulseRate: ${PULSE_RATE:10000}
         maxFreq: ${MAX_NYQ_FREQ:5000}
         minFreq: ${MIN_NYQ_FREQ:0}
@@ -12,6 +12,8 @@ das:
         spatialSamplingInterval: ${SPATIAL_SAMPLING_INTERVAL:1.1}
         pulseWidth: ${PULSE_WIDTH:100.50}
         startLocusIndex: ${START_LOCUS_INDEX:0}
-        disableThrotteling: ${DISABLE_THROTTLING:0}
+        disableThrottling: ${DISABLE_THROTTLING:0}
         gaugeLength: ${GAUGE_LENGTH:10.209524}
         numberOfLoci: ${NUMBER_OF_LOCI:25}
+        numberOfPrePopulatedValues: 100
+        amplitudesPrPackage: 8192

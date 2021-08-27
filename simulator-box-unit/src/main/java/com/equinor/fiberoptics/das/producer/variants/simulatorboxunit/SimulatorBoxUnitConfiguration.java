@@ -45,7 +45,9 @@ public class SimulatorBoxUnitConfiguration {
   private float minFreq;
   private int numberOfLoci;
   private double conversionConstant;
-  private boolean disableThrotteling;
+  private boolean disableThrottling;
+  private int amplitudesPrPackage;
+  private int numberOfPrePopulatedValues;
   private int secondsToRun;
 
   @PostConstruct
@@ -53,7 +55,7 @@ public class SimulatorBoxUnitConfiguration {
     conversionConstant = ((maxFreq * 2) / gaugeLength) * 116;
   }
 
-  public boolean isDisableThrotteling() {
-    return disableThrotteling;
+  public boolean isDisableThrottling() {
+    return disableThrottling;
   }
 }

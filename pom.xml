@@ -8,6 +8,14 @@
   <artifactId>parent</artifactId>
   <version>1.0.0</version>
   <description>Parent for simulator modules</description>
+  <dependencies>
+    <dependency>
+      <groupId>fiberoptics.das</groupId>
+      <artifactId>public-schemas</artifactId>
+      <version>1.0.7</version>
+      <scope>compile</scope>
+    </dependency>
+  </dependencies>
   <packaging>pom</packaging>
 
   <properties>
@@ -34,7 +42,8 @@
   </repositories>
 
   <modules>
-    <module>das-producer</module>
+    <module>simulator-common</module>
     <module>simulator-box-unit</module>
+    <module>das-producer</module>
   </modules>
 </project>
