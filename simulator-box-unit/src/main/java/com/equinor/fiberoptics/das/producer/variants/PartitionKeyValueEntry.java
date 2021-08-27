@@ -19,17 +19,15 @@
  */
 package com.equinor.fiberoptics.das.producer.variants;
 
-import fiberoptics.time.message.v1.DASMeasurement;
-import fiberoptics.time.message.v1.DASMeasurementKey;
-import reactor.core.publisher.Flux;
+public class PartitionKeyValueEntry<K, V> {
 
-import java.util.List;
-import java.util.function.Supplier;
+  public final K key;
+  public final V value;
+  public final Integer partition;
 
-/**
- * Minimal
- */
-public interface GenericDasProducer {
-  boolean isDone();
-  Supplier<Flux<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> produce();
+  public PartitionKeyValueEntry(K key, V value, Integer partition) {
+    this.key = key;
+    this.value = value;
+    this.partition = partition;
+  }
 }

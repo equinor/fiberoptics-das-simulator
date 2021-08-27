@@ -20,7 +20,18 @@
 package com.equinor.fiberoptics.das.producer.variants.simulatorboxunit;
 
 import com.equinor.fiberoptics.das.producer.variants.GenericDasProducer;
+import com.equinor.fiberoptics.das.producer.variants.PackageStepCalculator;
+import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
+import fiberoptics.time.message.v1.DASMeasurement;
+import fiberoptics.time.message.v1.DASMeasurementKey;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * This is an example DAS  box unit implementation.
@@ -30,13 +41,42 @@ import org.springframework.stereotype.Component;
  * @author Espen Tjonneland, espen@tjonneland.no
  */
 @Component("SimulatorBoxUnit")
+@EnableConfigurationProperties({ SimulatorBoxUnitConfiguration.class})
 public class SimulatorBoxUnit implements GenericDasProducer {
+  @Autowired
+  private SimulatorBoxUnitConfiguration configuration;
 
+  @Override
   public boolean isDone() {
     return true;
   }
 
-  public void startDataStreaming() {
+  @Override
+  public Supplier<Flux<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> produce() {
+    RandomDataCache dataCache = new RandomDataCache(100, 8, configuration.getPulseRate());
 
+    PackageStepCalculator stepCalculator = new PackageStepCalculator(Instant.now(),
+      configuration.getMaxFreq(), 8, configuration.getNumberOfLoci());
+
+    return () ->
+      Flux.range(0, 10)
+        .map(index ->
+          constructAvroObjects(stepCalculator, index, dataCache.getFloat())
+        )
+        .log();
+  }
+
+  private PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> constructAvroObjects(PackageStepCalculator stepCalculator, int currentLocus, List<Float> data) {
+    return new PartitionKeyValueEntry<>(
+      DASMeasurementKey.newBuilder()
+        .setLocus(currentLocus)
+        .build(),
+      DASMeasurement.newBuilder()
+        .setStartSnapshotTimeNano(stepCalculator.currentEpochNanos())
+        .setTrustedTimeSource(true)
+        .setLocus(currentLocus)
+        .setAmplitudesFloat(data)
+        .build(),
+      currentLocus);
   }
 }
