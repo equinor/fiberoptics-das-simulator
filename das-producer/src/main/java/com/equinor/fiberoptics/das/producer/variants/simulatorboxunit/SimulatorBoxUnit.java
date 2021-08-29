@@ -19,9 +19,9 @@
  */
 package com.equinor.fiberoptics.das.producer.variants.simulatorboxunit;
 
-import com.equinor.fiberoptics.das.PackageStepCalculator;
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
 import com.equinor.fiberoptics.das.producer.variants.GenericDasProducer;
+import com.equinor.fiberoptics.das.producer.variants.PackageStepCalculator;
 import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
 import com.equinor.kafka.KafkaConfiguration;
 import com.equinor.kafka.KafkaSender;

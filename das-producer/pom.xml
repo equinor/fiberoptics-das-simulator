@@ -72,6 +72,12 @@
 
   <dependencies>
     <dependency>
+      <groupId>com.equinor.fiberoptics</groupId>
+      <artifactId>simulator-common</artifactId>
+      <version>1.0.0</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
       <groupId>fiberoptics.das</groupId>
       <artifactId>public-schemas</artifactId>
       <version>${dasschemas.version}</version>
