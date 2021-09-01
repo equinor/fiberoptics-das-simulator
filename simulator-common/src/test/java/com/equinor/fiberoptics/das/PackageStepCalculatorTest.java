@@ -19,6 +19,7 @@
  */
 package com.equinor.fiberoptics.das;
 
+import com.equinor.fiberoptics.das.producer.variants.PackageStepCalculator;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;

@@ -22,8 +22,11 @@ package com.equinor.fiberoptics.das.producer.variants.simulatorboxunit;
 import com.equinor.fiberoptics.das.producer.variants.GenericDasProducer;
 import com.equinor.fiberoptics.das.producer.variants.PackageStepCalculator;
 import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
+import com.equinor.fiberoptics.das.producer.variants.util.Helpers;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
@@ -31,7 +34,8 @@ import reactor.core.publisher.Flux;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.function.Supplier;
+import java.util.concurrent.CountDownLatch;
+import java.util.function.Consumer;
 
 /**
  * This is an example DAS  box unit implementation.
@@ -43,38 +47,56 @@ import java.util.function.Supplier;
 @Component("SimulatorBoxUnit")
 @EnableConfigurationProperties({ SimulatorBoxUnitConfiguration.class})
 public class SimulatorBoxUnit implements GenericDasProducer {
-  private final SimulatorBoxUnitConfiguration _configuration;
+  private static final Logger logger = LoggerFactory.getLogger(SimulatorBoxUnit.class);
 
-  public SimulatorBoxUnit(SimulatorBoxUnitConfiguration configuration) {
+  private final SimulatorBoxUnitConfiguration _configuration;
+  private final PackageStepCalculator _stepCalculator;
+
+  public SimulatorBoxUnit(SimulatorBoxUnitConfiguration configuration)
+  {
     this._configuration = configuration;
+    this._stepCalculator = new PackageStepCalculator(Instant.now(),
+      _configuration.getMaxFreq(), _configuration.getAmplitudesPrPackage(), _configuration.getNumberOfLoci());
   }
 
   @Override
-  public Supplier<Flux<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> produce() {
-    RandomDataCache dataCache = new RandomDataCache(_configuration.getNumberOfPrePopulatedValues(), _configuration.getAmplitudesPrPackage(), _configuration.getPulseRate());
-
-    PackageStepCalculator stepCalculator = new PackageStepCalculator(Instant.now(),
-      _configuration.getMaxFreq(), _configuration.getAmplitudesPrPackage(), _configuration.getNumberOfLoci());
-
-    long delay = _configuration.isDisableThrottling () ? 0 : (long)stepCalculator.millisPrPackage();
-
-    return () ->
-      Flux
-        .interval(Duration.ofMillis(delay))
-        .take(_configuration.getSecondsToRun())
-        .map(index ->
-          constructAvroObjects(stepCalculator, index.intValue(), dataCache.getFloat())
-        )
-        .log();
+  public PackageStepCalculator getStepCalculator() {
+    return _stepCalculator;
   }
 
-  private PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> constructAvroObjects(PackageStepCalculator stepCalculator, int currentLocus, List<Float> data) {
+  @Override
+  public void produce(Consumer<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> consumer) {
+    RandomDataCache dataCache = new RandomDataCache(_configuration.getNumberOfPrePopulatedValues(), _configuration.getAmplitudesPrPackage(), _configuration.getPulseRate());
+
+    CountDownLatch latch = new CountDownLatch(1);
+    long delay = _configuration.isDisableThrottling () ? 0 : (long)_stepCalculator.millisPrPackage();
+
+    logger.info(String.format("Starting to produce data now for %d seconds", _configuration.getSecondsToRun()));
+    Flux
+        .interval(Duration.ofMillis(delay))
+        .take(_configuration.getSecondsToRun())
+        .map(tick -> {
+            var message = constructAvroObjects(tick.intValue(), dataCache.getFloat());
+            _stepCalculator.increment(1);
+            return message;
+          }
+        )
+        .subscribe(consumer,
+          (ex) -> logger.info("Error emitted: " + ex.getMessage()),
+          () -> {
+            latch.countDown();
+          });
+
+    Helpers.wait(latch);
+  }
+
+  private PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> constructAvroObjects(int currentLocus, List<Float> data) {
     return new PartitionKeyValueEntry<>(
       DASMeasurementKey.newBuilder()
         .setLocus(currentLocus)
         .build(),
       DASMeasurement.newBuilder()
-        .setStartSnapshotTimeNano(stepCalculator.currentEpochNanos())
+        .setStartSnapshotTimeNano(_stepCalculator.currentEpochNanos())
         .setTrustedTimeSource(true)
         .setLocus(currentLocus)
         .setAmplitudesFloat(data)

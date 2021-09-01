@@ -43,6 +43,7 @@
     <spring-boot.version>2.5.3</spring-boot.version>
     <spring.version>5.3.9</spring.version>
     <dasschemas.version>1.0.7</dasschemas.version>
+    <confluent.version>6.2.0</confluent.version>
   </properties>
 
   <dependencyManagement>
@@ -83,12 +84,13 @@
       <artifactId>spring-cloud-starter-stream-kafka</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.springframework.cloud</groupId>
-      <artifactId>spring-cloud-starter-stream-kafka</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-configuration-processor</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.confluent</groupId>
+      <artifactId>kafka-avro-serializer</artifactId>
+      <version>${confluent.version}</version>
     </dependency>
     <dependency>
       <groupId>org.projectlombok</groupId>
@@ -123,25 +125,6 @@
 
   <build>
     <plugins>
-      <plugin>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-maven-plugin</artifactId>
-        <configuration>
-          <excludes>
-            <exclude>
-              <groupId>org.springframework.boot</groupId>
-              <artifactId>spring-boot-configuration-processor</artifactId>
-            </exclude>
-          </excludes>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>repackage</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>

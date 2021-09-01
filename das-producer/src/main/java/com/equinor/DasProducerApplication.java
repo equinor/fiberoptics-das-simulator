@@ -19,10 +19,15 @@
  */
 package com.equinor;
 
+import com.equinor.fiberoptics.das.kafka.Streamer;
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
 import com.equinor.fiberoptics.das.producer.variants.GenericDasProducer;
+import com.equinor.fiberoptics.das.producer.variants.PackageStepCalculator;
+import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
 import com.equinor.fiberoptics.das.producer.variants.simulatorboxunit.SimulatorBoxUnitConfiguration;
 import com.equinor.kafka.KafkaConfiguration;
+import fiberoptics.time.message.v1.DASMeasurement;
+import fiberoptics.time.message.v1.DASMeasurementKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
@@ -34,6 +39,10 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.event.EventListener;
 import org.springframework.retry.annotation.EnableRetry;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.function.Consumer;
 
 /**
  * This is the entry point of the application.
@@ -52,11 +61,13 @@ public class DasProducerApplication {
   private static final Logger logger = LoggerFactory.getLogger(DasProducerApplication.class);
   private final BeanFactory _beanFactory;
   private final DasProducerConfiguration _dasProducerConfig;
+  private final Streamer _streamer;
 
   @Autowired
-  public DasProducerApplication(BeanFactory beanFactory, DasProducerConfiguration dasProducerConfig) {
+  public DasProducerApplication(BeanFactory beanFactory, DasProducerConfiguration dasProducerConfig, Streamer streamer) {
     this._beanFactory = beanFactory;
     this._dasProducerConfig = dasProducerConfig;
+    this._streamer = streamer;
   }
 
   public static void main(final String[] args) {
@@ -68,14 +79,12 @@ public class DasProducerApplication {
     logger.info("ApplicationReadyEvent");
 
     GenericDasProducer simulatorBoxUnit = _beanFactory.getBean(_dasProducerConfig.getVariant(), GenericDasProducer.class);
-    if (!simulatorBoxUnit.isDone()) {
-      simulatorBoxUnit.startDataStreaming();
-      logger.info("Application finished");
+    Consumer<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> logOutput = value -> {
+      _streamer.relayToKafka(simulatorBoxUnit.getStepCalculator(), value);
+    };
 
-      int exitValue = SpringApplication.exit(event.getApplicationContext());
-      System.exit(exitValue);
-    } else {
-      logger.info("Job done. Exiting.");
-    }
+    simulatorBoxUnit.produce(logOutput);
+    _streamer.teardown();
+    logger.info("Job done. Exiting.");
   }
 }

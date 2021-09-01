@@ -5,33 +5,38 @@ import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
-import reactor.core.publisher.Flux;
 
-import java.util.List;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.function.Consumer;
 
 @ActiveProfiles("test")
 @SpringBootTest(classes=SimulatorBoxUnit.class)
 @RunWith(SpringRunner.class)
 public class SimulatorBoxUnitTest {
 
+  private static final Logger logger = LoggerFactory.getLogger(SimulatorBoxUnitTest.class);
+  private final static long millisInNano = 1_000_000;
+
   @Autowired
   SimulatorBoxUnit simulatorBoxUnit;
 
   @Test
   public void testStreamFromSimulatorBox() {
-    Flux<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> output = simulatorBoxUnit.produce().get();
-    List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> results = output.collectList().block();
-    for (PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> result: results) {
-      System.out.println("-----------------------------------------");
-      System.out.println("New DAS Measurement");
+    Consumer<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> logOutput = value -> {
+      DASMeasurement measurement = value.value;
+      LocalDateTime ldt = Instant.ofEpochMilli(measurement.getStartSnapshotTimeNano() / millisInNano).atZone(ZoneId.systemDefault()).toLocalDateTime();
 
-      for (Float floatValue: result.value.getAmplitudesFloat()) {
-        System.out.println(floatValue);
-      }
-    }
+      logger.info("Locus {} with {} has {} amplitudes", measurement.getLocus(), ldt, measurement.getAmplitudesFloat().size());
+    };
+
+    simulatorBoxUnit.produce(logOutput);
   }
 }

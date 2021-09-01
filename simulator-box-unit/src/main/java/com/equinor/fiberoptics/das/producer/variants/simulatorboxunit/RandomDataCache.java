@@ -22,7 +22,11 @@ package com.equinor.fiberoptics.das.producer.variants.simulatorboxunit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 /**
  * A very simple data-source that provides random(ish) data.
@@ -63,7 +67,7 @@ public class RandomDataCache {
     return toReturn;
   }
 
-  public List<Float> getAmplitudesFloat(long timeIndex) {
+  private List<Float> getAmplitudesFloat(long timeIndex) {
 
     List<Float> toReturn = new ArrayList<>();
     Random myRand = new Random();
