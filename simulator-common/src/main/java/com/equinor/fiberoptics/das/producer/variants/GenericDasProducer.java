@@ -21,6 +21,7 @@ package com.equinor.fiberoptics.das.producer.variants;
 
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
+import reactor.core.publisher.Flux;
 
 import java.util.function.Consumer;
 
@@ -29,5 +30,5 @@ import java.util.function.Consumer;
  */
 public interface GenericDasProducer {
   PackageStepCalculator getStepCalculator();
-  void produce(Consumer<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> consumer);
+  Flux<PartitionKeyValueEntry<DASMeasurementKey,DASMeasurement>> produce();
 }

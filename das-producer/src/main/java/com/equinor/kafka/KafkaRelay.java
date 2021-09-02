@@ -17,16 +17,11 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
-package com.equinor.fiberoptics.das.kafka;
+package com.equinor.kafka;
 
-import com.equinor.DasProducerApplication;
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
 import com.equinor.fiberoptics.das.producer.variants.PackageStepCalculator;
 import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
-import com.equinor.fiberoptics.das.producer.variants.simulatorboxunit.RandomDataCache;
-import com.equinor.fiberoptics.das.producer.variants.simulatorboxunit.SimulatorBoxUnitConfiguration;
-import com.equinor.kafka.KafkaConfiguration;
-import com.equinor.kafka.KafkaSender;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -34,21 +29,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-
 @Component
-public class Streamer {
+public class KafkaRelay {
 
   private final static long millisInNano = 1_000_000;
-  private static final Logger logger = LoggerFactory.getLogger(Streamer.class);
+  private static final Logger logger = LoggerFactory.getLogger(KafkaRelay.class);
 
   private final KafkaSender _kafkaSendChannel;
   private final KafkaConfiguration _kafkaConf;
   private final DasProducerConfiguration _dasProducerConfig;
 
-  Streamer(
+  KafkaRelay(
     KafkaConfiguration kafkaConfig,
     KafkaSender kafkaSendChannel,
     DasProducerConfiguration dasProducerConfiguration) {
@@ -57,7 +48,7 @@ public class Streamer {
     this._dasProducerConfig = dasProducerConfiguration;
   }
 
-  public void relayToKafka(PackageStepCalculator stepCalculator, PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> partitionEntry) {
+  public void consume(PackageStepCalculator stepCalculator, PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> partitionEntry) {
     logger.info("Sending message on Kafka");
     int currentPartition = _dasProducerConfig.getPartitionAssignments().get(0); //Use the one from stream initiator (Simulator mode)
     ProducerRecord<DASMeasurementKey, DASMeasurement> data =

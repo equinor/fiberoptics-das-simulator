@@ -22,7 +22,6 @@ package com.equinor.fiberoptics.das.producer.variants.simulatorboxunit;
 import com.equinor.fiberoptics.das.producer.variants.GenericDasProducer;
 import com.equinor.fiberoptics.das.producer.variants.PackageStepCalculator;
 import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
-import com.equinor.fiberoptics.das.producer.variants.util.Helpers;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
 import org.slf4j.Logger;
@@ -34,8 +33,6 @@ import reactor.core.publisher.Flux;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.function.Consumer;
 
 /**
  * This is an example DAS  box unit implementation.
@@ -65,14 +62,12 @@ public class SimulatorBoxUnit implements GenericDasProducer {
   }
 
   @Override
-  public void produce(Consumer<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> consumer) {
+  public Flux<PartitionKeyValueEntry<DASMeasurementKey,DASMeasurement>> produce() {
     RandomDataCache dataCache = new RandomDataCache(_configuration.getNumberOfPrePopulatedValues(), _configuration.getAmplitudesPrPackage(), _configuration.getPulseRate());
-
-    CountDownLatch latch = new CountDownLatch(1);
     long delay = _configuration.isDisableThrottling () ? 0 : (long)_stepCalculator.millisPrPackage();
 
     logger.info(String.format("Starting to produce data now for %d seconds", _configuration.getSecondsToRun()));
-    Flux
+    return Flux
         .interval(Duration.ofMillis(delay))
         .take(_configuration.getSecondsToRun())
         .map(tick -> {
@@ -80,17 +75,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
             _stepCalculator.increment(1);
             return message;
           }
-        )
-        .subscribe(consumer,
-          (ex) -> {
-            logger.info("Error emitted: " + ex.getMessage());
-            ex.printStackTrace();
-          },
-          () -> {
-            latch.countDown();
-          });
-
-    Helpers.wait(latch);
+        );
   }
 
   private PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> constructAvroObjects(int currentLocus, List<Float> data) {

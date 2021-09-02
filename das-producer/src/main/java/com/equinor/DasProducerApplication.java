@@ -19,12 +19,12 @@
  */
 package com.equinor;
 
-import com.equinor.fiberoptics.das.kafka.Streamer;
+import com.equinor.kafka.KafkaRelay;
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
 import com.equinor.fiberoptics.das.producer.variants.GenericDasProducer;
-import com.equinor.fiberoptics.das.producer.variants.PackageStepCalculator;
 import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
 import com.equinor.fiberoptics.das.producer.variants.simulatorboxunit.SimulatorBoxUnitConfiguration;
+import com.equinor.fiberoptics.das.producer.variants.util.Helpers;
 import com.equinor.kafka.KafkaConfiguration;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
@@ -39,9 +39,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.event.EventListener;
 import org.springframework.retry.annotation.EnableRetry;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 
 /**
@@ -61,13 +59,13 @@ public class DasProducerApplication {
   private static final Logger logger = LoggerFactory.getLogger(DasProducerApplication.class);
   private final BeanFactory _beanFactory;
   private final DasProducerConfiguration _dasProducerConfig;
-  private final Streamer _streamer;
+  private final KafkaRelay _kafkaRelay;
 
   @Autowired
-  public DasProducerApplication(BeanFactory beanFactory, DasProducerConfiguration dasProducerConfig, Streamer streamer) {
+  public DasProducerApplication(BeanFactory beanFactory, DasProducerConfiguration dasProducerConfig, KafkaRelay kafkaRelay) {
     this._beanFactory = beanFactory;
     this._dasProducerConfig = dasProducerConfig;
-    this._streamer = streamer;
+    this._kafkaRelay = kafkaRelay;
   }
 
   public static void main(final String[] args) {
@@ -79,12 +77,23 @@ public class DasProducerApplication {
     logger.info("ApplicationReadyEvent");
 
     GenericDasProducer simulatorBoxUnit = _beanFactory.getBean(_dasProducerConfig.getVariant(), GenericDasProducer.class);
-    Consumer<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> logOutput = value -> {
-      _streamer.relayToKafka(simulatorBoxUnit.getStepCalculator(), value);
+    Consumer<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> relayToKafka = value -> {
+      _kafkaRelay.consume(simulatorBoxUnit.getStepCalculator(), value);
     };
 
-    simulatorBoxUnit.produce(logOutput);
-    _streamer.teardown();
+    CountDownLatch latch = new CountDownLatch(1);
+    simulatorBoxUnit.produce()
+      .subscribe(relayToKafka,
+        (ex) -> {
+          logger.info("Error emitted: " + ex.getMessage());
+          ex.printStackTrace();
+        },
+        () -> {
+          latch.countDown();
+        });
+
+    Helpers.wait(latch);
+    _kafkaRelay.teardown();
     logger.info("Job done. Exiting.");
   }
 }

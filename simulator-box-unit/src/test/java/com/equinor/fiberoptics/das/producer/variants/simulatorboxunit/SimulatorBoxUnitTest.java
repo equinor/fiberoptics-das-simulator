@@ -1,6 +1,7 @@
 package com.equinor.fiberoptics.das.producer.variants.simulatorboxunit;
 
 import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
+import com.equinor.fiberoptics.das.producer.variants.util.Helpers;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
 import org.junit.Test;
@@ -15,6 +16,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 
 @ActiveProfiles("test")
@@ -37,6 +39,17 @@ public class SimulatorBoxUnitTest {
       logger.info("Locus {} with {} has {} amplitudes", measurement.getLocus(), ldt, measurement.getAmplitudesFloat().size());
     };
 
-    simulatorBoxUnit.produce(logOutput);
+    CountDownLatch latch = new CountDownLatch(1);
+    simulatorBoxUnit.produce()
+      .subscribe(logOutput,
+      (ex) -> {
+        logger.info("Error emitted: " + ex.getMessage());
+        ex.printStackTrace();
+      },
+      () -> {
+        latch.countDown();
+      });
+
+    Helpers.wait(latch);
   }
 }
