@@ -23,6 +23,7 @@ import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
 import reactor.core.publisher.Flux;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -30,5 +31,5 @@ import java.util.function.Consumer;
  */
 public interface GenericDasProducer {
   PackageStepCalculator getStepCalculator();
-  Flux<PartitionKeyValueEntry<DASMeasurementKey,DASMeasurement>> produce();
+  Flux<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> produce();
 }

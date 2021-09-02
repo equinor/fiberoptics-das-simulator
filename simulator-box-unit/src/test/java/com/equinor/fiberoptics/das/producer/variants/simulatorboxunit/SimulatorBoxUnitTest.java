@@ -16,6 +16,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 
@@ -32,11 +33,13 @@ public class SimulatorBoxUnitTest {
 
   @Test
   public void testStreamFromSimulatorBox() {
-    Consumer<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> logOutput = value -> {
-      DASMeasurement measurement = value.value;
-      LocalDateTime ldt = Instant.ofEpochMilli(measurement.getStartSnapshotTimeNano() / millisInNano).atZone(ZoneId.systemDefault()).toLocalDateTime();
+    Consumer<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> logOutput = value -> {
+      for (PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> entry: value) {
+        DASMeasurement measurement = entry.value;
+        LocalDateTime ldt = Instant.ofEpochMilli(measurement.getStartSnapshotTimeNano() / millisInNano).atZone(ZoneId.systemDefault()).toLocalDateTime();
 
-      logger.info("Locus {} with {} has {} amplitudes", measurement.getLocus(), ldt, measurement.getAmplitudesFloat().size());
+        logger.info("Locus {} with {} has {} amplitudes", measurement.getLocus(), ldt, measurement.getAmplitudesFloat().size());
+      }
     };
 
     CountDownLatch latch = new CountDownLatch(1);
@@ -44,7 +47,6 @@ public class SimulatorBoxUnitTest {
       .subscribe(logOutput,
       (ex) -> {
         logger.info("Error emitted: " + ex.getMessage());
-        ex.printStackTrace();
       },
       () -> {
         latch.countDown();

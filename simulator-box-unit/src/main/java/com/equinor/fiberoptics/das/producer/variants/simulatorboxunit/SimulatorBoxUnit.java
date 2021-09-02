@@ -32,6 +32,7 @@ import reactor.core.publisher.Flux;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -62,7 +63,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
   }
 
   @Override
-  public Flux<PartitionKeyValueEntry<DASMeasurementKey,DASMeasurement>> produce() {
+  public Flux<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> produce() {
     RandomDataCache dataCache = new RandomDataCache(_configuration.getNumberOfPrePopulatedValues(), _configuration.getAmplitudesPrPackage(), _configuration.getPulseRate());
     long delay = _configuration.isDisableThrottling () ? 0 : (long)_stepCalculator.millisPrPackage();
 
@@ -71,11 +72,16 @@ public class SimulatorBoxUnit implements GenericDasProducer {
         .interval(Duration.ofMillis(delay))
         .take(_configuration.getSecondsToRun())
         .map(tick -> {
-            var message = constructAvroObjects(0, dataCache.getFloat());
-            _stepCalculator.increment(1);
-            return message;
+          List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> data = new ArrayList<>();
+
+          for (int currentLocus = 0; currentLocus < _configuration.getNumberOfLoci(); currentLocus++) {
+              var message = constructAvroObjects(currentLocus, dataCache.getFloat());
+              data.add(message);
           }
-        );
+
+          _stepCalculator.increment(1);
+          return data;
+        });
   }
 
   private PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> constructAvroObjects(int currentLocus, List<Float> data) {

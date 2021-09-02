@@ -14,6 +14,6 @@ das:
         startLocusIndex: ${START_LOCUS_INDEX:0}
         disableThrottling: ${DISABLE_THROTTLING:0}
         gaugeLength: ${GAUGE_LENGTH:10.209524}
-        numberOfLoci: ${NUMBER_OF_LOCI:25}
+        numberOfLoci: ${NUMBER_OF_LOCI:3}
         numberOfPrePopulatedValues: 100
         amplitudesPrPackage: 8192

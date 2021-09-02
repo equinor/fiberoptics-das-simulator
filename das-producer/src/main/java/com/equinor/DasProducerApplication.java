@@ -39,6 +39,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.event.EventListener;
 import org.springframework.retry.annotation.EnableRetry;
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 
@@ -77,8 +78,10 @@ public class DasProducerApplication {
     logger.info("ApplicationReadyEvent");
 
     GenericDasProducer simulatorBoxUnit = _beanFactory.getBean(_dasProducerConfig.getVariant(), GenericDasProducer.class);
-    Consumer<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> relayToKafka = value -> {
-      _kafkaRelay.consume(simulatorBoxUnit.getStepCalculator(), value);
+    Consumer<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> relayToKafka = value -> {
+      for (PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> entry: value) {
+        _kafkaRelay.relayToKafka(simulatorBoxUnit.getStepCalculator(), entry);
+      }
     };
 
     CountDownLatch latch = new CountDownLatch(1);

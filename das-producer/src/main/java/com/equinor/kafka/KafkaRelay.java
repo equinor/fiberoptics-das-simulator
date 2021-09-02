@@ -48,9 +48,8 @@ public class KafkaRelay {
     this._dasProducerConfig = dasProducerConfiguration;
   }
 
-  public void consume(PackageStepCalculator stepCalculator, PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> partitionEntry) {
-    logger.info("Sending message on Kafka");
-    int currentPartition = _dasProducerConfig.getPartitionAssignments().get(0); //Use the one from stream initiator (Simulator mode)
+  public void relayToKafka(PackageStepCalculator stepCalculator, PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> partitionEntry) {
+    int currentPartition = _dasProducerConfig.getPartitionAssignments().get(partitionEntry.value.getLocus()); //Use the one from stream initiator (Simulator mode)
     ProducerRecord<DASMeasurementKey, DASMeasurement> data =
       new ProducerRecord(_kafkaConf.getTopic(),
         currentPartition,
