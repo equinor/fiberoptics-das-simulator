@@ -98,5 +98,6 @@ public class DasProducerApplication {
     Helpers.wait(latch);
     _kafkaRelay.teardown();
     logger.info("Job done. Exiting.");
+    System.exit(0);
   }
 }
