@@ -18,7 +18,10 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+
+import static org.junit.Assert.assertEquals;
 
 @ActiveProfiles("test")
 @SpringBootTest(classes=SimulatorBoxUnit.class)
@@ -33,6 +36,8 @@ public class SimulatorBoxUnitTest {
 
   @Test
   public void testStreamFromSimulatorBox() {
+    AtomicInteger consumed = new AtomicInteger();
+
     Consumer<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> logOutput = value -> {
       for (PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> entry: value) {
         DASMeasurement measurement = entry.value;
@@ -40,6 +45,9 @@ public class SimulatorBoxUnitTest {
 
         logger.info("Locus {} with {} has {} amplitudes", measurement.getLocus(), ldt, measurement.getAmplitudesFloat().size());
       }
+
+      assertEquals("Number of loci is as configured", 3, value.size());
+      consumed.getAndIncrement();
     };
 
     CountDownLatch latch = new CountDownLatch(1);
@@ -53,5 +61,7 @@ public class SimulatorBoxUnitTest {
       });
 
     Helpers.wait(latch);
+
+    assertEquals("Number consumed is as configured", 5, consumed.get());
   }
 }
