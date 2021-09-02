@@ -44,7 +44,7 @@
     <spring.version>5.3.9</spring.version>
     <micrometer.version>1.5.5</micrometer.version>
     <java.version>13</java.version>
-    <dasschemas.version>1.0.7</dasschemas.version>
+    <dasschemas.version>1.0.12</dasschemas.version>
     <confluent.version>6.2.0</confluent.version>
     <docker.image.prefix>ingressplatform</docker.image.prefix>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

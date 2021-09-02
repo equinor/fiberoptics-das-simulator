@@ -12,7 +12,7 @@
     <dependency>
       <groupId>fiberoptics.das</groupId>
       <artifactId>public-schemas</artifactId>
-      <version>1.0.7</version>
+      <version>1.0.12</version>
       <scope>compile</scope>
     </dependency>
   </dependencies>

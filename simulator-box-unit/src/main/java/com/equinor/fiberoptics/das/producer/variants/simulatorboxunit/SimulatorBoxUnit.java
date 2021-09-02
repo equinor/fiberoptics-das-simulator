@@ -76,13 +76,16 @@ public class SimulatorBoxUnit implements GenericDasProducer {
         .interval(Duration.ofMillis(delay))
         .take(_configuration.getSecondsToRun())
         .map(tick -> {
-            var message = constructAvroObjects(tick.intValue(), dataCache.getFloat());
+            var message = constructAvroObjects(0, dataCache.getFloat());
             _stepCalculator.increment(1);
             return message;
           }
         )
         .subscribe(consumer,
-          (ex) -> logger.info("Error emitted: " + ex.getMessage()),
+          (ex) -> {
+            logger.info("Error emitted: " + ex.getMessage());
+            ex.printStackTrace();
+          },
           () -> {
             latch.countDown();
           });
