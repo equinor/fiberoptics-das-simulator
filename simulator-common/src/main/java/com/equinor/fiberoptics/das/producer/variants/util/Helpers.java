@@ -8,6 +8,8 @@ import java.util.concurrent.CountDownLatch;
 public class Helpers {
 
   private static final Logger logger = LoggerFactory.getLogger(Helpers.class);
+  public final static long millisInNano = 1_000_000;
+  public final static long nanosInSecond = 1_000_000_000;
 
   public static void sleepMillis(int millis) {
     try {

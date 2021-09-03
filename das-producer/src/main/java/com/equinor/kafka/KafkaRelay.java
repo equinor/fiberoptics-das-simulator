@@ -20,19 +20,20 @@
 package com.equinor.kafka;
 
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
-import com.equinor.fiberoptics.das.producer.variants.PackageStepCalculator;
 import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
+import lombok.Synchronized;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import static com.equinor.fiberoptics.das.producer.variants.util.Helpers.millisInNano;
+
 @Component
 public class KafkaRelay {
 
-  private final static long millisInNano = 1_000_000;
   private static final Logger logger = LoggerFactory.getLogger(KafkaRelay.class);
 
   private final KafkaSender _kafkaSendChannel;
@@ -48,12 +49,13 @@ public class KafkaRelay {
     this._dasProducerConfig = dasProducerConfiguration;
   }
 
-  public void relayToKafka(PackageStepCalculator stepCalculator, PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> partitionEntry) {
+  @Synchronized
+  public void relayToKafka(PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> partitionEntry) {
     int currentPartition = _dasProducerConfig.getPartitionAssignments().get(partitionEntry.value.getLocus()); //Use the one from stream initiator (Simulator mode)
     ProducerRecord<DASMeasurementKey, DASMeasurement> data =
       new ProducerRecord(_kafkaConf.getTopic(),
         currentPartition,
-        stepCalculator.currentEpochMillis(),
+        partitionEntry.value.getStartSnapshotTimeNano() / millisInNano,
         partitionEntry.key, partitionEntry.value);
     _kafkaSendChannel.send(data);
   }

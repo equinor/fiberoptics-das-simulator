@@ -80,7 +80,7 @@ public class DasProducerApplication {
     GenericDasProducer simulatorBoxUnit = _beanFactory.getBean(_dasProducerConfig.getVariant(), GenericDasProducer.class);
     Consumer<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> relayToKafka = value -> {
       for (PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> entry: value) {
-        _kafkaRelay.relayToKafka(simulatorBoxUnit.getStepCalculator(), entry);
+        _kafkaRelay.relayToKafka(entry);
       }
     };
 

@@ -83,7 +83,6 @@ public class DasProducerFactory {
       logger.error("We are unable to run when the destination topic has {} partitions. Exiting.",
         acquisition.getNumberOfPartitions());
       logger.info("Stopping");
-      _dasProducerConfig.signalStopped();
       int exitValue = SpringApplication.exit(_applicationContext);
       System.exit(exitValue);
     }

@@ -58,19 +58,15 @@ public class SimulatorBoxUnit implements GenericDasProducer {
   }
 
   @Override
-  public PackageStepCalculator getStepCalculator() {
-    return _stepCalculator;
-  }
-
-  @Override
   public Flux<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> produce() {
     RandomDataCache dataCache = new RandomDataCache(_configuration.getNumberOfPrePopulatedValues(), _configuration.getAmplitudesPrPackage(), _configuration.getPulseRate());
     long delay = _configuration.isDisableThrottling () ? 0 : (long)_stepCalculator.millisPrPackage();
+    long take = (long)(_configuration.getSecondsToRun() / (delay / 1000.0));
 
     logger.info(String.format("Starting to produce data now for %d seconds", _configuration.getSecondsToRun()));
     return Flux
         .interval(Duration.ofMillis(delay))
-        .take(_configuration.getSecondsToRun())
+        .take(take)
         .map(tick -> {
           List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> data = new ArrayList<>();
 

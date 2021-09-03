@@ -30,6 +30,5 @@ import java.util.function.Consumer;
  * Minimal
  */
 public interface GenericDasProducer {
-  PackageStepCalculator getStepCalculator();
   Flux<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> produce();
 }

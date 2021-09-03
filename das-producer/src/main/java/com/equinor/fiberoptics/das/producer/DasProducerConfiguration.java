@@ -39,25 +39,9 @@ public class DasProducerConfiguration {
   private String initiatorserviceUrl;
   private String initiatorserviceApiKey;
   private String kafkaTopicName;
-  private Boolean running;
-  private Boolean sending;
   private String overrideBootstrapServersWith;
   private String overrideSchemaRegistryWith;
   private String variant;
 
   private Map<Integer, Integer> partitionAssignments;
-
-  public Boolean isRunning() { return running; }
-  public void setIsRunning(boolean should) { running = should; }
-  public void signalRunning() {
-    this.running = true;
-  }
-  public void signalStopped() {
-    this.running = false;
-  }
-  public Boolean isSending() { return sending; }
-  public void signalSending() { this.sending = true; }
-  public void signalNotSending() {
-    this.sending = false;
-  }
 }

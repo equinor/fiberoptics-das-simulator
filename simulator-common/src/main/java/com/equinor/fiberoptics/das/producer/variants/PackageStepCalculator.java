@@ -25,6 +25,9 @@ import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.time.Instant;
 
+import static com.equinor.fiberoptics.das.producer.variants.util.Helpers.millisInNano;
+import static com.equinor.fiberoptics.das.producer.variants.util.Helpers.nanosInSecond;
+
 /**
  * Used to calculate correct epochs and time interval for fiber vector shots.
  */
@@ -35,9 +38,6 @@ public class PackageStepCalculator {
   private final long _nanosPrPackage;
   private long _currentTimePointNanos;
   private final int _loci;
-
-  private final static long millisInNano = 1_000_000;
-  private final static long nanosInSecond = 1_000_000_000;
 
   private long _currentStep;
 

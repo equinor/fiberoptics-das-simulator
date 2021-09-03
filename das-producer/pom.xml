@@ -44,7 +44,6 @@
     <spring.version>5.3.9</spring.version>
     <micrometer.version>1.5.5</micrometer.version>
     <java.version>13</java.version>
-    <dasschemas.version>1.0.12</dasschemas.version>
     <confluent.version>6.2.0</confluent.version>
     <docker.image.prefix>ingressplatform</docker.image.prefix>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -82,11 +81,6 @@
       <artifactId>simulator-box-unit</artifactId>
       <version>1.0.0</version>
       <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>fiberoptics.das</groupId>
-      <artifactId>public-schemas</artifactId>
-      <version>${dasschemas.version}</version>
     </dependency>
     <dependency>
       <groupId>org.springframework.cloud</groupId>
