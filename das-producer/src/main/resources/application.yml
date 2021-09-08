@@ -27,6 +27,7 @@ das:
     box:
       simulator:
         amplitudeDataType: float
+        numberOfShots: ${NUMBER_OF_SHOTS:10}
         secondsToRun: ${SECONDS_TO_RUN:120}
         pulseRate: ${PULSE_RATE:10000}
         maxFreq: ${MAX_NYQ_FREQ:5000}
