@@ -62,6 +62,6 @@ public class SimulatorBoxUnitTest {
 
     Helpers.wait(latch);
 
-    assertEquals("Number consumed is as configured", 6, consumed.get());
+    assertEquals("Number consumed is as configured", 10, consumed.get());
   }
 }

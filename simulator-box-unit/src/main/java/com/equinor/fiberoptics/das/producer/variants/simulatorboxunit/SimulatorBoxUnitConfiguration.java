@@ -48,6 +48,7 @@ public class SimulatorBoxUnitConfiguration {
   private boolean disableThrottling;
   private int amplitudesPrPackage;
   private int numberOfPrePopulatedValues;
+  private Integer numberOfShots;
   private int secondsToRun;
 
   @PostConstruct
