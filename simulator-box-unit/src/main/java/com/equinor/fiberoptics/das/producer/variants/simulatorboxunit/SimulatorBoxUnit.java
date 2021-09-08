@@ -61,9 +61,17 @@ public class SimulatorBoxUnit implements GenericDasProducer {
   public Flux<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> produce() {
     RandomDataCache dataCache = new RandomDataCache(_configuration.getNumberOfPrePopulatedValues(), _configuration.getAmplitudesPrPackage(), _configuration.getPulseRate());
     long delay = _configuration.isDisableThrottling () ? 0 : (long)_stepCalculator.millisPrPackage();
-    long take = delay == 0 ? _configuration.getSecondsToRun() * 1000 : (long)(_configuration.getSecondsToRun() / (delay / 1000.0));
+    long take = 0;
+    if (_configuration.getNumberOfShots() != null) {
+      take = _configuration.getNumberOfShots().intValue();
+      logger.info(String.format("Starting to produce %d data", take));
 
-    logger.info(String.format("Starting to produce data now for %d seconds", _configuration.getSecondsToRun()));
+    } else {
+      take = delay == 0 ? _configuration.getSecondsToRun() * 1000 : (long)(_configuration.getSecondsToRun() / (delay / 1000.0));
+      logger.info(String.format("Starting to produce data now for %d seconds", _configuration.getSecondsToRun()));
+
+    }
+
     return Flux
         .interval(Duration.ofMillis(delay))
         .take(take)
