@@ -35,6 +35,7 @@ import java.util.Map;
 @Setter
 public class DasProducerConfiguration {
 
+  private String vendorCode;
   private int amplitudesPrPackage;
   private String initiatorserviceUrl;
   private String initiatorserviceApiKey;

@@ -60,6 +60,7 @@ public class HttpUtils {
     var request = new HttpEntity<>(new AcquisitionStartRequest(acquisitionId,
       _simBoxConfig.getBoxUUID(),
       _simBoxConfig.getOpticalPathUUID(),
+      _dasProducerConfig.getVendorCode(),
       _simBoxConfig.getGaugeLength(),
       _simBoxConfig.getSpatialSamplingInterval(),
       _simBoxConfig.getPulseRate(),

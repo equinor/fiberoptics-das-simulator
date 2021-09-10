@@ -66,13 +66,13 @@ public class AcquisitionStartRequest {
   @JsonProperty("MeasurementStartTime")
   private String measurementStartTime;
   @JsonProperty("VendorCode")
-  private String vendorCode = "Simulator";
+  private String vendorCode;
   @JsonProperty("StartLocusIndex")
   private int startLocusIndex;
   @JsonProperty("Custom")
   private Map<String, String> custom = new HashMap<>();
 
-  public AcquisitionStartRequest(String acquisitionId, String dasInstrumentBoxUUID, String opticalPathUUID,
+  public AcquisitionStartRequest(String acquisitionId, String dasInstrumentBoxUUID, String opticalPathUUID, String vendorCode,
                                  float gaugeLength, float spatialSamplingInterval,
                                  float pulseRate, float pulseWidth,
                                  int numberOfLoci, int startLocusIndex,
@@ -81,6 +81,7 @@ public class AcquisitionStartRequest {
     this.setAquisitionId(acquisitionId);
     this.setOpticalPath(opticalPathUUID);
     this.setDasInstrumentBox(dasInstrumentBoxUUID);
+    this.setVendorCode(vendorCode);
     this.setNumberOfLoci(numberOfLoci);
     this.setPulseRate(pulseRate);
     this.setGaugeLength(gaugeLength);
