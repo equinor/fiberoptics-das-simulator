@@ -18,8 +18,10 @@ spring:
 
 das:
   producer:
+    vendorCode: ${VENDOR_CODE:Simulator}
     amplitudesPrPackage: ${PACKAGE_SIZE:8192}
     initiatorserviceUrl: ${INITIATOR_URL:http://localhost:8080}
+    acquisitionStartVersion: ${ACQUISITION_START_VERSION:V1}
     initiatorserviceApiKey: ${INITIATOR_API_KEY}
     overrideBootstrapServersWith: ${KAFKA_SERVER_OVERRIDE:}
     overrideSchemaRegistryWith: ${SCHEMA_REGISTRY_URL_OVERRIDE:}
@@ -27,7 +29,7 @@ das:
     box:
       simulator:
         amplitudeDataType: float
-        numberOfShots: ${NUMBER_OF_SHOTS}
+        numberOfShots: ${NUMBER_OF_SHOTS:-1}
         secondsToRun: ${SECONDS_TO_RUN:120}
         pulseRate: ${PULSE_RATE:10000}
         maxFreq: ${MAX_NYQ_FREQ:5000}

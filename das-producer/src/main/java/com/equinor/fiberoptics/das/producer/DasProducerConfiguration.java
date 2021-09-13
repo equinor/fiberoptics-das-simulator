@@ -35,8 +35,10 @@ import java.util.Map;
 @Setter
 public class DasProducerConfiguration {
 
+  private String vendorCode;
   private int amplitudesPrPackage;
   private String initiatorserviceUrl;
+  private String acquisitionStartVersion;
   private String initiatorserviceApiKey;
   private String kafkaTopicName;
   private String overrideBootstrapServersWith;
