@@ -62,7 +62,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
     RandomDataCache dataCache = new RandomDataCache(_configuration.getNumberOfPrePopulatedValues(), _configuration.getAmplitudesPrPackage(), _configuration.getPulseRate());
     long delay = _configuration.isDisableThrottling () ? 0 : (long)_stepCalculator.millisPrPackage();
     long take = 0;
-    if (_configuration.getNumberOfShots() != null) {
+    if (_configuration.getNumberOfShots() != null && _configuration.getNumberOfShots() > 0) {
       take = _configuration.getNumberOfShots().intValue();
       logger.info(String.format("Starting to produce %d data", take));
 
