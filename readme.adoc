@@ -140,6 +140,7 @@ If you want to run the simulator inside a docker container:
  docker run \
  --network=local-network \
  --env INITIATOR_URL="http://host.docker.internal:8080" \
+ --env ACQUISITION_START_VERSION="V1" \
  --env SCHEMA_REGISTRY_URL_OVERRIDE="http://host.docker.internal:8081" \
  --env KAFKA_SERVER_OVERRIDE="http://host.docker.internal:29092" \
  --env INITIATOR_API_KEY="abcdefghijklmno12345678901234567" \
