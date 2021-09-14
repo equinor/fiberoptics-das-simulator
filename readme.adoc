@@ -154,7 +154,7 @@ If you want to run the simulator inside a docker container:
  --env DAS_PRODUCER_KAFKA_CONFIG_BUFFER_MEMORY=33554432 \
  --env DAS_PRODUCER_KAFKA_CONFIG_COMPRESSION_TYPE="none" \
  --env DAS_PRODUCER_KAFKA_CONFIG_LINGER_MS=15 \
- ghcr.io/equinor/fiberoptics-das-simulator/fiberoptics-das-simulator:1.0.5
+ ghcr.io/equinor/fiberoptics-das-simulator/fiberoptics-das-simulator:2.0.0
 ----
 
 == Data that can be used in the configuration of simulator box
