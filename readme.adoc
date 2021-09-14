@@ -20,7 +20,6 @@ found int the same directory as this file.
 
 == Basic data flow
 
-
 A successful DAS acquisition is made by initially contacting the Stream initiator (INITIATOR_URL variable).
 [source,json]
 ----
@@ -71,10 +70,8 @@ To notable value here is the partition assignments map. It tells the kafka produ
 to a specific partition. It is very important that this is being followed as strict ordering of loci-data can only be guaranteed in
 Kafka within the same partition.
 
-
 == Environment values
 Control of the parameters of the process in this example is done via environment values.
-
 
 .DAS simulator config
 |===
@@ -117,7 +114,6 @@ Note that any env value that starts with DAS_PRODUCER_KAFKA_CONFIG_ will be appl
 
 Details for ProdML can be found here: http://w3.energistics.org/energyML/data/prodml/v2.0/doc/prodml_schema_overview.html
 
-
 == Building and running
 
 Note:
@@ -157,7 +153,13 @@ If you want to run the simulator inside a docker container:
  ghcr.io/equinor/fiberoptics-das-simulator/fiberoptics-das-simulator:2.0.0
 ----
 
-== Data that can be used in the configuration of simulator box
+== Variants
+
+=== Simulation Box Unit
+
+Emulation of an interrogator with random data.
+
+==== Data that can be used in the configuration of simulator box
 
 Fiber optic path UUIDs:
 [source,text]
