@@ -80,12 +80,16 @@ Control of the parameters of the process in this example is done via environment
 |===
 |Setting |Default value |Description
 
+|VENDOR_CODE| Simulator| The vendor code identifying the vendor
+|ACQUISITION_START_VERSION| V1| The schema version used. Can be one of V1,V2
+|VARIANT_PLUGIN|SimulatorBoxUnit|The implementation producing data for simulation. The bean need to be available on classpath as it is loaded at runtime
 |PACKAGE_SIZE|8192|The number of amplitude delivered pr Kafka message.
 |INITIATOR_URL| http://localhost:8080| The API endpoint base URL for the stream initiation service.
 |INITIATOR_API_KEY| No value| An API key that needs to be set in the service behind the initiator url e.g. 1aa111a11aa11a0a1a1aa1111a1a1a1a
 |KAFKA_SERVER_OVERRIDE| No value| If the Kafka server is on a network that has a specific naming that has no meaning on the calling end (e.g. inside a docker container where you would use localhost:9092) you might get a service name. Here you can override the name with an IP address.
 |SCHEMA_REGISTRY_URL_OVERRIDE| No value| If the Schema registry server is on a network that has a specific naming that has no meaning on the calling end (e.g. inside a docker container where you would use http://localhost:8081) you might get a service name. Here you can override the name with an IP address.
-|SECONDS_TO_RUN| 120| Use this to limit the time the simulator should run.
+|NUMBER_OF_SHOTS| No value| Will override value set on SECONDS_TO_RUN to have a predefined number of shots sent
+|SECONDS_TO_RUN| 120| Use this to limit the time the simulator should run. Can be overridden by NUMBER_OF_SHOTS
 |PULSE_RATE| 10000| as pr ProdML - laser pulse rate.
 |MAX_NYQ_FREQ| 5000| as pr ProdML - max frequency available in signal (Nyquist).
 |MIN_NYQ_FREQ| 0| as pr ProdML - min frequency available in signal (Nyquist).

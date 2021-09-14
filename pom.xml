@@ -4,45 +4,23 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-parent</artifactId>
-    <version>2.5.4</version>
-    <relativePath/>
-  </parent>
-
   <groupId>com.equinor.fiberoptics</groupId>
-  <artifactId>fiberoptics-das-simulator</artifactId>
-  <description>A Fiberoptics DAS producer reference implementation</description>
-  <version>1.0.4</version>
-  <packaging>jar</packaging>
-  <licenses>
-    <license>
-      <name>Apache 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
-  <organization>
-    <name>Equinor ASA</name>
-    <url>https://www.equinor.com/</url>
-  </organization>
-  <inceptionYear>2020</inceptionYear>
-  <developers>
-    <developer>
-      <id>etjonnel</id>
-      <name>Espen Tjonneland</name>
-      <email>espen@tjonneland.no</email>
-    </developer>
-  </developers>
+  <artifactId>parent</artifactId>
+  <version>1.0.0</version>
+  <description>Parent for simulator modules</description>
+  <dependencies>
+    <dependency>
+      <groupId>fiberoptics.das</groupId>
+      <artifactId>public-schemas</artifactId>
+      <version>2.0.2</version>
+      <scope>compile</scope>
+    </dependency>
+  </dependencies>
+  <packaging>pom</packaging>
+
   <properties>
-    <dasschemas.version>1.0.7</dasschemas.version>
-    <spring-cloud.version>2020.0.3</spring-cloud.version>
-    <java.version>13</java.version>
-    <confluent.version>6.2.0</confluent.version>
-    <docker.image.prefix>ingressplatform</docker.image.prefix>
+    <java.version>11</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
   </properties>
 
   <repositories>
@@ -54,7 +32,7 @@
     <repository>
       <id>Confluent</id>
       <name>Confluent repo</name>
-      <url>http://packages.confluent.io/maven</url>
+      <url>https://packages.confluent.io/maven</url>
     </repository>
     <repository>
       <id>publicshemas</id>
@@ -63,148 +41,9 @@
     </repository>
   </repositories>
 
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.springframework.cloud</groupId>
-        <artifactId>spring-cloud-dependencies</artifactId>
-        <version>${spring-cloud.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
-  <dependencies>
-    <dependency>
-      <groupId>fiberoptics.das</groupId>
-      <artifactId>public-schemas</artifactId>
-      <version>${dasschemas.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.cloud</groupId>
-      <artifactId>spring-cloud-starter-stream-kafka</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-logging</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-aop</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-actuator</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-configuration-processor</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.micrometer</groupId>
-      <artifactId>micrometer-registry-prometheus</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.confluent</groupId>
-      <artifactId>kafka-avro-serializer</artifactId>
-      <version>${confluent.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>30.1.1-jre</version>
-    </dependency>
-    <dependency>
-      <groupId>commons-collections</groupId>
-      <artifactId>commons-collections</artifactId>
-      <version>3.2.2</version>
-    </dependency>
-
-    <!-- Test dependencies -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.kafka</groupId>
-      <artifactId>spring-kafka-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>testcontainers</artifactId>
-      <version>1.13.0</version>
-      <scope>test</scope>
-    </dependency>
-
-  </dependencies>
-
-  <build>
-    <plugins>
-      <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <source>13</source>
-          <target>13</target>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-maven-plugin</artifactId>
-        <configuration>
-          <excludes>
-            <exclude>
-              <groupId>org.springframework.boot</groupId>
-              <artifactId>spring-boot-configuration-processor</artifactId>
-            </exclude>
-          </excludes>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>repackage</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>license-maven-plugin</artifactId>
-        <version>1.9</version>
-        <configuration>
-          <verbose>false</verbose>
-          <includes>
-            <includes>**/*.java</includes>
-          </includes>
-        </configuration>
-        <executions>
-          <execution>
-            <id>generate-license-headers</id>
-            <goals>
-              <goal>update-file-header</goal>
-            </goals>
-            <phase>process-sources</phase>
-            <configuration>
-              <licenseName>apache_v2</licenseName>
-              <roots>
-                <root>src/main/java</root>
-                <root>src/test/java</root>
-              </roots>
-              <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
-              <processStartTag>========================LICENSE_START=================================</processStartTag>
-              <processEndTag>=========================LICENSE_END==================================</processEndTag>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
-
-
+  <modules>
+    <module>simulator-common</module>
+    <module>simulator-box-unit</module>
+    <module>das-producer</module>
+  </modules>
 </project>

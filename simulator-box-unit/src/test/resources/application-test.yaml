@@ -1,0 +1,20 @@
+das:
+  producer:
+    box:
+      simulator:
+        amplitudeDataType: float
+        numberOfShots: ${NUMBER_OF_SHOTS:10}
+        secondsToRun: ${SECONDS_TO_RUN:5}
+        pulseRate: ${PULSE_RATE:10000}
+        maxFreq: ${MAX_NYQ_FREQ:5000}
+        minFreq: ${MIN_NYQ_FREQ:0}
+        boxUUID: ${BOX_UUID}
+        opticalPathUUID: ${OPTICAL_PATH_UUID}
+        spatialSamplingInterval: ${SPATIAL_SAMPLING_INTERVAL:1.1}
+        pulseWidth: ${PULSE_WIDTH:100.50}
+        startLocusIndex: ${START_LOCUS_INDEX:0}
+        disableThrottling: ${DISABLE_THROTTLING:0}
+        gaugeLength: ${GAUGE_LENGTH:10.209524}
+        numberOfLoci: ${NUMBER_OF_LOCI:3}
+        numberOfPrePopulatedValues: 100
+        amplitudesPrPackage: 8192
