@@ -43,7 +43,7 @@ import java.util.function.Consumer;
 import static org.junit.Assert.assertEquals;
 
 @ActiveProfiles("test")
-@SpringBootTest(classes=SimulatorBoxUnit.class)
+@SpringBootTest(classes = SimulatorBoxUnit.class)
 @RunWith(SpringRunner.class)
 public class SimulatorBoxUnitTest {
 
@@ -58,7 +58,7 @@ public class SimulatorBoxUnitTest {
     AtomicInteger consumed = new AtomicInteger();
 
     Consumer<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> logOutput = value -> {
-      for (PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> entry: value) {
+      for (PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> entry : value) {
         DASMeasurement measurement = entry.value;
         LocalDateTime ldt = Instant.ofEpochMilli(measurement.getStartSnapshotTimeNano() / millisInNano).atZone(ZoneId.systemDefault()).toLocalDateTime();
 
@@ -72,7 +72,7 @@ public class SimulatorBoxUnitTest {
     CountDownLatch latch = new CountDownLatch(1);
     simulatorBoxUnit.produce()
       .subscribe(logOutput,
-      (ex) -> logger.info("Error emitted: " + ex.getMessage()),
+        (ex) -> logger.info("Error emitted: " + ex.getMessage()),
         latch::countDown);
 
     Helpers.wait(latch);
