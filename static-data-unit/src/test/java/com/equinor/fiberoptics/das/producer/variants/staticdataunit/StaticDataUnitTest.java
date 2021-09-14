@@ -50,7 +50,7 @@ public class StaticDataUnitTest {
         Float expected = (float) consumed.get();
         Float firstAmplitude = measurement.getAmplitudesFloat().get(0);
 
-        assertEquals("Number of amplitudes is as configured", expected, firstAmplitude);
+        assertEquals("Amplitude is expected", expected, firstAmplitude);
       }
 
       assertEquals("Number of loci is as configured", 3, value.size());
