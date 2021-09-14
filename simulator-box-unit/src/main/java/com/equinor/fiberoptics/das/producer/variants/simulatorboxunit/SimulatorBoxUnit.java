@@ -34,6 +34,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * This is an example DAS  box unit implementation.
@@ -76,12 +78,9 @@ public class SimulatorBoxUnit implements GenericDasProducer {
         .interval(Duration.ofMillis(delay))
         .take(take)
         .map(tick -> {
-          List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> data = new ArrayList<>();
-
-          for (int currentLocus = 0; currentLocus < _configuration.getNumberOfLoci(); currentLocus++) {
-              var message = constructAvroObjects(currentLocus, dataCache.getFloat());
-              data.add(message);
-          }
+          List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> data = IntStream.range(0, _configuration.getNumberOfLoci())
+            .mapToObj(currentLocus -> constructAvroObjects(currentLocus, dataCache.getFloat()))
+            .collect(Collectors.toList());
 
           _stepCalculator.increment(1);
           return data;
