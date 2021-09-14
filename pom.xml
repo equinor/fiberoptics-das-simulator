@@ -6,22 +6,98 @@
 
   <groupId>com.equinor.fiberoptics</groupId>
   <artifactId>parent</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.0-SNAPSHOT</version>
   <description>Parent for simulator modules</description>
-  <dependencies>
-    <dependency>
-      <groupId>fiberoptics.das</groupId>
-      <artifactId>public-schemas</artifactId>
-      <version>2.0.2</version>
-      <scope>compile</scope>
-    </dependency>
-  </dependencies>
-  <packaging>pom</packaging>
+  <inceptionYear>2020</inceptionYear>
+
+  <licenses>
+    <license>
+      <name>Apache 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <organization>
+    <name>Equinor ASA</name>
+    <url>https://www.equinor.com/</url>
+  </organization>
+
+  <modules>
+    <module>simulator-common</module>
+    <module>simulator-box-unit</module>
+    <module>das-producer</module>
+  </modules>
+
+  <scm>
+    <connection>
+      scm:git:ssh://git@github.com/equinor/fiberoptics-das-simulator.git
+    </connection>
+    <developerConnection>
+      scm:git:ssh://git@github.com/equinor/fiberoptics-das-simulator.git
+    </developerConnection>
+    <url>
+      https://github.com/equinor/fiberoptics-das-simulator
+    </url>
+  </scm>
 
   <properties>
-    <java.version>11</java.version>
+    <spring-boot.version>2.5.3</spring-boot.version>
+    <spring-cloud.version>2020.0.3</spring-cloud.version>
+    <confluent.version>6.2.0</confluent.version>
+    <fiberoptics-schemas-version>2.0.2</fiberoptics-schemas-version>
+    <java.version>13</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
   </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- Internal submodules -->
+      <dependency>
+        <groupId>com.equinor.fiberoptics</groupId>
+        <artifactId>fiberoptics-das-simulator</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>com.equinor.fiberoptics</groupId>
+        <artifactId>simulator-common</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>com.equinor.fiberoptics</groupId>
+        <artifactId>simulator-box-unit</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-dependencies</artifactId>
+        <version>${spring-boot.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-dependencies</artifactId>
+        <version>${spring-cloud.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>fiberoptics.das</groupId>
+        <artifactId>public-schemas</artifactId>
+        <version>${fiberoptics-schemas-version}</version>
+        <scope>compile</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.confluent</groupId>
+        <artifactId>kafka-avro-serializer</artifactId>
+        <version>${confluent.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <packaging>pom</packaging>
 
   <repositories>
     <repository>
@@ -41,9 +117,7 @@
     </repository>
   </repositories>
 
-  <modules>
-    <module>simulator-common</module>
-    <module>simulator-box-unit</module>
-    <module>das-producer</module>
-  </modules>
+
+
 </project>
+
