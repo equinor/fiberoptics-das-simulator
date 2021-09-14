@@ -54,7 +54,7 @@ services:
       - local-network
 
   streaminitiator:
-    image: fibra/streaminitiator:${STREAMINITIATOR_VERSION}
+    image: fibra.azurecr.io/fibra/streaminitiator:${STREAMINITIATOR_VERSION}
     hostname: streaminitiator
     ports:
       - "8080:8080"
@@ -64,16 +64,20 @@ services:
       BROKERS_COLD: broker_ingress:29092
       BROKERS_INGRESS: broker_ingress:29092
       SCHEMAREGISTRY: http://schemaregistry:8081
-      SPRING_CLOUD_STREAM_KAFKA_BINDER_REPLICATIONFACTOR: 1
+      REPLICATION_FACTOR: 1
       SPRING_PROFILES_ACTIVE: docker
       INTERROGATOR_ENV: docker
       PG_SUPERADMIN_URL: jdbc:postgresql://db:5432/postgres?user=postgres&password=postgres
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/streamdb?user=streamuser&password=streampassword
-      SPRING_FLYWAY_LOCATIONS: classpath:/db/migration,classpath:/db/testdata
+      PG_APP_DB_URL: jdbc:postgresql://db:5432/streamdb?user=streamuser&password=streampassword
+      MIGRATION_FOLDER: ", filesystem:/sql"
       PARTITIONS: 5
+      INTERNAL_SERVICES_API_KEY: abcdefghijklmno12345678901234567
+      VENDORS_KEYS_SIMULATOR_OLD: abcdefghijklmno12345678901234567
     depends_on:
       - db
       - schemaregistry
+    volumes:
+      - ./sql:/sql
     networks:
       - local-network
 
