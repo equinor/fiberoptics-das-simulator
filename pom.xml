@@ -44,6 +44,7 @@
   <modules>
     <module>simulator-common</module>
     <module>simulator-box-unit</module>
+    <module>static-data-unit</module>
     <module>das-producer</module>
   </modules>
 </project>
