@@ -80,24 +80,10 @@ Control of the parameters of the process in this example is done via environment
 |VARIANT_PLUGIN|SimulatorBoxUnit|The implementation producing data for simulation. Possible values are SimulatorBoxUnit and StaticDataUnit. The bean need to be available on classpath as it is loaded at runtime
 |VENDOR_CODE| Simulator| The vendor code identifying the vendor
 |ACQUISITION_START_VERSION| V1| The schema version used. Can be one of V1,V2
-|PACKAGE_SIZE|8192|The number of amplitude delivered pr Kafka message.
 |INITIATOR_URL| http://localhost:8080| The API endpoint base URL for the stream initiation service.
 |INITIATOR_API_KEY| No value| An API key that needs to be set in the service behind the initiator url e.g. 1aa111a11aa11a0a1a1aa1111a1a1a1a
 |KAFKA_SERVER_OVERRIDE| No value| If the Kafka server is on a network that has a specific naming that has no meaning on the calling end (e.g. inside a docker container where you would use localhost:9092) you might get a service name. Here you can override the name with an IP address.
 |SCHEMA_REGISTRY_URL_OVERRIDE| No value| If the Schema registry server is on a network that has a specific naming that has no meaning on the calling end (e.g. inside a docker container where you would use http://localhost:8081) you might get a service name. Here you can override the name with an IP address.
-|NUMBER_OF_SHOTS| No value| Will override value set on SECONDS_TO_RUN to have a predefined number of shots sent
-|SECONDS_TO_RUN| 120| Use this to limit the time the simulator should run. Can be overridden by NUMBER_OF_SHOTS
-|PULSE_RATE| 10000| as pr ProdML - laser pulse rate.
-|MAX_NYQ_FREQ| 5000| as pr ProdML - max frequency available in signal (Nyquist).
-|MIN_NYQ_FREQ| 0| as pr ProdML - min frequency available in signal (Nyquist).
-|BOX_UUID| No value| the id (UUID) assigned by the stream initiator server.
-|OPTICAL_PATH_UUID| No value| the id (UUID) assigned to the optical fiber where the data is aquisitioned.
-|SPATIAL_SAMPLING_INTERVAL| 1.1| as pr ProdML - distance between data channel(loci) on the fiber.
-|PULSE_WIDTH| 100.50| as pr ProdML - laser pulse width
-|START_LOCUS_INDEX| 0| the point (index as in integer) where locus (channel) 0 is on the fiber.
-|DISABLE_THROTTLING| 0| Ignore the time interval between data as pr. sampling frequency and package size. Instead deliver data as fast as possible.
-|GAUGE_LENGTH|10.209524| as pr ProdML
-|NUMBER_OF_LOCI| No value| The total number of data channels that will be delivered
 |DAS_PRODUCER_KAFKA_CONFIG_CLIENT_ID|Simulator| http://kafka.apache.org/documentation.html#producerconfigs
 |DAS_PRODUCER_KAFKA_CONFIG_ACKS|1|  http://kafka.apache.org/documentation.html#producerconfigs
 |DAS_PRODUCER_KAFKA_CONFIG_BATCH_SIZE|2500| http://kafka.apache.org/documentation.html#producerconfigs
@@ -134,6 +120,42 @@ java -jar ./das-producer/target/fiberoptics-das-simulator-<version>.jar
 === Simulation Box Unit
 
 Emulation of an interrogator with random data.
+
+Config name: SimulatorBoxUnit
+Config Options:
+|===
+|Setting |Default value |Description
+|BOX_UUID| No value| the id (UUID) assigned by the stream initiator server.
+|OPTICAL_PATH_UUID| No value| the id (UUID) assigned to the optical fiber where the data is requisitioned.
+|GAUGE_LENGTH|10.209524| as pr ProdML
+|SPATIAL_SAMPLING_INTERVAL| 1.1| as pr ProdML - distance between data channel(loci) on the fiber.
+|PULSE_WIDTH| 100.50| as pr ProdML - laser pulse width
+|START_LOCUS_INDEX| 0| the point (index as in integer) where locus (channel) 0 is on the fiber.
+|PULSE_RATE| 10000| as pr ProdML - laser pulse rate.
+|MAX_FREQ| 5000| as pr ProdML - max frequency available in signal (Nyquist).
+|MIN_FREQ| 0| as pr ProdML - min frequency available in signal (Nyquist).
+|NUMBER_OF_LOCI| No value| The total number of data channels that will be delivered
+|DISABLE_THROTTLING| 0| Ignore the time interval between data as pr. sampling frequency and package size. Instead deliver data as fast as possible.
+|AMPLITUDES_PR_PACKAGE|8192|The number of amplitude delivered pr Kafka message.
+|NUMBER_OF_SHOTS| No value| Will override value set on SECONDS_TO_RUN to have a predefined number of shots sent
+|SECONDS_TO_RUN| 120| Use this to limit the time the simulator should run. Can be overridden by NUMBER_OF_SHOTS
+|===
+
+=== Static data unit
+
+An emulated interrogator that produces static data. Useful for testing that known data ends up as expected.
+Config name: StaticDataUnit
+Config Options:
+|===
+|Setting |Default value |Description
+|BOX_UUID| No value| the id (UUID) assigned by the stream initiator server.
+|OPTICAL_PATH_UUID| No value| the id (UUID) assigned to the optical fiber where the data is requisitioned.
+|NUMBER_OF_LOCI| No value| The total number of data channels that will be delivered
+|AMPLITUDES_PR_PACKAGE|8192|The number of amplitude delivered pr Kafka message.
+|DISABLE_THROTTLING| 0| Ignore the time interval between data as pr. sampling frequency and package size. Instead deliver data as fast as possible.
+|NUMBER_OF_SHOTS| No value| Will override value set on SECONDS_TO_RUN to have a predefined number of shots sent
+|SECONDS_TO_RUN| 120| Use this to limit the time the simulator should run. Can be overridden by NUMBER_OF_SHOTS
+|===
 
 ==== Data that can be used in the configuration of simulator box
 
