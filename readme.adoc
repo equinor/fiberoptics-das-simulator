@@ -123,34 +123,10 @@ You need Java 13 and you need docker and docker-compose installed to compile and
 Run this in the current directory as this readme.adoc file is in (for Linux):
 [source,bash]
 ----
-./mvnw clean package spring-boot:repackage
+./mvnw clean install
 docker-compose --env-file ./dependson-services/.env -f ./dependson-services/compose-kafka.yml up
-source ./defaults.env
-java -jar target/fiberoptics-das-producer-<version>.jar
-----
-
-If you want to run the simulator inside a docker container:
-[source,bash]
-----
-./mvnw clean package spring-boot:repackage
- docker run \
- --network=local-network \
- --env INITIATOR_URL="http://host.docker.internal:8080" \
- --env ACQUISITION_START_VERSION="V1" \
- --env SCHEMA_REGISTRY_URL_OVERRIDE="http://host.docker.internal:8081" \
- --env KAFKA_SERVER_OVERRIDE="http://host.docker.internal:29092" \
- --env INITIATOR_API_KEY="abcdefghijklmno12345678901234567" \
- --env NUMBER_OF_LOCI=100 \
- --env START_LOCUS_INDEX=0 \
- --env BOX_UUID="00528e45-06d0-4110-bba4-e904aaa02657" \
- --env OPTICAL_PATH_UUID="25be8bc6-cd35-4c9f-9f8d-cabe43326163" \
- --env DAS_PRODUCER_KAFKA_CONFIG_CLIENT_ID="Simulator" \
- --env DAS_PRODUCER_KAFKA_CONFIG_ACKS="all" \
- --env DAS_PRODUCER_KAFKA_CONFIG_BATCH_SIZE=2500 \
- --env DAS_PRODUCER_KAFKA_CONFIG_BUFFER_MEMORY=33554432 \
- --env DAS_PRODUCER_KAFKA_CONFIG_COMPRESSION_TYPE="none" \
- --env DAS_PRODUCER_KAFKA_CONFIG_LINGER_MS=15 \
- ghcr.io/equinor/fiberoptics-das-simulator/fiberoptics-das-simulator:2.0.0
+source ./das-producer/defaults.env
+java -jar ./das-producer/target/fiberoptics-das-simulator-<version>.jar
 ----
 
 == Variants
@@ -220,6 +196,6 @@ Simulator box UUIDs:
 ----
 6fc8a265-1ec5-4daf-b6b5-f7649af2a07a
 1deb5d57-2fb9-418a-990b-4cf7252a0450
-1deb5d57-3fb9-418a-990b-4cf7252a0450
-1deb5d57-4fb9-418a-990b-4cf7252a0450
+1deb5d57-3fb9-418a-990b-4cf7252a0451
+1deb5d57-4fb9-418a-990b-4cf7252a0452
 ----
