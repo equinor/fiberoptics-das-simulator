@@ -17,10 +17,9 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
-package com.equinor.fiberoptics.das.producer.variants.simulatorboxunit;
+package com.equinor.fiberoptics.das.producer.variants.staticdataunit;
 
 import com.equinor.fiberoptics.das.producer.variants.GenericDasProducer;
-import com.equinor.fiberoptics.das.producer.variants.PackageStepCalculator;
 import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
@@ -32,37 +31,33 @@ import reactor.core.publisher.Flux;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static com.equinor.fiberoptics.das.producer.variants.util.Helpers.millisInNano;
+
 /**
- * This is an example DAS  box unit implementation.
- * It's role is to convert the raw DAS data into a format that can be accepted into the Kafka server environment.
- * Serving the amplitude data
+ * This is a static data unit for testing that data is flowing as expected on the platform, so that we can make asserts on the data flowing
+ * out and perform  black-box testing
  *
- * @author Espen Tjonneland, espen@tjonneland.no
+ * @author Inge Knudsen, iknu@equinor.com
  */
-@Component("SimulatorBoxUnit")
-@EnableConfigurationProperties({ SimulatorBoxUnitConfiguration.class})
-public class SimulatorBoxUnit implements GenericDasProducer {
-  private static final Logger logger = LoggerFactory.getLogger(SimulatorBoxUnit.class);
+@Component("StaticDataUnit")
+@EnableConfigurationProperties({ StaticDataUnitConfiguration.class})
+public class StaticDataUnit implements GenericDasProducer {
+  private static final Logger logger = LoggerFactory.getLogger(StaticDataUnit.class);
 
-  private final SimulatorBoxUnitConfiguration _configuration;
-  private final PackageStepCalculator _stepCalculator;
+  private final StaticDataUnitConfiguration _configuration;
 
-  public SimulatorBoxUnit(SimulatorBoxUnitConfiguration configuration)
+  public StaticDataUnit(StaticDataUnitConfiguration configuration)
   {
     this._configuration = configuration;
-    this._stepCalculator = new PackageStepCalculator(Instant.now(),
-      _configuration.getMaxFreq(), _configuration.getAmplitudesPrPackage(), _configuration.getNumberOfLoci());
   }
 
   @Override
   public Flux<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> produce() {
-    RandomDataCache dataCache = new RandomDataCache(_configuration.getNumberOfPrePopulatedValues(), _configuration.getAmplitudesPrPackage(), _configuration.getPulseRate());
-    long delay = _configuration.isDisableThrottling () ? 0 : (long)_stepCalculator.millisPrPackage();
+   long delay = _configuration.isDisableThrottling () ? 0 : (long)_configuration.getMillisPerPackage();
     long take = 0;
     if (_configuration.getNumberOfShots() != null && _configuration.getNumberOfShots() > 0) {
       take = _configuration.getNumberOfShots().intValue();
@@ -78,11 +73,14 @@ public class SimulatorBoxUnit implements GenericDasProducer {
         .interval(Duration.ofMillis(delay))
         .take(take)
         .map(tick -> {
-          List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> data = IntStream.range(0, _configuration.getNumberOfLoci())
-            .mapToObj(currentLocus -> constructAvroObjects(currentLocus, dataCache.getFloat()))
+          List<Float> floatData = IntStream.range(0, _configuration.getAmplitudesPrPackage())
+            .mapToObj(i -> (float) tick)
             .collect(Collectors.toList());
 
-          _stepCalculator.increment(1);
+          List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> data = IntStream.range(0, _configuration.getNumberOfLoci())
+            .mapToObj(currentLocus -> constructAvroObjects(currentLocus, floatData))
+            .collect(Collectors.toList());
+
           return data;
         });
   }
@@ -93,7 +91,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
         .setLocus(currentLocus)
         .build(),
       DASMeasurement.newBuilder()
-        .setStartSnapshotTimeNano(_stepCalculator.currentEpochNanos())
+        .setStartSnapshotTimeNano(Instant.now().toEpochMilli() * millisInNano)
         .setTrustedTimeSource(true)
         .setLocus(currentLocus)
         .setAmplitudesFloat(data)

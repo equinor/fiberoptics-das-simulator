@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -8,27 +10,23 @@
     <version>2.0.3-SNAPSHOT</version>
   </parent>
 
-  <artifactId>simulator-box-unit</artifactId>
-  <description>Default plugin</description>
+  <artifactId>static-data-unit</artifactId>
+  <description>Plugin for testing streaming functionality</description>
   <packaging>jar</packaging>
+
 
   <developers>
     <developer>
-      <id>etjonnel</id>
-      <name>Espen Tjonneland</name>
-      <email>espen@tjonneland.no</email>
+      <id>iknu</id>
+      <name>Inge Knudsen</name>
+      <email>iknu@equinor.com</email>
     </developer>
   </developers>
-
 
   <dependencies>
     <dependency>
       <groupId>com.equinor.fiberoptics</groupId>
       <artifactId>simulator-common</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.confluent</groupId>
-      <artifactId>kafka-avro-serializer</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
@@ -45,6 +43,10 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-configuration-processor</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.confluent</groupId>
+      <artifactId>kafka-avro-serializer</artifactId>
     </dependency>
     <dependency>
       <groupId>org.projectlombok</groupId>
@@ -126,4 +128,5 @@
       </plugin>
     </plugins>
   </build>
+
 </project>
