@@ -54,7 +54,7 @@ services:
       - local-network
 
   streaminitiator:
-    image: fibra.azurecr.io/fibra/streaminitiator:${STREAMINITIATOR_VERSION}
+    image: fibra/streaminitiator:${STREAMINITIATOR_VERSION}
     hostname: streaminitiator
     ports:
       - "8080:8080"
