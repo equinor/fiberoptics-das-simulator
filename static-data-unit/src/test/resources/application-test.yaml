@@ -2,10 +2,10 @@ das:
   producer:
     box:
       static:
-        numberOfShots: ${NUMBER_OF_SHOTS:10}
-        secondsToRun: ${SECONDS_TO_RUN:5}
+        numberOfShots: 10
+        secondsToRun: 5
         boxUUID: ${BOX_UUID}
         opticalPathUUID: ${OPTICAL_PATH_UUID}
-        disableThrottling: ${DISABLE_THROTTLING:0}
-        numberOfLoci: ${NUMBER_OF_LOCI:3}
+        disableThrottling: true
+        numberOfLoci: 3
         amplitudesPrPackage: 8192
