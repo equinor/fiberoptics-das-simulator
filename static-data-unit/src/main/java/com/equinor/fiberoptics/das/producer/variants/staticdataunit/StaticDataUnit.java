@@ -33,6 +33,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
 
 import static com.equinor.fiberoptics.das.producer.variants.util.Helpers.millisInNano;
@@ -62,19 +63,19 @@ public class StaticDataUnit implements GenericDasProducer {
     if (_configuration.getNumberOfShots() != null && _configuration.getNumberOfShots() > 0) {
       take = _configuration.getNumberOfShots().intValue();
       logger.info(String.format("Starting to produce %d data", take));
-
     } else {
       take = delay == 0 ? _configuration.getSecondsToRun() * 1000 : (long)(_configuration.getSecondsToRun() / (delay / 1000.0));
       logger.info(String.format("Starting to produce data now for %d seconds", _configuration.getSecondsToRun()));
-
     }
 
     return Flux
         .interval(Duration.ofMillis(delay))
         .take(take)
         .map(tick -> {
-          List<Float> floatData = IntStream.range(0, _configuration.getAmplitudesPrPackage())
-            .mapToObj(i -> (float) tick)
+          List<Float> floatData = DoubleStream.iterate(0, i -> i + 1)
+            .limit(_configuration.getAmplitudesPrPackage())
+            .boxed()
+            .map(d -> d.floatValue())
             .collect(Collectors.toList());
 
           List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> data = IntStream.range(0, _configuration.getNumberOfLoci())

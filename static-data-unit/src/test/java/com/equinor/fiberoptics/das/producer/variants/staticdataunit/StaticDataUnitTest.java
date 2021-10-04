@@ -55,7 +55,6 @@ public class StaticDataUnitTest {
 
   @Test
   public void testStreamFromStaticDataBox() {
-    AtomicInteger consumed = new AtomicInteger();
 
     Consumer<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> logOutput = value -> {
       for (PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> entry: value) {
@@ -65,15 +64,14 @@ public class StaticDataUnitTest {
         logger.info("Locus {} with {} has {} amplitudes", measurement.getLocus(), ldt, measurement.getAmplitudesFloat().size());
         assertEquals("Number of amplitudes is as configured", 8192, measurement.getAmplitudesFloat().size());
 
-        // Amplitudes are, for all loci and all amplitudes, 0 for first message, 1 for second ... n
-        Float expected = (float) consumed.get();
+        // Amplitudes are, for all loci values from 0 to 8191
         Float firstAmplitude = measurement.getAmplitudesFloat().get(0);
+        Float lastAmplitude = measurement.getAmplitudesFloat().get(8191);
 
-        assertEquals("Amplitude is expected", expected, firstAmplitude);
+        assertEquals("firstAmplitude is expected", 0.0, firstAmplitude.floatValue(), 0);
+        assertEquals("lastAmplitude is expected", 8191.0, lastAmplitude.floatValue(), 0);
       }
-
       assertEquals("Number of loci is as configured", 3, value.size());
-      consumed.getAndIncrement();
     };
 
     CountDownLatch latch = new CountDownLatch(1);
@@ -84,6 +82,5 @@ public class StaticDataUnitTest {
 
     Helpers.wait(latch);
 
-    assertEquals("Number consumed is as configured", 10, consumed.get());
   }
 }
