@@ -45,45 +45,44 @@ import static com.equinor.fiberoptics.das.producer.variants.util.Helpers.millisI
  * @author Inge Knudsen, iknu@equinor.com
  */
 @Component("StaticDataUnit")
-@EnableConfigurationProperties({ StaticDataUnitConfiguration.class})
+@EnableConfigurationProperties({StaticDataUnitConfiguration.class})
 public class StaticDataUnit implements GenericDasProducer {
   private static final Logger logger = LoggerFactory.getLogger(StaticDataUnit.class);
 
   private final StaticDataUnitConfiguration _configuration;
 
-  public StaticDataUnit(StaticDataUnitConfiguration configuration)
-  {
+  public StaticDataUnit(StaticDataUnitConfiguration configuration) {
     this._configuration = configuration;
   }
 
   @Override
   public Flux<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> produce() {
-   long delay = _configuration.isDisableThrottling () ? 0 : (long)_configuration.getMillisPerPackage();
+    long delay = _configuration.isDisableThrottling() ? 0 : (long) _configuration.getMillisPerPackage();
     long take = 0;
     if (_configuration.getNumberOfShots() != null && _configuration.getNumberOfShots() > 0) {
       take = _configuration.getNumberOfShots().intValue();
       logger.info(String.format("Starting to produce %d data", take));
     } else {
-      take = delay == 0 ? _configuration.getSecondsToRun() * 1000 : (long)(_configuration.getSecondsToRun() / (delay / 1000.0));
+      take = delay == 0 ? _configuration.getSecondsToRun() * 1000 : (long) (_configuration.getSecondsToRun() / (delay / 1000.0));
       logger.info(String.format("Starting to produce data now for %d seconds", _configuration.getSecondsToRun()));
     }
 
     return Flux
-        .interval(Duration.ofMillis(delay))
-        .take(take)
-        .map(tick -> {
-          List<Float> floatData = DoubleStream.iterate(0, i -> i + 1)
-            .limit(_configuration.getAmplitudesPrPackage())
-            .boxed()
-            .map(d -> d.floatValue())
-            .collect(Collectors.toList());
+      .interval(Duration.ofMillis(delay))
+      .take(take)
+      .map(tick -> {
+        List<Float> floatData = DoubleStream.iterate(0, i -> i + 1)
+          .limit(_configuration.getAmplitudesPrPackage())
+          .boxed()
+          .map(d -> d.floatValue())
+          .collect(Collectors.toList());
 
-          List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> data = IntStream.range(0, _configuration.getNumberOfLoci())
-            .mapToObj(currentLocus -> constructAvroObjects(currentLocus, floatData))
-            .collect(Collectors.toList());
+        List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> data = IntStream.range(0, _configuration.getNumberOfLoci())
+          .mapToObj(currentLocus -> constructAvroObjects(currentLocus, floatData))
+          .collect(Collectors.toList());
 
-          return data;
-        });
+        return data;
+      });
   }
 
   private PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> constructAvroObjects(int currentLocus, List<Float> data) {
