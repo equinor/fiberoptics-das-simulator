@@ -44,15 +44,17 @@ das:
         numberOfLoci: ${NUMBER_OF_LOCI}
         numberOfPrePopulatedValues: ${NUMBER_OF_PREPOPULATED_VALUES:100}
         amplitudesPrPackage: ${PACKAGE_SIZE:8192}
+        startTimeEpochSecond: ${START_TIME_EPOCH_SECOND:0}
       static:
         numberOfShots: ${NUMBER_OF_SHOTS:-1}
         secondsToRun: ${SECONDS_TO_RUN:120}
+        maxFreq: ${MAX_NYQ_FREQ:5000}
         boxUUID: ${BOX_UUID}
         opticalPathUUID: ${OPTICAL_PATH_UUID}
         disableThrottling: ${DISABLE_THROTTLING:0}
         numberOfLoci: ${NUMBER_OF_LOCI}
         amplitudesPrPackage: ${PACKAGE_SIZE:8192}
-        millisPerPackage: ${MILLIS_PER_PACKAGE:1000}
+        startTimeEpochSecond: ${START_TIME_EPOCH_SECOND:0}
     kafka:
       config:
         client.id: ${DAS_PRODUCER_KAFKA_CONFIG_CLIENT_ID:Simulator}

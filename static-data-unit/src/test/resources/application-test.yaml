@@ -9,4 +9,5 @@ das:
         disableThrottling: true
         numberOfLoci: 3
         amplitudesPrPackage: 8192
-        millisPerPackage: 100
+        maxFreq: 5000
+        startTimeEpochSecond: 1634000000

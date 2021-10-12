@@ -138,6 +138,7 @@ Config Options:
 |AMPLITUDES_PR_PACKAGE|8192|The number of amplitude delivered pr Kafka message.
 |NUMBER_OF_SHOTS| No value| Will override value set on SECONDS_TO_RUN to have a predefined number of shots sent
 |SECONDS_TO_RUN| 120| Use this to limit the time the simulator should run. Can be overridden by NUMBER_OF_SHOTS
+|START_TIME_EPOCH_SECOND| Instant.now()| Adjusts the first package timestamp.
 |===
 
 === Static data unit
@@ -154,6 +155,7 @@ Config Options:
 |DISABLE_THROTTLING| 0| Ignore the time interval between data as pr. sampling frequency and package size. Instead deliver data as fast as possible.
 |NUMBER_OF_SHOTS| No value| Will override value set on SECONDS_TO_RUN to have a predefined number of shots sent
 |SECONDS_TO_RUN| 120| Use this to limit the time the simulator should run. Can be overridden by NUMBER_OF_SHOTS
+|START_TIME_EPOCH_SECOND| Instant.now()| Adjusts the first package timestamp.
 |===
 
 ==== Data that can be used in the configuration of simulator box

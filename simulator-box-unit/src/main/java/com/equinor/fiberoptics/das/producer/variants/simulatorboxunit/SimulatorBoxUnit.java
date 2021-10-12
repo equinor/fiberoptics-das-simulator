@@ -55,7 +55,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
   public SimulatorBoxUnit(SimulatorBoxUnitConfiguration configuration)
   {
     this._configuration = configuration;
-    this._stepCalculator = new PackageStepCalculator(Instant.now(),
+    this._stepCalculator = new PackageStepCalculator(_configuration.getStartTimeInstant(),
       _configuration.getMaxFreq(), _configuration.getAmplitudesPrPackage(), _configuration.getNumberOfLoci());
   }
 
