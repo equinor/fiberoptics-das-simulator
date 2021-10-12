@@ -154,12 +154,12 @@
           </execution>
         </executions>
         <configuration>
-          <repository>ghcr.io/equinor/fiberoptics-das-simulator/${project.artifactId}</repository>
+          <repository>fibra/fiberoptics-das-simulator/${project.artifactId}</repository>
           <tag>${project.version}</tag>
           <buildArgs>
             <JAR_FILE>target/${project.build.finalName}.jar</JAR_FILE>
           </buildArgs>
-          <useMavenSettingsForAuth>true</useMavenSettingsForAuth>
+          <!--By default use credentials from ~/.dockercfg or ~/.docker/config.json - easy way is just to type docker login (for dockerhub) and it will add necessary info to config.json -->
         </configuration>
         <dependencies>
           <!-- To make this work on JDK 9+ -->
