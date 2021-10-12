@@ -20,6 +20,7 @@
 package com.equinor.fiberoptics.das.producer.variants.staticdataunit;
 
 import com.equinor.fiberoptics.das.producer.variants.GenericDasProducer;
+import com.equinor.fiberoptics.das.producer.variants.PackageStepCalculator;
 import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
@@ -50,14 +51,17 @@ public class StaticDataUnit implements GenericDasProducer {
   private static final Logger logger = LoggerFactory.getLogger(StaticDataUnit.class);
 
   private final StaticDataUnitConfiguration _configuration;
+  private final PackageStepCalculator _stepCalculator;
 
   public StaticDataUnit(StaticDataUnitConfiguration configuration) {
     this._configuration = configuration;
+    this._stepCalculator = new PackageStepCalculator(_configuration.getStartTimeInstant(),
+      _configuration.getMaxFreq(), _configuration.getAmplitudesPrPackage(), _configuration.getNumberOfLoci());
   }
 
   @Override
   public Flux<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> produce() {
-    long delay = _configuration.isDisableThrottling() ? 0 : (long) _configuration.getMillisPerPackage();
+    long delay = _configuration.isDisableThrottling () ? 0 : (long)_stepCalculator.millisPrPackage();
     long take = 0;
     if (_configuration.getNumberOfShots() != null && _configuration.getNumberOfShots() > 0) {
       take = _configuration.getNumberOfShots().intValue();
@@ -81,6 +85,7 @@ public class StaticDataUnit implements GenericDasProducer {
           .mapToObj(currentLocus -> constructAvroObjects(currentLocus, floatData))
           .collect(Collectors.toList());
 
+        _stepCalculator.increment(1);
         return data;
       });
   }
@@ -91,7 +96,7 @@ public class StaticDataUnit implements GenericDasProducer {
         .setLocus(currentLocus)
         .build(),
       DASMeasurement.newBuilder()
-        .setStartSnapshotTimeNano(Instant.now().toEpochMilli() * millisInNano)
+        .setStartSnapshotTimeNano(_stepCalculator.currentEpochNanos())
         .setTrustedTimeSource(true)
         .setLocus(currentLocus)
         .setAmplitudesFloat(data)

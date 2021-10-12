@@ -23,6 +23,8 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.time.Instant;
+
 /**
  * Configuration class for the DAS box unit
  *
@@ -38,8 +40,13 @@ public class StaticDataUnitConfiguration {
   private int amplitudesPrPackage;
   private boolean disableThrottling;
   private Integer numberOfShots;
-  private long millisPerPackage;
+  private float maxFreq;
   private int secondsToRun;
+  private long startTimeEpochSecond;
+
+  public Instant getStartTimeInstant() {
+    return startTimeEpochSecond==0 ? Instant.now() : Instant.ofEpochSecond(startTimeEpochSecond);
+  }
 
 
   public boolean isDisableThrottling() {

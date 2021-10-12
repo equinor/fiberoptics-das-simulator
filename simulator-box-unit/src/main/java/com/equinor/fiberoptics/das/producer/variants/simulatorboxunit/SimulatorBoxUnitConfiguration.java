@@ -24,6 +24,7 @@ import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import javax.annotation.PostConstruct;
+import java.time.Instant;
 
 /**
  * Configuration class for the DAS box unit
@@ -50,6 +51,11 @@ public class SimulatorBoxUnitConfiguration {
   private int numberOfPrePopulatedValues;
   private Integer numberOfShots;
   private int secondsToRun;
+  private long startTimeEpochSecond;
+
+  public Instant getStartTimeInstant() {
+    return startTimeEpochSecond==0 ? Instant.now() : Instant.ofEpochSecond(startTimeEpochSecond);
+  }
 
   @PostConstruct
   public void afterInit() {

@@ -18,3 +18,4 @@ das:
         numberOfLoci: 3
         numberOfPrePopulatedValues: 100
         amplitudesPrPackage: 8192
+        startTimeEpochSecond: 0
