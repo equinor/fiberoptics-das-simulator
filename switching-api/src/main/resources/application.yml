@@ -1,0 +1,58 @@
+server:
+  port: 8080
+
+api:
+  key: ${API_KEY}
+
+das:
+  producer:
+    vendorCode: ${VENDOR_CODE:Simulator}
+    amplitudesPrPackage: ${PACKAGE_SIZE:8192}
+    initiatorserviceUrl: ${INITIATOR_URL:http://localhost:8080}
+    acquisitionStartVersion: ${ACQUISITION_START_VERSION:V1}
+    initiatorserviceApiKey: ${INITIATOR_API_KEY}
+    overrideBootstrapServersWith: ${KAFKA_SERVER_OVERRIDE:}
+    overrideSchemaRegistryWith: ${SCHEMA_REGISTRY_URL_OVERRIDE:}
+    variant: ${VARIANT_PLUGIN:SimulatorBoxUnit}
+    box:
+      simulator:
+        amplitudeDataType: float
+        numberOfShots: ${NUMBER_OF_SHOTS:-1}
+        secondsToRun: ${SECONDS_TO_RUN:120}
+        pulseRate: ${PULSE_RATE:10000}
+        maxFreq: ${MAX_NYQ_FREQ:5000}
+        minFreq: ${MIN_NYQ_FREQ:0}
+        boxUUID: ${BOX_UUID}
+        opticalPathUUID: ${OPTICAL_PATH_UUID}
+        spatialSamplingInterval: ${SPATIAL_SAMPLING_INTERVAL:1.1}
+        pulseWidth: ${PULSE_WIDTH:100.50}
+        startLocusIndex: ${START_LOCUS_INDEX:0}
+        disableThrottling: ${DISABLE_THROTTLING:0}
+        gaugeLength: ${GAUGE_LENGTH:10.209524}
+        numberOfLoci: ${NUMBER_OF_LOCI}
+        numberOfPrePopulatedValues: ${NUMBER_OF_PREPOPULATED_VALUES:100}
+        amplitudesPrPackage: ${PACKAGE_SIZE:8192}
+        startTimeEpochSecond: ${START_TIME_EPOCH_SECOND:0}
+      static:
+        numberOfShots: ${NUMBER_OF_SHOTS:-1}
+        secondsToRun: ${SECONDS_TO_RUN:120}
+        maxFreq: ${MAX_NYQ_FREQ:5000}
+        boxUUID: ${BOX_UUID}
+        opticalPathUUID: ${OPTICAL_PATH_UUID}
+        disableThrottling: ${DISABLE_THROTTLING:0}
+        numberOfLoci: ${NUMBER_OF_LOCI}
+        amplitudesPrPackage: ${PACKAGE_SIZE:8192}
+        startTimeEpochSecond: ${START_TIME_EPOCH_SECOND:0}
+    kafka:
+      config:
+        client.id: ${DAS_PRODUCER_KAFKA_CONFIG_CLIENT_ID:Simulator}
+        acks: ${DAS_PRODUCER_KAFKA_CONFIG_ACKS:1}
+        batch.size: ${DAS_PRODUCER_KAFKA_CONFIG_BATCH_SIZE:500000}
+        buffer.memory: ${DAS_PRODUCER_KAFKA_CONFIG_BUFFER_MEMORY:33554432}
+        compression.type: ${DAS_PRODUCER_KAFKA_CONFIG_COMPRESSION_TYPE:none}
+        linger.ms: ${DAS_PRODUCER_KAFKA_CONFIG_LINGER_MS:0}
+        max.request.size: ${DAS_PRODUCER_KAFKA_CONFIG_MAX_REQ_SIZE:1048576}
+        max.block.ms: ${DAS_PRODUCER_KAFKA_CONFIG_MAX_BLOCK_MS:60000}
+        max.in.flight.requests.per.connection: ${DAS_PRODUCER_KAFKA_CONFIG_MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION :5}
+        send.buffer.bytes: ${DAS_PRODUCER_KAFKA_CONFIG_SEND_BUFFER_BYTES:-1}
+

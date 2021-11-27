@@ -26,6 +26,7 @@
     <module>simulator-box-unit</module>
     <module>static-data-unit</module>
     <module>das-producer</module>
+    <module>switching-api</module>
   </modules>
 
   <distributionManagement>
