@@ -44,40 +44,6 @@ public class SwitchingController {
     this.switching = switching;
   }
 
-  @PostMapping(BASE_PATH + "/acquisitions/start")
-  @ApiOperation(
-    value = "Will start a new acquisition, " +
-      "or return error if one is already running"
-  )
-  void startAcquisition(
-    @RequestHeader(name = "X-API-Key")String apiKey,
-    @RequestBody DASAcquisition acquisition
-  ) {
-    if (apiKey.equals(this.apiKey)) {
-      switching.start(acquisition);
-    } else {
-      throw new ResponseStatusException(
-        HttpStatus.UNAUTHORIZED);
-    }
-  }
-
-  @PostMapping(BASE_PATH + "/acquisitions/stop")
-  @ApiOperation(
-    value = "Will stop the acquisition, " +
-      " or return error if it is not running"
-  )
-  void stopAcquisition(
-    @RequestHeader(name = "X-API-Key")String apiKey,
-    @RequestBody DASAcquisition acquisition
-  ) {
-    if (apiKey.equals(this.apiKey)) {
-      switching.start(acquisition);
-    } else {
-      throw new ResponseStatusException(
-        HttpStatus.UNAUTHORIZED);
-    }
-  }
-
   @PostMapping(BASE_PATH + "/acquisitions/switch")
   @ApiOperation(
     value = "Will stop any running acquisition, " +
@@ -88,7 +54,7 @@ public class SwitchingController {
     @RequestBody DASAcquisition acquisition
   ) {
     if (apiKey.equals(this.apiKey)) {
-      switching.start(acquisition);
+      switching.switchTo(acquisition);
     } else {
       throw new ResponseStatusException(
         HttpStatus.UNAUTHORIZED);

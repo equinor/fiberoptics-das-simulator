@@ -20,7 +20,6 @@
     </developer>
   </developers>
 
-
   <dependencies>
     <dependency>
       <groupId>com.equinor.fiberoptics</groupId>

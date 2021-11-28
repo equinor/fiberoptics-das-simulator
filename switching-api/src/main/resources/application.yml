@@ -5,6 +5,19 @@ api:
   key: ${API_KEY}
 
 das:
+  boxes:
+    instrumentBoxes:
+      - uuid: b05aa424-5e38-4e9f-9786-f3ca4fe05850
+        paths:
+          - uuid: c9031700-bd69-41d0-91af-d9a05510b9c7
+          - uuid: 638dbac9-573e-4717-a7b0-3fd71b781d11
+      - uuid: 0efc748e-1765-4691-ae19-437f8be53363
+        paths:
+          - uuid: 7cc45240-d155-45a9-a94b-d1a2ae2668ba
+          - uuid: cf30a850-b683-4524-b627-6b76f5ff560d
+          - uuid: 51afd5c0-e049-4e94-9bad-83ae4c826dd5
+          - uuid: d5c450bb-1127-4fec-bcc4-04292f975725
+
   producer:
     vendorCode: ${VENDOR_CODE:Simulator}
     amplitudesPrPackage: ${PACKAGE_SIZE:8192}
