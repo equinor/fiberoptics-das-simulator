@@ -20,20 +20,21 @@
 package com.equinor.fiberoptics.das;
 
 import com.equinor.fiberoptics.das.producer.variants.PackageStepCalculator;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 
-@RunWith(JUnit4.class)
 public class PackageStepCalculatorTest {
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testInitNonPow2() {
-    new PackageStepCalculator(0L,
-      5000, 8193, 1);
+    IllegalArgumentException thrownException = assertThrows(
+      IllegalArgumentException.class,
+      () -> new PackageStepCalculator(0L,
+        5000, 8193, 1)
+    );
+    assertTrue(thrownException.getMessage().contains("is not a power of 2"));
   }
 
   @Test
@@ -65,8 +66,8 @@ public class PackageStepCalculatorTest {
     PackageStepCalculator stepCal = new PackageStepCalculator(0L,
       5000, 8192, 1);
     stepCal.increment(10);
-    assertEquals("Unexpected nano value", 8_192_000_000L, stepCal.currentEpochNanos());
-    assertEquals("Unexpected millis value", 8_192_000_000L / 1_000_000, stepCal.currentEpochMillis());
+    assertEquals(8_192_000_000L, stepCal.currentEpochNanos(), "Unexpected nano value");
+    assertEquals(8_192_000_000L / 1_000_000, stepCal.currentEpochMillis(), "Unexpected millis value");
   }
 
   @Test
@@ -74,7 +75,7 @@ public class PackageStepCalculatorTest {
     PackageStepCalculator stepCal = new PackageStepCalculator(0L,
       5000, 8192, 5);
     stepCal.increment(10);
-    assertEquals("Unexpected number of messages value", 50L, stepCal.getTotalMessages());
+    assertEquals(50L, stepCal.getTotalMessages(), "Unexpected number of messages value");
   }
 
 }

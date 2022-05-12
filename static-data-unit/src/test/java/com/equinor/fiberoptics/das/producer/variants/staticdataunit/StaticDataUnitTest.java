@@ -23,28 +23,25 @@ import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
 import com.equinor.fiberoptics.das.producer.variants.util.Helpers;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 
 @ActiveProfiles("test")
 @SpringBootTest(classes=StaticDataUnit.class)
-@RunWith(SpringRunner.class)
 public class StaticDataUnitTest {
 
   private static final Logger logger = LoggerFactory.getLogger(StaticDataUnitTest.class);
@@ -62,16 +59,16 @@ public class StaticDataUnitTest {
         LocalDateTime ldt = Instant.ofEpochMilli(measurement.getStartSnapshotTimeNano() / millisInNano).atZone(ZoneId.systemDefault()).toLocalDateTime();
 
         logger.info("Locus {} with {} has {} amplitudes", measurement.getLocus(), ldt, measurement.getAmplitudesFloat().size());
-        assertEquals("Number of amplitudes is as configured", 8192, measurement.getAmplitudesFloat().size());
+        assertEquals( 8192, measurement.getAmplitudesFloat().size(), "Number of amplitudes is as configured");
 
         // Amplitudes are, for all loci values from 0 to 8191
         Float firstAmplitude = measurement.getAmplitudesFloat().get(0);
         Float lastAmplitude = measurement.getAmplitudesFloat().get(8191);
 
-        assertEquals("firstAmplitude is expected", 0.0, firstAmplitude.floatValue(), 0);
-        assertEquals("lastAmplitude is expected", 8191.0, lastAmplitude.floatValue(), 0);
+        assertEquals(0.0, firstAmplitude, 0, "firstAmplitude is expected");
+        assertEquals(8191.0, lastAmplitude, 0, "lastAmplitude is expected");
       }
-      assertEquals("Number of loci is as configured", 3, value.size());
+      assertEquals(3, value.size(), "Number of loci is as configured");
     };
 
     CountDownLatch latch = new CountDownLatch(1);

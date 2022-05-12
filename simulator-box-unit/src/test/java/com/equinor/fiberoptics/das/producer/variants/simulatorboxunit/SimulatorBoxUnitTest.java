@@ -23,14 +23,12 @@ import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
 import com.equinor.fiberoptics.das.producer.variants.util.Helpers;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -40,11 +38,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-import static org.junit.Assert.assertEquals;
+import static org.springframework.test.util.AssertionErrors.assertEquals;
 
 @ActiveProfiles("test")
 @SpringBootTest(classes = SimulatorBoxUnit.class)
-@RunWith(SpringRunner.class)
 public class SimulatorBoxUnitTest {
 
   private static final Logger logger = LoggerFactory.getLogger(SimulatorBoxUnitTest.class);
