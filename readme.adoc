@@ -111,7 +111,7 @@ Run this in the current directory as this readme.adoc file is in (for Linux):
 ./mvnw clean install
 docker-compose --env-file ./dependson-services/.env -f ./dependson-services/compose-kafka.yml up
 source ./das-producer/defaults.env
-java -jar ./das-producer/target/fiberoptics-das-simulator-<version>.jar
+java -jar ./das-producer/target/das-producer-<version>.jar
 ----
 
 == Variants

@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.equinor.fiberoptics</groupId>
-  <artifactId>parent</artifactId>
+  <artifactId>fiberoptics-das-simulator</artifactId>
   <version>2.0.9-SNAPSHOT</version>
   <description>Parent for simulator modules</description>
   <inceptionYear>2020</inceptionYear>
