@@ -53,7 +53,7 @@
     <spring-cloud.version>2021.0.2</spring-cloud.version>
     <confluent.version>6.2.2</confluent.version>
     <fiberoptics-schemas-version>2.0.2</fiberoptics-schemas-version>
-    <lombok.version>1.18.20</lombok.version>
+    <lombok.version>1.18.24</lombok.version>
     <java.version>13</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
