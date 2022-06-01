@@ -4,7 +4,7 @@
 
   <groupId>com.equinor.fiberoptics</groupId>
   <artifactId>parent</artifactId>
-  <version>2.0.9-SNAPSHOT</version>
+  <version>2.0.9</version>
   <description>Parent for simulator modules</description>
   <inceptionYear>2020</inceptionYear>
 
@@ -45,7 +45,7 @@
     <url>
       https://github.com/equinor/fiberoptics-das-simulator
     </url>
-    <tag>HEAD</tag>
+    <tag>parent-2.0.9</tag>
   </scm>
 
   <properties>
@@ -65,22 +65,22 @@
       <dependency>
         <groupId>com.equinor.fiberoptics</groupId>
         <artifactId>fiberoptics-das-simulator</artifactId>
-        <version>2.0.9-SNAPSHOT</version>
+        <version>2.0.9</version>
       </dependency>
       <dependency>
         <groupId>com.equinor.fiberoptics</groupId>
         <artifactId>simulator-common</artifactId>
-        <version>2.0.9-SNAPSHOT</version>
+        <version>2.0.9</version>
       </dependency>
       <dependency>
         <groupId>com.equinor.fiberoptics</groupId>
         <artifactId>simulator-box-unit</artifactId>
-        <version>2.0.9-SNAPSHOT</version>
+        <version>2.0.9</version>
       </dependency>
       <dependency>
         <groupId>com.equinor.fiberoptics</groupId>
         <artifactId>static-data-unit</artifactId>
-        <version>2.0.9-SNAPSHOT</version>
+        <version>2.0.9</version>
       </dependency>
       <dependency>
         <groupId>org.springframework.boot</groupId>
