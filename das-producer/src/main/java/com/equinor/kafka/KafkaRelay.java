@@ -58,6 +58,8 @@ public class KafkaRelay {
         partitionEntry.value.getStartSnapshotTimeNano() / millisInNano,
         partitionEntry.key, partitionEntry.value);
     _kafkaSendChannel.send(data);
+    logger.debug("Now: {}, sent fiber shot with content nano-timestamp: {}, and index timestamp: {}",
+      System.currentTimeMillis(), data.value().getStartSnapshotTimeNano(), data.timestamp());
   }
 
   public void teardown() {
