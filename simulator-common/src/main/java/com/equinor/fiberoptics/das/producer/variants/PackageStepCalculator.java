@@ -115,4 +115,8 @@ public class PackageStepCalculator {
   public long getTotalMessages() {
     return _currentStep * _loci;
   }
+
+  public long getCurrentStep() {
+    return _currentStep;
+  }
 }

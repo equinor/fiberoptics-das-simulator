@@ -75,7 +75,7 @@ public class DasProducerApplication {
 
   @EventListener
   public void onApplicationEvent(ApplicationReadyEvent event) {
-    logger.info("ApplicationReadyEvent");
+    logger.info("ApplicationReadyEvent for " + _dasProducerConfig.getVariant());
 
     GenericDasProducer simulatorBoxUnit = _beanFactory.getBean(_dasProducerConfig.getVariant(), GenericDasProducer.class);
     Consumer<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> relayToKafka = value -> {

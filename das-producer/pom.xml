@@ -34,6 +34,10 @@
       <groupId>com.equinor.fiberoptics</groupId>
       <artifactId>simulator-box-unit</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.equinor.fiberoptics</groupId>
+      <artifactId>hdf5-import-unit</artifactId>
+    </dependency>
      <dependency>
       <groupId>com.equinor.fiberoptics</groupId>
       <artifactId>static-data-unit</artifactId>

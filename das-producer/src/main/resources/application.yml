@@ -55,6 +55,10 @@ das:
         numberOfLoci: ${NUMBER_OF_LOCI}
         amplitudesPrPackage: ${PACKAGE_SIZE:8192}
         startTimeEpochSecond: ${START_TIME_EPOCH_SECOND:0}
+      hdf5:
+        numberOfLoci: ${NUMBER_OF_LOCI}
+        amplitudesPrPackage: ${PACKAGE_SIZE:8192}
+        fileDirectory: ${HDF5_FILE_DIRECTORY}
     kafka:
       config:
         client.id: ${DAS_PRODUCER_KAFKA_CONFIG_CLIENT_ID:Simulator}
