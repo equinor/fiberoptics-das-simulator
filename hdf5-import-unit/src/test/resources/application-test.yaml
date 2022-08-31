@@ -2,6 +2,6 @@ das:
   producer:
     box:
       hdf5:
-        numberOfLoci: 3
+        numberOfLoci: 24
         amplitudesPrPackage: 8192
-        fileDirectory: Hdf5ImportUnit
+        fileDirectory: ../hdf5Files

@@ -68,7 +68,7 @@ public class Hdf5ImportUnitTest {
         assertEquals(0.0, firstAmplitude, 0, "firstAmplitude is expected");
         assertEquals(8191.0, lastAmplitude, 0, "lastAmplitude is expected");
       }
-      assertEquals(3, value.size(), "Number of loci is as configured");
+      assertEquals(24*2, value.size(), "Number of loci is as configured");
     };
 
     CountDownLatch latch = new CountDownLatch(1);
