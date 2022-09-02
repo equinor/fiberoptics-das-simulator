@@ -1,0 +1,209 @@
+---
+version: '3.7'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:6.2.0
+    hostname: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      #_JAVA_OPTIONS: -Xmx256m -Xmx256m
+    networks:
+      - local-network
+
+  broker_cold:
+    image: confluentinc/cp-enterprise-kafka:6.2.0
+    hostname: broker_cold
+    depends_on:
+      - zookeeper
+    ports:
+      - "29093:29093"
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181/cold'
+      BOOTSTRAP_SERVERS: 'broker_cold:29093'
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
+      CONFLUENT_SUPPORT_METRICS_ENABLE: 'false'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker_cold:29093,PLAINTEXT_HOST://localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      SOCKET_RECEIVE.BUFFER.BYTES: 104857600
+      SOCKET_REQUEST.MAX.BYTES: 104857600
+      SOCKET_SEND.BUFFER.BYTES: 102400
+      KAFKA_REPLICA_FETCH_MAX_BYTES: 104857600
+      KAFKA_PRODUCER_MAX_REQUEST_SIZE: 104857600
+      NUM_IO_THREADS: 8
+      NUM_NETWORK_THREADS: 4
+      KAFKA_CONSUMER_MAX_PARTITION_FETCH_BYTES: 104857600
+      KAFKA_HEAP_OPTS: -Xmx512m -Xms512m
+    networks:
+      - local-network
+
+  broker_ingress:
+    image: confluentinc/cp-enterprise-kafka:6.2.0
+    hostname: broker_ingress
+    depends_on:
+      - zookeeper
+    ports:
+      - "29092:29092"
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181/ingress'
+      BOOTSTRAP_SERVERS: broker_ingress:29092
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
+      CONFLUENT_SUPPORT_METRICS_ENABLE: 'false'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker_ingress:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      SOCKET_RECEIVE.BUFFER.BYTES: 104857600
+      SOCKET_REQUEST.MAX.BYTES: 104857600
+      SOCKET_SEND.BUFFER.BYTES: 102400
+      NUM_IO_THREADS: 8
+      NUM_NETWORK_THREADS: 4
+      KAFKA_REPLICA_FETCH_MAX_BYTES: 104857600
+      KAFKA_PRODUCER_MAX_REQUEST_SIZE: 104857600
+      KAFKA_CONSUMER_MAX_PARTITION_FETCH_BYTES: 104857600
+      KAFKA_HEAP_OPTS: -Xmx512m -Xms512m
+    networks:
+      - local-network
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:6.2.0
+    hostname: schema-registry
+    depends_on:
+      - zookeeper
+      - broker_ingress
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'zookeeper:2181/ingress'
+      _JAVA_OPTIONS: -Xmx256m -Xmx256m
+    networks:
+      - local-network
+
+  configserver:
+    image: fibra.azurecr.io/fibra/configserver:2.0.28
+    hostname: configserver
+    depends_on:
+      - broker_cold
+    ports:
+      - "8888:8888"
+    environment:
+      AZURE_CONN_STR_PROC_INSTR: Endpoint=sb://jsvingressdev.servicebus.windows.net/;SharedAccessKeyName=consumer;SharedAccessKey=79buKQHykORzyVCI5ZfLo2+k0fsoWKHld6I5jZ03lC8=;EntityPath=queue.dasprocessinginstructions
+      SERVICEBUS_PROC_INSTR_QUEUE: queue.dasprocessinginstructions
+      INGRESS_PROCESSING_INSTR_TOPIC: processing_instructions
+      BROKERS: broker_cold:29093
+      SCHEMAREGISTRY: http://schema-registry:8081
+      INITIATOR_SERVICE_URL: http://streaminitiator:8080
+      FAKE_RESPONSE: 'true'
+      FAKE_TYPE: Normal
+      FAKE_NO_LOCI: 25
+      PG_SUPERADMIN_URL: jdbc:postgresql://db:5432/postgres?user=postgres&password=postgres
+      CONFIGDB_URL: jdbc:postgresql://db:5432/configdb?user=test_user&password=test_pw
+      _JAVA_OPTIONS: -Xmx512m -Xmx512m
+      INITIATOR_SERVICE_API_KEY: abcdefghijklmno12345678901234567
+    networks:
+      - local-network
+
+  db:
+    image: postgres:latest
+    hostname: db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: postgres
+    command: -p 5432
+    networks:
+      - local-network
+
+  streaminitiator:
+    image: fibra.azurecr.io/fibra/streaminitiator:1.6.7
+    hostname: streaminitiator
+    ports:
+      - "8080:8080"
+    environment:
+      ZOOKEEPERS: zookeeper:2181
+      BROKERS_COLD: broker_cold:29093
+      BROKERS_INGRESS: broker_ingress:29092
+      SCHEMAREGISTRY: http://schema-registry:8081
+      SPRING_PROFILES_ACTIVE: docker
+      REPLICATION_FACTOR: 1
+      INTERROGATOR_ENV: docker
+      PG_SUPERADMIN_URL: jdbc:postgresql://db:5432/postgres?user=postgres&password=postgres
+      PG_APP_DB_URL: jdbc:postgresql://db:5432/streamdb?user=streamuser&password=streampassword
+      MIGRATION_FOLDER: ", filesystem:/sql"
+      PARTITIONS: 5
+      INTERNAL_SERVICES_API_KEY: abcdefghijklmno12345678901234567
+      VENDORS_KEYS_SIMULATOR_OLD: abcdefghijklmno12345678901234567
+    depends_on:
+      - db
+      - schema-registry
+    volumes:
+      - "./sql:/sql"
+    networks:
+      - local-network
+
+  randomproducer:
+    image: fibra.azurecr.io/fibra/fiberoptics-das-simulator:2.0.8
+    depends_on:
+      - zookeeper
+      - broker_ingress
+      - schema-registry
+    ports:
+      - "9091:9091"
+    environment:
+      VARIANT_PLUGIN: StaticDataUnit
+      NUMBER_OF_LOCI: 25
+      NUMBER_OF_SHOTS: 20
+      INITIATOR_URL: http://streaminitiator:8080
+      INITIATOR_API_KEY: abcdefghijklmno12345678901234567
+      KAFKA_SERVER_OVERRIDE: broker_ingress:29092
+      SCHEMA_REGISTRY_URL_OVERRIDE: http://schema-registry:8081
+      BOX_UUID: 6fc8a265-9ec5-4daf-b6b5-f7649af2a07a
+      OPTICAL_PATH_UUID: 25be8bc6-cd35-4c9f-9f8d-cabe43326163
+      SPATIAL_SAMPLING_INTERVAL: 100.1
+      START_TIME_EPOCH_SECOND: 1660805478
+      _JAVA_OPTIONS: -Xmx512m -Xms512m
+    networks:
+      - local-network
+
+  replicator:
+    image: fibra.azurecr.io/fibra/replicate-topic:1.0.70
+    depends_on:
+      - randomproducer
+    ports:
+      - "8050:8050"
+    environment:
+      CONFIGSERVICE_HEALTH_URL: http://configserver:8888/actuator/health
+      CONFIGSERVICE_DATA_URL: http://configserver:8888/processingruntime
+      INITIATOR_SERVICE_URL: http://streaminitiator:8080
+      SOURCE_BROKERS: 'broker_ingress:29092'
+      DESTINATION_BROKERS: 'broker_cold:29093'
+      CONVERSION_STRATEGY: int16
+      PARTITIONS: 5
+      REPLICATION_FACTOR: 1
+      NUMBER_OF_LOCI: 25
+      SCHEMAREGISTRY: 'http://schema-registry:8081'
+      TOPIC: 276172105-amp
+      _JAVA_OPTIONS: -Xmx256m -Xmx256m
+    networks:
+      - local-network
+
+  metric:
+    image: fibra.azurecr.io/fibra/fibra-metrics:0.0.12
+    ports:
+      - "8074:8074"
+    networks:
+      - local-network
+
+networks:
+  local-network:
+    name: local-network

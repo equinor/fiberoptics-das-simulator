@@ -24,7 +24,7 @@ import com.equinor.fiberoptics.das.producer.variants.PackageStepCalculator;
 import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
-import io.jhdf.HdfFile;
+//import io.jhdf.HdfFile;
 import io.jhdf.api.Attribute;
 import io.jhdf.api.Dataset;
 import io.jhdf.api.Node;
@@ -46,6 +46,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+
+import java.io.*;
+import org.bytedeco.javacpp.*;
+import org.bytedeco.hdf5.*;
+import static org.bytedeco.hdf5.global.hdf5.*;
 
 /**
  * This is a hdf5 data unit for testing import of hdf5 files into the platform.
@@ -148,22 +153,97 @@ public class Hdf5Import implements GenericDasProducer {
     }
 
   }
-
+  static final String DATASET_NAME = "Acquisition/Raw[0]/RawData";
+  static final int DIM0 = 100;
+  static final int DIM1 = 20;
 
   private float[][] getHdf5DataFromFile(Path hdf5File) {
-    try (HdfFile hdfFile = new HdfFile(hdf5File)) {
-      Dataset dataset = hdfFile.getDatasetByPath("Acquisition/Raw[0]/RawData");
-      Object data = dataset.getData();
-      return transpose((float[][]) data);
+    logger.info("getHdf5TimeFromFile: " + hdf5File);
+    long[] dims = { DIM0, DIM1 };        // dataset dimensions
+    long[] chunk_dims = { 20, 20 };        // chunk dimensions
+    int[] buf = new int[DIM0 * DIM1];
+
+    try {
+      // Turn off the auto-printing when failure occurs so that we can
+      // handle the errors appropriately
+      org.bytedeco.hdf5.Exception.dontPrint();
+
+
+
+      // -----------------------------------------------
+      // Re-open the file and dataset, retrieve filter
+      // information for dataset and read the data back.
+      // -----------------------------------------------
+
+      int[] rbuf = new int[DIM0 * DIM1];
+      int numfilt;
+      long nelmts = 1, namelen = 1;
+      int[] flags = new int[1], filter_info = new int[1], cd_values = new int[1];
+      byte[] name = new byte[1];
+      int filter_type;
+
+      // Open the file and the dataset in the file.
+      H5File file = new H5File();
+      file.openFile(hdf5File.toString(), H5F_ACC_RDONLY);
+      DataSet dataset = new DataSet(file.openDataSet(DATASET_NAME));
+
+      // Get the create property list of the dataset.
+      DSetCreatPropList plist = new DSetCreatPropList(dataset.getCreatePlist());
+
+      // Get the number of filters associated with the dataset.
+      numfilt = plist.getNfilters();
+      System.out.println("Number of filters associated with dataset: " + numfilt);
+
+      for (int idx = 0; idx < numfilt; idx++) {
+        nelmts = 0;
+
+        filter_type = plist.getFilter(idx, flags, new SizeTPointer(1).put(nelmts), cd_values, namelen, name, filter_info);
+
+        System.out.print("Filter Type: ");
+
+        switch (filter_type) {
+          case H5Z_FILTER_DEFLATE:
+            System.out.println("H5Z_FILTER_DEFLATE");
+            break;
+          case H5Z_FILTER_SZIP:
+            System.out.println("H5Z_FILTER_SZIP");
+            break;
+          default:
+            System.out.println("Other filter type included.");
+        }
+      }
+
+      // Read data.
+      IntPointer p = new IntPointer(rbuf);
+      dataset.read(p, PredType.NATIVE_INT());
+      p.get(rbuf);
+
+      plist.close();
+      dataset.close();
+      file.close();        // can be skipped
+
+    }  // end of try block
+
+    // catch failure caused by the H5File, DataSet, and DataSpace operations
+    catch (RuntimeException error) {
+      System.err.println(error);
+      error.printStackTrace();
+      System.exit(-1);
     }
+
+  return null;
   }
 
   private long[] getHdf5TimeFromFile(Path hdf5File) {
+    /*
     try (HdfFile hdfFile = new HdfFile(hdf5File)) {
       Dataset dataset = hdfFile.getDatasetByPath("Acquisition/Raw[0]/RawDataTime");
       long[][] data = (long[][])dataset.getData();
       return transpose(data)[0];
     }
+
+     */
+    return null;
   }
 
   /*

@@ -51,10 +51,11 @@
       <artifactId>lombok</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.jhdf</groupId>
-      <artifactId>jhdf</artifactId>
-      <version>0.6.8</version>
+      <groupId>org.bytedeco</groupId>
+      <artifactId>hdf5</artifactId>
+      <version>1.12.1-1.5.7</version>
     </dependency>
+
 
     <!-- Test dependencies -->
     <dependency>
