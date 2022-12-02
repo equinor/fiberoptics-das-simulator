@@ -1,4 +1,4 @@
-FROM azul/zulu-openjdk-alpine:13-jre
+FROM azul/zulu-openjdk-alpine:17-jre
 LABEL org.opencontainers.image.authors="Espen Tjønneland <etj@knowit.no>"
 LABEL org.opencontainers.image.source=https://github.com/equinor/fiberoptics-das-simulator
 
