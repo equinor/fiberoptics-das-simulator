@@ -103,7 +103,7 @@ Details for ProdML can be found here: http://w3.energistics.org/energyML/data/pr
 
 Note:
 
-You need Java 13 and you need docker and docker-compose installed to compile and run this.
+You need Java 17 and you need docker and docker-compose installed to compile and run this.
 
 Run this in the current directory as this readme.adoc file is in (for Linux):
 [source,bash]
@@ -139,6 +139,7 @@ Config Options:
 |NUMBER_OF_SHOTS| No value| Will override value set on SECONDS_TO_RUN to have a predefined number of shots sent
 |SECONDS_TO_RUN| 120| Use this to limit the time the simulator should run. Can be overridden by NUMBER_OF_SHOTS
 |START_TIME_EPOCH_SECOND| Instant.now()| Adjusts the first package timestamp.
+|AMPLITUDE_DATA_TYPE| float | Valuers allowed, "float" or "long"
 |===
 
 === Static data unit

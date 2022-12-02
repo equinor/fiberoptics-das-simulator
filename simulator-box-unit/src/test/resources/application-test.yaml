@@ -2,7 +2,7 @@ das:
   producer:
     box:
       simulator:
-        amplitudeDataType: float
+        amplitudeDataType: long
         numberOfShots: 10
         secondsToRun: 5
         pulseRate: 10000

@@ -50,6 +50,7 @@ public class SimulatorBoxUnitTest {
   @Autowired
   SimulatorBoxUnit simulatorBoxUnit;
 
+
   @Test
   public void testStreamFromSimulatorBox() {
     AtomicInteger consumed = new AtomicInteger();
@@ -59,7 +60,11 @@ public class SimulatorBoxUnitTest {
         DASMeasurement measurement = entry.value;
         LocalDateTime ldt = Instant.ofEpochMilli(measurement.getStartSnapshotTimeNano() / millisInNano).atZone(ZoneId.systemDefault()).toLocalDateTime();
 
-        logger.info("Locus {} with {} has {} amplitudes", measurement.getLocus(), ldt, measurement.getAmplitudesFloat().size());
+        if (measurement.getAmplitudesFloat() != null) {
+          logger.info("Locus {} with {} has {} float based amplitudes", measurement.getLocus(), ldt, measurement.getAmplitudesFloat().size());
+        } else {
+          logger.info("Locus {} with {} has {} long based amplitudes", measurement.getLocus(), ldt, measurement.getAmplitudesLong().size());
+        }
       }
 
       assertEquals("Number of loci is as configured", 3, value.size());

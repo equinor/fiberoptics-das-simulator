@@ -31,8 +31,6 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
 import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -61,7 +59,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
 
   @Override
   public Flux<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> produce() {
-    RandomDataCache dataCache = new RandomDataCache(_configuration.getNumberOfPrePopulatedValues(), _configuration.getAmplitudesPrPackage(), _configuration.getPulseRate());
+    RandomDataCache dataCache = new RandomDataCache(_configuration.getNumberOfPrePopulatedValues(), _configuration.getAmplitudesPrPackage(), _configuration.getPulseRate(), _configuration.getAmplitudeDataType());
     long delay = _configuration.isDisableThrottling () ? 0 : (long)_stepCalculator.millisPrPackage();
     long take = 0;
     if (_configuration.getNumberOfShots() != null && _configuration.getNumberOfShots() > 0) {
@@ -79,7 +77,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
         .take(take)
         .map(tick -> {
           List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> data = IntStream.range(0, _configuration.getNumberOfLoci())
-            .mapToObj(currentLocus -> constructAvroObjects(currentLocus, dataCache.getFloat()))
+            .mapToObj(currentLocus -> constructAvroObjects(currentLocus, dataCache.getFloat(), dataCache.getLong()))
             .collect(Collectors.toList());
 
           _stepCalculator.increment(1);
@@ -87,7 +85,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
         });
   }
 
-  private PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> constructAvroObjects(int currentLocus, List<Float> data) {
+  private PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> constructAvroObjects(int currentLocus, List<Float> floatData, List<Long> longData) {
     return new PartitionKeyValueEntry<>(
       DASMeasurementKey.newBuilder()
         .setLocus(currentLocus)
@@ -96,7 +94,8 @@ public class SimulatorBoxUnit implements GenericDasProducer {
         .setStartSnapshotTimeNano(_stepCalculator.currentEpochNanos())
         .setTrustedTimeSource(true)
         .setLocus(currentLocus)
-        .setAmplitudesFloat(data)
+        .setAmplitudesFloat(floatData)
+        .setAmplitudesLong(longData)
         .build(),
       currentLocus);
   }
