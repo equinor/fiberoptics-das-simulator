@@ -49,11 +49,11 @@
   </scm>
 
   <properties>
-    <spring-boot.version>2.6.7</spring-boot.version>
-    <spring-cloud.version>2021.0.2</spring-cloud.version>
-    <confluent.version>6.2.2</confluent.version>
+    <spring-boot.version>3.1.2</spring-boot.version>
+    <spring-cloud.version>2022.0.3</spring-cloud.version>
+    <confluent.version>7.4.0</confluent.version>
     <fiberoptics-schemas-version>2.0.2</fiberoptics-schemas-version>
-    <lombok.version>1.18.24</lombok.version>
+    <lombok.version>1.18.28</lombok.version>
     <java.version>17</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>

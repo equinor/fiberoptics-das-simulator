@@ -24,6 +24,7 @@ import com.equinor.fiberoptics.das.producer.dto.AcquisitionStartDto;
 import com.equinor.kafka.KafkaConfiguration;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
+import jakarta.annotation.PreDestroy;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +33,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PreDestroy;
 
 @Component
 public class DasProducerFactory {

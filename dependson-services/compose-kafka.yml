@@ -49,7 +49,7 @@ services:
       - "8081:8081"
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schemaregistry
-      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'zookeeper:2181/ingress'
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker_ingress:29092'
     networks:
       - local-network
 
@@ -73,6 +73,7 @@ services:
       PARTITIONS: 5
       INTERNAL_SERVICES_API_KEY: 1aa111a11aa11a0a1a1aa1111a1a1a1a
       VENDORS_KEYS_SIMULATOR_OLD: 1aa111a11aa11a0a1a1aa1111a1a1a1a
+      FIBRA_CLUSTER: demo
     depends_on:
       - db
       - schemaregistry
@@ -82,7 +83,7 @@ services:
       - local-network
 
   db:
-    image: postgres:latest
+    image: postgres:13.10
     hostname: db
     ports:
       - "5432:5432"

@@ -19,11 +19,11 @@
  */
 package com.equinor.fiberoptics.das.producer.variants.simulatorboxunit;
 
+import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import javax.annotation.PostConstruct;
 import java.time.Instant;
 
 /**
