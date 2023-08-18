@@ -29,7 +29,7 @@ A successful DAS acquisition is made by initially contacting the Stream initiato
   "PulseWidth": 100.50,
   "PulseWidthUnit": "ns",
   "MaximumFrequency": 5000.0,
-  "DasInstrumentBoxUUID": "6fc8a265-1ec5-4daf-b6b5-f7649af2a07a",
+  "DasInstrumentBoxUUID": "00528e45-06d0-4110-bba4-e904aaa02657",
   "SpatialSamplingInterval": 1.1,
   "GaugeLength": 10.209524,
   "NumberOfLoci": 4096,
@@ -45,6 +45,15 @@ A successful DAS acquisition is made by initially contacting the Stream initiato
 }
 ----
 *Note* that we only accept positive int values for StartLocusIndex, and that even with a StartLocusIndex > 0 the numbering of the actual channel should always start at 0.
+
+Here is a curl command that can be run for testing the back-end handshake (contained in the depends-on folder):
+[source,bash]
+----
+curl -X POST http://localhost:8080/api/acquisition/start \
+  -H 'Content-Type: application/json' -H 'X-Api-Key: 1aa111a11aa11a0a1a1aa1111a1a1a1a' \
+  -d '{"SchemaVersion": "2.0", "AcquisitionId": "86287b85-7176-4bde-864f-62e55c5996d7", "OpticalPathUUID": "00528e45-06d0-4110-bba4-e904afe02657", "PulseWidth": 100.50, "PulseWidthUnit": "ns", "MaximumFrequency": 5000.0, "DasInstrumentBoxUUID": "00528e45-06d0-4110-bba4-e904aaa02657", "SpatialSamplingInterval": 1.1, "GaugeLength": 10.209524, "NumberOfLoci": 4096, "PulseRate": 10000.0, "Custom": {"AnyCustomStuffHere": "XYZ","SuchAsFirmwareId": "1.7.2-Rev5","OrSoftwareVersion": "0.1-Beta"}, "MeasurementStartTime": "2023-08-18T09:45:42.512505674Z", "VendorCode": "Simulator", "StartLocusIndex": 0}'
+----
+
 
 The initiator responds with a configuration object that provides information on how to proceed sending data to the Kafka platform.
 [source,json]
