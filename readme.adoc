@@ -166,6 +166,7 @@ Config Options:
 |NUMBER_OF_SHOTS| No value| Will override value set on SECONDS_TO_RUN to have a predefined number of shots sent
 |SECONDS_TO_RUN| 120| Use this to limit the time the simulator should run. Can be overridden by NUMBER_OF_SHOTS
 |START_TIME_EPOCH_SECOND| Instant.now()| Adjusts the first package timestamp.
+|AMPLITUDE_DATA_TYPE| float | Valuers allowed, "float" or "long"
 |===
 
 ==== Data that can be used in the configuration of simulator box

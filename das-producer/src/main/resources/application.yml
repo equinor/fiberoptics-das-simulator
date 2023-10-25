@@ -28,7 +28,7 @@ das:
     variant: ${VARIANT_PLUGIN:SimulatorBoxUnit}
     box:
       simulator:
-        amplitudeDataType: float
+        amplitudeDataType: ${AMPLITUDE_DATA_TYPE:float}
         numberOfShots: ${NUMBER_OF_SHOTS:-1}
         secondsToRun: ${SECONDS_TO_RUN:120}
         pulseRate: ${PULSE_RATE:10000}

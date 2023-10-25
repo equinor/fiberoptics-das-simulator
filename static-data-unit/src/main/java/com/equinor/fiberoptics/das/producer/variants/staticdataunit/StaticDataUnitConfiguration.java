@@ -43,6 +43,7 @@ public class StaticDataUnitConfiguration {
   private float maxFreq;
   private int secondsToRun;
   private long startTimeEpochSecond;
+  private String amplitudeDataType;
 
   public Instant getStartTimeInstant() {
     return startTimeEpochSecond==0 ? Instant.now() : Instant.ofEpochSecond(startTimeEpochSecond);

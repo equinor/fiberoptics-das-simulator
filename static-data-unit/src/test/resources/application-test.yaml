@@ -11,3 +11,4 @@ das:
         amplitudesPrPackage: 8192
         maxFreq: 5000
         startTimeEpochSecond: 1634000000
+        amplitudeDataType: ${AMPLITUDE_DATA_TYPE:float}

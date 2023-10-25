@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -42,16 +43,23 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ActiveProfiles("test")
 @SpringBootTest(classes=StaticDataUnit.class)
-public class StaticDataUnitTest {
+@TestPropertySource(
+  locations = {"classpath:application-test.yaml"},
+  properties = {
+    "AMPLITUDE_DATA_TYPE=float"
+  })
+public class StaticDataUnitFloatTest {
 
-  private static final Logger logger = LoggerFactory.getLogger(StaticDataUnitTest.class);
+  private static final Logger logger = LoggerFactory.getLogger(StaticDataUnitFloatTest.class);
   private final static long millisInNano = 1_000_000;
+
+
 
   @Autowired
   StaticDataUnit staticDataUnit;
 
   @Test
-  public void testStreamFromStaticDataBox() {
+  public void testStreamFromStaticDataBoxAsFloat() {
 
     Consumer<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> logOutput = value -> {
       for (PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> entry: value) {
