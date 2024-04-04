@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>das-producer</artifactId>
-  <description>A Fiberoptics DAS producer reference implementation</description>
+  <description>A fiber optic DAS producer reference implementation</description>
   <packaging>jar</packaging>
 
   <developers>
@@ -139,10 +139,47 @@
         </executions>
       </plugin>
       <plugin>
+        <groupId>io.fabric8</groupId>
+        <artifactId>docker-maven-plugin</artifactId>
+        <version>0.44.0</version>
+        <configuration>
+          <verbose>true</verbose>
+          <images>
+            <image>
+              <name>fibra/${project.artifactId}</name>
+              <build>
+                <buildx>
+                  <platforms>
+                    <platform>linux/amd64</platform>
+                    <platform>linux/arm64/v8</platform>
+                  </platforms>
+                </buildx>
+                <dockerFileDir>${project.basedir}</dockerFileDir>
+                <args>
+                  <JAR_FILE>target/${project.build.finalName}.jar</JAR_FILE>
+                </args>
+                <tags>
+                  <tag>latest</tag>
+                  <tag>${project.version}</tag>
+                </tags>
+              </build>
+            </image>
+          </images>
+        </configuration>
+        <executions>
+          <execution>
+            <id>default</id>
+            <phase>package</phase>
+            <goals>
+              <goal>build</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <!--plugin>
         <groupId>com.spotify</groupId>
         <artifactId>dockerfile-maven-plugin</artifactId>
         <version>1.4.13</version>
-        <!-- Wire up to the default build phases -->
         <executions>
           <execution>
             <id>default</id>
@@ -157,17 +194,15 @@
           <buildArgs>
             <JAR_FILE>target/${project.build.finalName}.jar</JAR_FILE>
           </buildArgs>
-          <!--By default use credentials from ~/.dockercfg or ~/.docker/config.json - easy way is just to type docker login (for dockerhub) and it will add necessary info to config.json -->
         </configuration>
         <dependencies>
-          <!-- To make this work on JDK 9+ -->
           <dependency>
             <groupId>javax.activation</groupId>
             <artifactId>javax.activation-api</artifactId>
             <version>1.2.0</version>
           </dependency>
         </dependencies>
-      </plugin>
+      </plugin-->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>license-maven-plugin</artifactId>

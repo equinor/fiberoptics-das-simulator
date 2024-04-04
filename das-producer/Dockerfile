@@ -2,10 +2,6 @@ FROM azul/zulu-openjdk-alpine:17-jre
 LABEL org.opencontainers.image.authors="Espen Tjønneland <etj@knowit.no>"
 LABEL org.opencontainers.image.source=https://github.com/equinor/fiberoptics-das-simulator
 
-ARG HTTP_PROXY
-ARG http_proxy
-ARG HTTPS_PROXY
-ARG https_proxy
 ARG JAR_FILE
 
 COPY ${JAR_FILE} /opt/app.jar
