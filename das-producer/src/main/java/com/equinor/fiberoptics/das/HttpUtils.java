@@ -101,11 +101,12 @@ public class HttpUtils {
     Gson gson = new Gson();
     return gson.toJson(new fiberoptics.config.acquisition.v1.DASAcquisition(
       "",
-      Instant.now().toString(),
+      _simBoxConfig.getStartTimeInstant().toString(),
       _simBoxConfig.getGaugeLength(),
       _simBoxConfig.getSpatialSamplingInterval(),
       _simBoxConfig.getNumberOfLoci(),
       _simBoxConfig.getStartLocusIndex(),
+
       (float)_simBoxConfig.getPulseRate()/2,
       (float)_simBoxConfig.getPulseRate(),
       _simBoxConfig.getPulseWidth(),
@@ -125,7 +126,7 @@ public class HttpUtils {
     Gson gson = new Gson();
     return gson.toJson(new fiberoptics.config.acquisition.v2.DASAcquisition(
       "",
-      Instant.now().toString(),
+      _simBoxConfig.getStartTimeInstant().toString(),
       _simBoxConfig.getGaugeLength(),
       _simBoxConfig.getSpatialSamplingInterval(),
       _simBoxConfig.getNumberOfLoci(),
