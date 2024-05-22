@@ -151,7 +151,7 @@
                 <buildx>
                   <platforms>
                     <platform>linux/amd64</platform>
-                    <platform>linux/arm64/v8</platform>
+                    <platform>linux/arm64</platform>
                   </platforms>
                 </buildx>
                 <dockerFileDir>${project.basedir}</dockerFileDir>
