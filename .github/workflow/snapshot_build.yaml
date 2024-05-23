@@ -23,7 +23,7 @@
            java-version: '21'
 
        - run:
-           ./mvnw compile
+           ./mvnw clean compile
 
 
 
