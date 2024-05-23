@@ -2,8 +2,9 @@
 
  on:
    push:
-     branches-ignore:
-       - main
+     branches:
+      - '**'        # matches every branch
+      - '!master'   # excludes master
  jobs:
    build:
      runs-on: ubuntu-latest
