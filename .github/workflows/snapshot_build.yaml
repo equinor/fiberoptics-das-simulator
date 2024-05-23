@@ -16,6 +16,7 @@
          with:
            java-version: '21'
            distribution: 'zulu'
+           cache: 'maven'
            server-id: publicshemas
            server-username: ${{ secrets.PUBLIC_SCHEMA_USER }}
            server-password: ${{ secrets.PUBLIC_SCHEMA_TOKEN }}
