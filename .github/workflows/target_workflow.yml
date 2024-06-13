@@ -1,7 +1,7 @@
 name: My Target Workflow
 
 on:
-  repository_dispatch:
+  workflow_dispatch:
     types: [trigger-workflow]
     
 jobs:
