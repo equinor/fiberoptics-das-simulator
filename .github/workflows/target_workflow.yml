@@ -2,16 +2,24 @@ name: My Target Workflow
 
 on:
   workflow_dispatch:
-    types: [trigger-workflow]
+    inputs:
+      name:
+        description: 'name'
+        required: true
+        type: string
+      home:
+        description: 'home'
+        required: true
+        type: string
     
 jobs:
-  build:
+  log-the-inputs:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-        ref: ${{ github.event.client_payload.sha }}
-
-      # Add your workflow steps here
+      - run: |
+          echo "Name: $NAME"
+          echo "hoem: $HOME"
+        env:
+          NAME: ${{ inputs.name }}
+          HOME: ${{ inputs.home }}
+  
