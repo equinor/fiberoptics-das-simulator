@@ -24,7 +24,13 @@
     <micrometer.version>1.5.5</micrometer.version>
     <docker.image.prefix>ingressplatform</docker.image.prefix>
   </properties>
-
+  <repositories>
+    <repository>
+      <id>publicschemas</id>
+      <name>Public DAS schema package location</name>
+      <url>https://maven.pkg.github.com/equinor/fiberoptics-das-public-schemas/</url>
+    </repository>
+  </repositories>
   <dependencies>
     <dependency>
       <groupId>com.equinor.fiberoptics</groupId>
