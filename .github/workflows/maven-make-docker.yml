@@ -12,8 +12,7 @@ on:
       
 jobs:
   make-docker:
-    env:
-      MAVEN_CMD: ./mvnw --no-transfer-progress
+    
     
     runs-on: ubuntu-latest
 
@@ -30,7 +29,7 @@ jobs:
           distribution: 'zulu'
 
       - name: Build, test and package
-        run: ${MAVEN_CMD} clean package spring-boot:repackage
+        run: ./mvnw -B compile
       
       - name: Push docker container
-        run: ${MAVEN_CMD} docker:push
+        run: ./mvnw -B docker:push
