@@ -130,7 +130,7 @@
       <url>https://packages.confluent.io/maven</url>
     </repository>
     <repository>
-      <id>publicshemas</id>
+      <id>fiberoptics-das-public-schemas</id>
       <name>Public schemas</name>
       <url>https://maven.pkg.github.com/equinor/fiberoptics-das-public-schemas/</url>
     </repository>
