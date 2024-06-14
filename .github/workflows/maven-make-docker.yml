@@ -29,7 +29,5 @@ jobs:
           distribution: 'zulu'
 
       - name: Build, test and package
-        run: ./mvnw -B compile
-      
-      - name: Push docker container
-        run: ./mvnw -B docker:push
+        run: ./mvnw -B clean package
+
