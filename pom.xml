@@ -30,8 +30,8 @@
 
   <distributionManagement>
     <repository>
-      <id>github</id>
-      <name>GitHub OWNER Apache Maven Packages</name>
+      <id>fiberoptics-das-simulator</id>
+      <name>Public Fibra schemas</name>
       <url>https://maven.pkg.github.com/equinor/fiberoptics-das-simulator/</url>
     </repository>
   </distributionManagement>
