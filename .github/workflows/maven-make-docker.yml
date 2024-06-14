@@ -33,8 +33,8 @@ jobs:
           servers: |
             [{
               "id": "fiberoptics-das-public-schemas", 
-              "username": "${env.GITHUB_USERNAME}", 
-              "password": "${{ secrets.GITHUB_DEPLOY_KEY }}" 
+              "username": "${secrets.PUBLIC_SCHEMA_USER}", 
+              "password": "${{ secrets.PUBLIC_SCHEMA_TOKEN }}" 
             }]
 
       - name: Build, test and package
