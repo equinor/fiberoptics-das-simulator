@@ -28,6 +28,15 @@ jobs:
           java-version: 21
           distribution: 'zulu'
 
+      - uses: s4u/maven-settings-action@v3.0.0
+        with:
+          servers: |
+            [{
+              "id": "fiberoptics-das-public-schemas", 
+              "username": "${env.GITHUB_USERNAME}", 
+              "password": "${{ secrets.GITHUB_DEPLOY_KEY }}" 
+            }]
+
       - name: Build, test and package
         run: ./mvnw -B clean package
 
