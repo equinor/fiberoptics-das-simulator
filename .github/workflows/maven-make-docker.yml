@@ -51,6 +51,6 @@ jobs:
               
       - name: Docker
         run: |
-            docker buildx build --platform linux/amd64,linux/arm64 . -t ${{inputs.DOCKER_REGISTRY}}/${{inputs.IMAGE_NAME}}:${{ env.IMAGE_TAG }} --push
+            docker buildx build --platform linux/amd64,linux/arm64 . -t ${{inputs.DOCKER_REGISTRY}}/${{inputs.IMAGE_NAME}}:${{ inputs.IMAGE_TAG }} --push
 
 
