@@ -1,0 +1,35 @@
+name: Maven docker for maven
+
+on:
+  workflow_dispatch:
+    inputs:
+      DOCKER_REGISTRY:
+        required: true
+      DOCKER_REGISTRY_USER:
+        required: true
+      DOCKER_REGISTRY_TOKEN:
+        required: true
+      
+jobs:
+  make-docker:
+    
+    
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4.1.1
+
+      - name: Docker login
+        run: echo ${{ inputs.DOCKER_REGISTRY_TOKEN }}| docker login ${{ inputs.DOCKER_REGISTRY }} --username ${{ inputs.DOCKER_REGISTRY_USER }} --password-stdin
+     
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4.2.1
+        with:
+          java-version: 21
+          distribution: 'zulu'
+
+      - name: Build, test and package
+        run: ./mvnw -B compile
+      
+      - name: Push docker container
+        run: ./mvnw -B docker:push
