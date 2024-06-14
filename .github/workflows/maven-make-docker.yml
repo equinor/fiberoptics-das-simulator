@@ -33,7 +33,7 @@ jobs:
           servers: |
             [{
               "id": "fiberoptics-das-public-schemas", 
-              "username": "${secrets.PUBLIC_SCHEMA_USER}", 
+              "username": "${{secrets.PUBLIC_SCHEMA_USER}}", 
               "password": "${{ secrets.PUBLIC_SCHEMA_TOKEN }}" 
             }]
 
