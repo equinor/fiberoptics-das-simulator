@@ -38,7 +38,8 @@ jobs:
         with:
           registry: ${{ inputs.DOCKER_REGISTRY }}
           username: ${{ inputs.DOCKER_REGISTRY_USER }}
-          password: ${ inputs.DOCKER_REGISTRY_T }
+          password: ${ DOCKER_REGISTRY_T }
+          logout: false
         #run: echo ${ inputs.DOCKER_REGISTRY_T }| docker login ${{ inputs.DOCKER_REGISTRY }} --username ${{ inputs.DOCKER_REGISTRY_USER }} --password-stdin
      
       - name: Set up JDK 21
