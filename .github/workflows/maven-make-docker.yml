@@ -22,14 +22,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Test masking inputs
-        id: add_mask
-        run: |
-          echo Before mask
-          echo ${DOCKER_REGISTRY_TOKEN}
-          #echo ::add-mask::$DOCKER_REGISTRY_T
-          echo After mask
-          echo ${DOCKER_REGISTRY_TOKEN}
+     
           
       - uses: actions/checkout@v4.1.1
 
@@ -38,7 +31,7 @@ jobs:
         with:
           registry: ${{ inputs.DOCKER_REGISTRY }}
           username: ${{ inputs.DOCKER_REGISTRY_USER }}
-          password: ${{ inputs.DOCKER_REGISTRY_TOKEN }}
+          password: ${DOCKER_REGISTRY_TOKEN}
           logout: false
         #run: echo ${ inputs.DOCKER_REGISTRY_T }| docker login ${{ inputs.DOCKER_REGISTRY }} --username ${{ inputs.DOCKER_REGISTRY_USER }} --password-stdin
      
