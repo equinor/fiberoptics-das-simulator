@@ -27,7 +27,7 @@ jobs:
         run: |
           echo Before mask
           echo $DOCKER_REGISTRY_T
-          echo ::add-mask::$DOCKER_REGISTRY_T
+          #echo ::add-mask::$DOCKER_REGISTRY_T
           echo After mask
           echo $DOCKER_REGISTRY_T
           
