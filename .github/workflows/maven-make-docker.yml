@@ -17,7 +17,7 @@ on:
 jobs:
   make-docker:
     env:
-      DOCKER_REGISTRY_T: ${{ inputs.inputs.DOCKER_REGISTRY_TOKEN  }}
+      DOCKER_REGISTRY_T: ${{ inputs.DOCKER_REGISTRY_TOKEN  }}
     
     runs-on: ubuntu-latest
 
@@ -38,7 +38,7 @@ jobs:
         with:
           registry: ${{ inputs.DOCKER_REGISTRY }}
           username: ${{ inputs.DOCKER_REGISTRY_USER }}
-          password: ${{ inputs.DOCKER_REGISTRY_TOKEN }}
+          password: ${ inputs.DOCKER_REGISTRY_T }
         #run: echo ${ inputs.DOCKER_REGISTRY_T }| docker login ${{ inputs.DOCKER_REGISTRY }} --username ${{ inputs.DOCKER_REGISTRY_USER }} --password-stdin
      
       - name: Set up JDK 21
