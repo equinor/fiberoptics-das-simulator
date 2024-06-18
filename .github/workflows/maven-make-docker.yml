@@ -39,7 +39,7 @@ jobs:
           registry: ${{ inputs.DOCKER_REGISTRY }}
           username: ${{ inputs.DOCKER_REGISTRY_USER }}
           password: ${{ inputs.DOCKER_REGISTRY_TOKEN }}
-        #run: echo ${{ inputs.DOCKER_REGISTRY_TOKEN }}| docker login ${{ inputs.DOCKER_REGISTRY }} --username ${{ inputs.DOCKER_REGISTRY_USER }} --password-stdin
+        #run: echo ${ inputs.DOCKER_REGISTRY_T }| docker login ${{ inputs.DOCKER_REGISTRY }} --username ${{ inputs.DOCKER_REGISTRY_USER }} --password-stdin
      
       - name: Set up JDK 21
         uses: actions/setup-java@v4.2.1
