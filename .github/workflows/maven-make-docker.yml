@@ -16,11 +16,21 @@ on:
       
 jobs:
   make-docker:
-    
+    env:
+      DOCKER_REGISTRY_T: ${{ inputs.inputs.DOCKER_REGISTRY_TOKEN  }}
     
     runs-on: ubuntu-latest
 
     steps:
+      - name: Test masking inputs
+        id: add_mask
+        run: |
+          echo Before mask
+          echo $DOCKER_REGISTRY_T
+          echo ::add-mask::$DOCKER_REGISTRY_T
+          echo After mask
+          echo $DOCKER_REGISTRY_T
+          
       - uses: actions/checkout@v4.1.1
 
       - name: Docker login
