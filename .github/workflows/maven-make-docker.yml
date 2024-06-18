@@ -35,7 +35,7 @@ jobs:
         with:
           registry: ${{ inputs.DOCKER_REGISTRY }}
           username: ${{ inputs.DOCKER_REGISTRY_USER }}
-          password: ${DOCKER_REGISTRY_TOKEN}
+          password: $DOCKER_REGISTRY_TOKEN
           logout: false
         #run: echo ${ inputs.DOCKER_REGISTRY_T }| docker login ${{ inputs.DOCKER_REGISTRY }} --username ${{ inputs.DOCKER_REGISTRY_USER }} --password-stdin
      
