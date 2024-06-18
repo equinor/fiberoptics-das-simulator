@@ -16,11 +16,21 @@ on:
       
 jobs:
   make-docker:
-    
+    env:
+      DOCKER_REGISTRY_T: ${{ inputs.DOCKER_REGISTRY_TOKEN  }}
     
     runs-on: ubuntu-latest
 
     steps:
+      - name: Test masking inputs
+        id: add_mask
+        run: |
+          echo Before mask
+          echo $DOCKER_REGISTRY_T
+          echo ::add-mask::$DOCKER_REGISTRY_T
+          echo After mask
+          echo $DOCKER_REGISTRY_T
+          
       - uses: actions/checkout@v4.1.1
 
       - name: Docker login
@@ -28,8 +38,8 @@ jobs:
         with:
           registry: ${{ inputs.DOCKER_REGISTRY }}
           username: ${{ inputs.DOCKER_REGISTRY_USER }}
-          password: ${{ inputs.DOCKER_REGISTRY_TOKEN }}
-        #run: echo ${{ inputs.DOCKER_REGISTRY_TOKEN }}| docker login ${{ inputs.DOCKER_REGISTRY }} --username ${{ inputs.DOCKER_REGISTRY_USER }} --password-stdin
+          password: ${ inputs.DOCKER_REGISTRY_T }
+        #run: echo ${ inputs.DOCKER_REGISTRY_T }| docker login ${{ inputs.DOCKER_REGISTRY }} --username ${{ inputs.DOCKER_REGISTRY_USER }} --password-stdin
      
       - name: Set up JDK 21
         uses: actions/setup-java@v4.2.1
