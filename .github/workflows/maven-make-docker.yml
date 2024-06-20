@@ -55,7 +55,7 @@ jobs:
         with:
           install: true
               
-      - name: Docker
+      - name: Docker ${{inputs.DOCKER_REGISTRY}}/${{inputs.IMAGE_NAME}}:${{ inputs.IMAGE_TAG }}
         run: |
             docker buildx build --platform linux/amd64,linux/arm64 . -f das-producer/Dockerfile -t ${{inputs.DOCKER_REGISTRY}}/${{inputs.IMAGE_NAME}}:${{ inputs.IMAGE_TAG }} --push
 
