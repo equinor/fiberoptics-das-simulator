@@ -58,6 +58,6 @@ jobs:
       - name: Docker ${{inputs.DOCKER_REGISTRY}}/${{inputs.IMAGE_NAME}}:${{ inputs.IMAGE_TAG }}
         run: |
             cd das-producer
-            docker buildx build --platform linux/amd64,linux/arm64 . --build-arg JAR_FILE= target/*.jar  -t ${{inputs.DOCKER_REGISTRY}}/${{inputs.IMAGE_NAME}}:${{ inputs.IMAGE_TAG }} --push
+            docker buildx build --build-arg JAR_FILE= target/*.jar --platform linux/amd64,linux/arm64 . -t ${{inputs.DOCKER_REGISTRY}}/${{inputs.IMAGE_NAME}}:${{ inputs.IMAGE_TAG }} --push
 
 
