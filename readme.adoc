@@ -5,7 +5,7 @@
 
 
 The DAS amplitude simulator simulates a real DAS interrogators communication into an Equinor DAS streaming
-platform. This version simulates the back-end system of the streaming platform via a Docker compose file
+platform. This version simulates the back-end system of the streaming platform using Docker Compose.
 
 
 We have implemented a simple Distributed Acoustic Sensing (DAS) simulator that queues up a configurable number of amplitudes that matches the number of loci for an
@@ -74,7 +74,7 @@ The initiator responds with a configuration object that provides information on 
   }
 }
 ----
-To notable value here is the partition assignments map. It tells the kafka producer part of the code to send specific loci (key)
+ A notable value here is the 'partition assignments' map". It tells the kafka producer part of the code to send specific loci (key)
 to a specific partition. It is very important that this is being followed as strict ordering of loci-data can only be guaranteed in
 Kafka within the same partition.
 
@@ -104,7 +104,7 @@ Control of the parameters of the process in this example is done via environment
 |DAS_PRODUCER_KAFKA_CONFIG_SEND_BUFFER_BYTES|-1| http://kafka.apache.org/documentation.html#producerconfigs
 |===
 
-Note that any env value that starts with DAS_PRODUCER_KAFKA_CONFIG_ will be applied to the Kafka client: http://kafka.apache.org/documentation.html#producerconfigs
+Any environment variable that starts with 'DAS_PRODUCER_KAFKA_CONFIG_' will be applied to the Kafka client configuration: http://kafka.apache.org/documentation.html#producerconfigs
 
 Details for ProdML can be found here: http://w3.energistics.org/energyML/data/prodml/v2.0/doc/prodml_schema_overview.html
 
@@ -114,7 +114,7 @@ Note:
 
 You need Java 17 and you need docker and docker-compose installed to compile and run this.
 
-Run this in the current directory as this readme.adoc file is in (for Linux):
+Run the following commands in the same directory as this readme.adoc file (for Linux users):
 [source,bash]
 ----
 ./mvnw clean install
@@ -153,7 +153,7 @@ Config Options:
 
 === Static data unit
 
-An emulated interrogator that produces static data. Useful for testing that known data ends up as expected.
+This variant emulates an interrogator that produces static data, which is useful for testing to ensure that known data is processed as expected.
 Config name: StaticDataUnit
 Config Options:
 |===
@@ -236,7 +236,7 @@ Simulator box UUIDs:
 
 == Release process
 
-Note that you have to be a part of the Fibra team on Dockerhub in order to be able to push public image. Process:
+Please note, to push a public image, you must be a member of the Fibra team on Dockerhub.. Process:
 [source,text]
 ----
 ./mvnw release:prepare
