@@ -48,16 +48,22 @@ jobs:
             }]
 
       - name: Build, test and package
-        run: ./mvnw -B clean test compile
+        run: ./mvnw -B clean test package #spring-boot:repackage
+      
+      - name: Push docker container
+        run: ./mvnw -B docker:push
 
-      - uses: docker/setup-buildx-action@v3.3.0
-        id: buildx
-        with:
-          install: true
+      #- name: Build, test and package
+      #  run: ./mvnw -B clean test compile
+      
+      #- uses: docker/setup-buildx-action@v3.3.0
+      #  id: buildx
+      #  with:
+      #    install: true
               
-      - name: Docker ${{inputs.DOCKER_REGISTRY}}/${{inputs.IMAGE_NAME}}:${{ inputs.IMAGE_TAG }}
-        run: |
-            cd das-producer
-            docker buildx build --build-arg JAR_FILE=target/*.jar --platform linux/amd64,linux/arm64 . -t ${{inputs.DOCKER_REGISTRY}}/${{inputs.IMAGE_NAME}}:${{ inputs.IMAGE_TAG }} --push
+      #- name: Docker ${{inputs.DOCKER_REGISTRY}}/${{inputs.IMAGE_NAME}}:${{ inputs.IMAGE_TAG }}
+      #  run: |
+      #      cd das-producer
+      #      docker buildx build --build-arg JAR_FILE=target/*.jar --platform linux/amd64,linux/arm64 . -t ${{inputs.DOCKER_REGISTRY}}/${{inputs.IMAGE_NAME}}:${{ inputs.IMAGE_TAG }} --push
 
 
