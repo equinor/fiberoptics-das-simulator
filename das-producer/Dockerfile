@@ -9,6 +9,7 @@ RUN useradd -u 1000 ingressuser
 WORKDIR /opt
 USER ingressuser
 
-COPY target/das-producer-2.0.12-SNAPSHOT.jar /opt/app.jar
+ENV JAR_FILE=*.jar
+COPY ${JAR_FILE} /opt/app.jar
 
 ENTRYPOINT ["java", "-XshowSettings:vm", "-XX:+PrintFlagsFinal", "-XX:MaxRAMPercentage=70", "-Djava.security.egd=file:/dev/./urandom", "-Djava.awt.headless=true", "-jar", "/opt/app.jar"]
