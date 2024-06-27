@@ -67,4 +67,4 @@ jobs:
           file: das-producer/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: user/app:latest
+          tags: ${{inputs.DOCKER_REGISTRY}}/${{inputs.IMAGE_NAME}}:${{ inputs.IMAGE_TAG }}
