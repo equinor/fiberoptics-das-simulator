@@ -48,7 +48,7 @@ jobs:
             }]
 
       - name: Build, test and package
-        run: ./mvnw -B clean test compile
+        run: ./mvnw -B clean test jar:jar
       
       - uses: docker/setup-buildx-action@v3.3.0
         id: buildx
