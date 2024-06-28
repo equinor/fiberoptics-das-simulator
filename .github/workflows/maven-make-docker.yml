@@ -47,24 +47,23 @@ jobs:
               "password": "${{ secrets.PUBLIC_SCHEMA_TOKEN }}" 
             }]
 
-      #- name: Build, test and package
-      #  run: ./mvnw -B clean test compile
+      - name: Build, test and package
+        run: ./mvnw -B clean test compile
       
       - uses: docker/setup-buildx-action@v3.3.0
         id: buildx
         with:
           install: true
               
-      #- name: Docker ${{inputs.DOCKER_REGISTRY}}/${{inputs.IMAGE_NAME}}:${{ inputs.IMAGE_TAG }}
-      #  run: |
-      #      cd das-producer
-      #      docker buildx build --platform linux/amd64,linux/arm64 .  -f das-producer/Dockerfile  -t ${{inputs.DOCKER_REGISTRY}}/${{inputs.IMAGE_NAME}}:${{ inputs.IMAGE_TAG }} --push
+      - name: Docker ${{inputs.DOCKER_REGISTRY}}/${{inputs.IMAGE_NAME}}:${{ inputs.IMAGE_TAG }}
+        run: |
+            docker buildx build --platform linux/amd64,linux/arm64 .  -f das-producer/Dockerfile  -t ${{inputs.DOCKER_REGISTRY}}/${{inputs.IMAGE_NAME}}:${{ inputs.IMAGE_TAG }} --push
 
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: das-producer/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{inputs.DOCKER_REGISTRY}}/${{inputs.IMAGE_NAME}}:${{ inputs.IMAGE_TAG }}
+      #- name: Build and push
+      #  uses: docker/build-push-action@v6
+      #  with:
+      #    context: .
+      #    file: das-producer/Dockerfile
+      #    platforms: linux/amd64,linux/arm64
+      #    push: true
+      #    tags: ${{inputs.DOCKER_REGISTRY}}/${{inputs.IMAGE_NAME}}:${{ inputs.IMAGE_TAG }}
