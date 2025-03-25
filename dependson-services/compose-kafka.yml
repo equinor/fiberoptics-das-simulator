@@ -87,7 +87,7 @@ services:
     networks:
       - local-network
 
-   time_drift_check:
+  time_drift_check:
     image: fibra/pkg-validator:0.1.3
     hostname: pkg-validator
     depends_on:
