@@ -21,6 +21,7 @@
   </developers>
 
   <properties>
+    <spring-boot.version>3.4.4</spring-boot.version>
     <micrometer.version>1.5.5</micrometer.version>
     <docker.image.prefix>ingressplatform</docker.image.prefix>
   </properties>
@@ -115,6 +116,7 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+        <version>${spring-boot.version}</version>
         <executions>
           <execution>
             <goals>
