@@ -71,7 +71,6 @@ public class SimulatorBoxUnit implements GenericDasProducer {
       logger.info(String.format("Starting to produce data now for %d seconds", _configuration.getSecondsToRun()));
 
     }
-    logger.info("Time difference: {} ms", System.currentTimeMillis() - _stepCalculator.currentEpochMillis());
     return Flux
         .interval(Duration.ofMillis(delay))
         .take(take)
@@ -79,8 +78,8 @@ public class SimulatorBoxUnit implements GenericDasProducer {
           List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> data = IntStream.range(0, _configuration.getNumberOfLoci())
             .mapToObj(currentLocus -> constructAvroObjects(currentLocus, dataCache.getFloat(), dataCache.getLong()))
             .collect(Collectors.toList());
-
           _stepCalculator.increment(1);
+          logger.info("Time difference: {} ms", System.currentTimeMillis() - _stepCalculator.currentEpochMillis());
           return data;
         });
   }
