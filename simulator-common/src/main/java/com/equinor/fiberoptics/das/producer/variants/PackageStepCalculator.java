@@ -28,31 +28,33 @@ import java.time.Instant;
 import static com.equinor.fiberoptics.das.producer.variants.util.Helpers.millisInNano;
 import static com.equinor.fiberoptics.das.producer.variants.util.Helpers.nanosInSecond;
 
-/**
- * Used to calculate correct epochs and time interval for fiber vector shots.
- */
 public class PackageStepCalculator {
 
   private static final Logger logger = LoggerFactory.getLogger(PackageStepCalculator.class);
 
   private final long _nanosPrPackage;
+  private final double _secondsPrPackage;
+  private final double _millisPrPackage;
   private long _currentTimePointNanos;
   private final int _loci;
-
   private long _currentStep;
 
   /**
-   * @param startTimeEpochNano  The nanosecond start point of the first DAS data package. Note that this is not the same
-   *                            time that you start an Acquisition (as that also handles some none time deterministic setup
-   *                            of Kafka topics etc.)
-   * @param maximumFrequency    This is the Nyquist frequency of the amplitudes.
-   * @param amplitudesPrPackage This is the number of data points pr Kafka package. Note it should always be a power of two number.
-   * @param loci                Is the number of data channels that we are producing data on along the fiber.
+   * Constructor to initialize the PackageStepCalculator.
+   *
+   * @param startTimeEpochNano   the start time in nanoseconds since epoch
+   * @param maximumFrequency     the maximum frequency
+   * @param amplitudesPrPackage  the number of amplitudes per package
+   * @param loci                 the number of loci
    */
   public PackageStepCalculator(long startTimeEpochNano, float maximumFrequency, int amplitudesPrPackage, int loci) {
-    isPow2(amplitudesPrPackage);
+    if (amplitudesPrPackage <= 0 || (amplitudesPrPackage & (amplitudesPrPackage - 1)) != 0) {
+      throw new IllegalArgumentException("The number: " + amplitudesPrPackage + " is not a power of 2.");
+    }
 
     _nanosPrPackage = (long) (nanosInSecond / ((maximumFrequency * 2) / amplitudesPrPackage));
+    _secondsPrPackage = _nanosPrPackage / 1_000_000_000.0;
+    _millisPrPackage = _nanosPrPackage / 1_000_000.0;
     _currentTimePointNanos = startTimeEpochNano;
     _loci = loci;
     _currentStep = 0;
@@ -62,56 +64,83 @@ public class PackageStepCalculator {
   }
 
   /**
-   * @param startTime           The start point of the first DAS data package. Note that this is not the same
-   *                            time that you start an Acquisition (as that also handles some none time deterministic setup
-   *                            of Kafka topics etc.)
-   * @param maximumFrequency    This is the Nyquist frequency of the amplitudes.
-   * @param amplitudesPrPackage This is the number of datapoints pr Kafka package. Note it should always be a power of two number.
-   * @param loci                Is the number of data channels that we are producing data on along the fiber.
+   * Constructor to initialize the PackageStepCalculator.
+   *
+   * @param startTime            the start time as an Instant
+   * @param maximumFrequency     the maximum frequency
+   * @param amplitudesPrPackage  the number of amplitudes per package
+   * @param loci                 the number of loci
    */
   public PackageStepCalculator(Instant startTime, float maximumFrequency, int amplitudesPrPackage, int loci) {
     this(startTime.toEpochMilli() * millisInNano, maximumFrequency, amplitudesPrPackage, loci);
   }
 
-
-  private void isPow2(int number) {
-    boolean isPow2 = number > 0 && ((number & (number - 1)) == 0);
-    if (!isPow2) {
-      throw new IllegalArgumentException("The number: " + number + " is not a power of 2.");
-    }
-  }
-
+  /**
+   * Returns the current step time as an Instant.
+   *
+   * @return the current step time
+   */
   public Instant currentStepTime() {
     return Instant.ofEpochMilli(_currentTimePointNanos);
   }
 
+  /**
+   * Returns the duration of each package in seconds.
+   *
+   * @return the duration of each package in seconds
+   */
   public double secondsPrPackage() {
-    double x = _nanosPrPackage;
-    x /= 1_000_000_000;
-    return x;
+    return _secondsPrPackage;
   }
 
+  /**
+   * Returns the duration of each package in milliseconds.
+   *
+   * @return the duration of each package in milliseconds
+   */
   public double millisPrPackage() {
-    double x = _nanosPrPackage;
-    x /= 1_000_000;
-    return x;
+    return _millisPrPackage;
   }
 
+  /**
+   * Increments the current time point by a specified number of steps.
+   *
+   * @param times the number of steps to increment
+   */
   public void increment(int times) {
-    logger.debug("Update timepoint: {}", Instant.ofEpochMilli(_currentTimePointNanos / millisInNano));
+    if (logger.isDebugEnabled()) {
+      logger.debug("Update timepoint: {}", Instant.ofEpochMilli(_currentTimePointNanos / millisInNano));
+    }
     _currentTimePointNanos += (_nanosPrPackage * times);
     _currentStep += times;
-    logger.debug("New timepoint: {}", Instant.ofEpochMilli(_currentTimePointNanos / millisInNano));
+    if (logger.isDebugEnabled()) {
+      logger.debug("New timepoint: {}", Instant.ofEpochMilli(_currentTimePointNanos / millisInNano));
+    }
   }
 
+  /**
+   * Returns the current time point in nanoseconds.
+   *
+   * @return the current time point in nanoseconds
+   */
   public long currentEpochNanos() {
     return _currentTimePointNanos;
   }
 
+  /**
+   * Returns the current time point in milliseconds.
+   *
+   * @return the current time point in milliseconds
+   */
   public long currentEpochMillis() {
     return new BigDecimal(_currentTimePointNanos).movePointLeft(6).longValue();
   }
 
+  /**
+   * Calculates the total number of messages based on the current step and the number of loci.
+   *
+   * @return the total number of messages
+   */
   public long getTotalMessages() {
     return _currentStep * _loci;
   }
