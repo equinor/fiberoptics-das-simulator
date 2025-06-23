@@ -98,8 +98,8 @@ public class RandomDataCache {
     List<Long> toReturn = new ArrayList<>();
     Random myRand = new Random();
     for (int currentTimeIndex = 0; currentTimeIndex < _amplitudesPrPackage; currentTimeIndex++) {
-      long val =
-        (long) Math.sin( timeIndex / _pulseRate * myRand.nextLong() * 2 * Math.PI);
+      long val = (long) (Math.sin(myRand.nextLong() * 2 * Math.PI)*(_pulseRate+ timeIndex));
+        //(long) Math.sin( timeIndex / _pulseRate * myRand.nextLong() * 2 * Math.PI);
 
       toReturn.add(val);
     }

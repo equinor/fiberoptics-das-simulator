@@ -50,7 +50,6 @@ public class SimulatorBoxUnitTest {
   @Autowired
   SimulatorBoxUnit simulatorBoxUnit;
 
-
   @Test
   public void testStreamFromSimulatorBox() {
     AtomicInteger consumed = new AtomicInteger();
