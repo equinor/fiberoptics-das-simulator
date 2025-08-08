@@ -2,17 +2,27 @@ server:
   port: 9091
 
 management:
-  health.binders.enabled: false
+  health:
+    binders:
+      enabled: false
   endpoint:
-    health.show-details: always
-    metrics.enabled: true
-    prometheus.enabled: true
+    health:
+      show-details: always
+    metrics:
+      access: read_only
+    prometheus:
+      access: read_only
   endpoints:
-    web.exposure.include: '*'
+    web.exposure.include: health, info, prometheus, workingstatus
   metrics:
-    export.prometheus.enabled: 'true'
-    tags.application: das-simulator-app
-
+    enable:
+      all: false  # Disable all metrics by default
+      fibra: true
+      application: true
+    tags:
+      application: das-simulator-app
+  prometheus: # Note that the number of actual data is limited by the number of metrics enabled
+    metrics.export.enabled: true
 spring:
   application.name: das-simulator
 
