@@ -1,0 +1,34 @@
+name: Dependency Submission (Maven)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  submit-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (with GitHub Packages auth)
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+          server-id: fiberoptics-das-public-schemas
+          server-username: PUBLIC_SCHEMA_USER
+          server-password: PUBLIC_SCHEMA_TOKEN
+        env:
+          PUBLIC_SCHEMA_USER: ${{ secrets.PUBLIC_SCHEMA_USER }}
+          PUBLIC_SCHEMA_TOKEN: ${{ secrets.PUBLIC_SCHEMA_TOKEN }}
+
+      - name: Submit dependency snapshot
+        uses: actions/maven-dependency-submission-action@c7818038197dfab7dc48236d43a81d439a84a5f7
+        with:
+          settings-file: ${{ env.HOME }}/.m2/settings.xml
+          ignore-maven-wrapper: true
+          maven-args: -DskipTests
