@@ -28,7 +28,7 @@
     <dependency>
       <groupId>io.projectreactor</groupId>
       <artifactId>reactor-core</artifactId>
-      <version>3.4.18</version>
+      <version>3.8.2</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
@@ -38,7 +38,6 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
-      <version>5.11.0-M2</version>
       <scope>test</scope>
     </dependency>
 
