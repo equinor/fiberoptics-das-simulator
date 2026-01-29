@@ -22,6 +22,7 @@ jobs:
           server-id: fiberoptics-das-public-schemas
           server-username: PUBLIC_SCHEMA_USER
           server-password: PUBLIC_SCHEMA_TOKEN
+          settings-path: ${{ github.workspace }}
         env:
           PUBLIC_SCHEMA_USER: ${{ secrets.PUBLIC_SCHEMA_USER }}
           PUBLIC_SCHEMA_TOKEN: ${{ secrets.PUBLIC_SCHEMA_TOKEN }}
@@ -29,6 +30,6 @@ jobs:
       - name: Submit dependency snapshot
         uses: actions/maven-dependency-submission-action@c7818038197dfab7dc48236d43a81d439a84a5f7
         with:
-          settings-file: ${{ env.HOME }}/.m2/settings.xml
+          settings-file: ${{ github.workspace }}/settings.xml
           ignore-maven-wrapper: true
           maven-args: -DskipTests
