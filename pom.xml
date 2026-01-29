@@ -139,6 +139,12 @@
         <artifactId>lz4-java</artifactId>
         <version>1.8.1</version>
       </dependency>
+      <!-- GHSA-vqf4-7m7x-wgfc / GHSA-cmp6-m4wj-q63q: lz4-java OOB/Info leak (actual coord in tree) -->
+      <dependency>
+        <groupId>at.yawk.lz4</groupId>
+        <artifactId>lz4-java</artifactId>
+        <version>1.8.1</version>
+      </dependency>
       <!-- GHSA-j288-q9x7-2f5v: commons-lang3 uncontrolled recursion -->
       <dependency>
         <groupId>org.apache.commons</groupId>
