@@ -53,6 +53,9 @@ public class SimulatorBoxUnitConfiguration {
   private int secondsToRun;
   private long startTimeEpochSecond;
   private String amplitudeDataType;
+  private boolean timePacingEnabled;
+  private long timeLagWarnMillis;
+  private long timeLagDropMillis;
 
   public Instant getStartTimeInstant() {
     return startTimeEpochSecond==0 ? Instant.now() : Instant.ofEpochSecond(startTimeEpochSecond);

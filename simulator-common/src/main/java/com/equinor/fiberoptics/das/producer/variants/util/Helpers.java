@@ -22,6 +22,7 @@ package com.equinor.fiberoptics.das.producer.variants.util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.util.concurrent.CountDownLatch;
 
 public class Helpers {
@@ -30,9 +31,28 @@ public class Helpers {
   public final static long millisInNano = 1_000_000;
   public final static long nanosInSecond = 1_000_000_000;
 
+  public static long currentEpochNanos() {
+    Instant now = Instant.now();
+    return (now.getEpochSecond() * nanosInSecond) + now.getNano();
+  }
+
   public static void sleepMillis(int millis) {
     try {
       Thread.sleep(millis);
+    } catch (InterruptedException e) {
+      logger.error("Interrupted Thread");
+      throw new RuntimeException("Interrupted thread");
+    }
+  }
+
+  public static void sleepNanos(long nanos) {
+    if (nanos <= 0) {
+      return;
+    }
+    long millis = nanos / millisInNano;
+    int nanosPart = (int) (nanos - (millis * millisInNano));
+    try {
+      Thread.sleep(millis, nanosPart);
     } catch (InterruptedException e) {
       logger.error("Interrupted Thread");
       throw new RuntimeException("Interrupted thread");

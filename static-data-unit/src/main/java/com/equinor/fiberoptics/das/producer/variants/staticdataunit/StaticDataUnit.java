@@ -22,6 +22,8 @@ package com.equinor.fiberoptics.das.producer.variants.staticdataunit;
 import com.equinor.fiberoptics.das.producer.variants.GenericDasProducer;
 import com.equinor.fiberoptics.das.producer.variants.PackageStepCalculator;
 import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
+import com.equinor.fiberoptics.das.producer.variants.util.Helpers;
+import com.equinor.fiberoptics.das.producer.variants.util.TimingStats;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
 import org.slf4j.Logger;
@@ -33,7 +35,11 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
@@ -62,46 +68,143 @@ public class StaticDataUnit implements GenericDasProducer {
 
   @Override
   public Flux<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> produce() {
-    long delay = _configuration.isDisableThrottling() ? 0 : (long) _stepCalculator.millisPrPackage();
+    Duration delay = _configuration.isDisableThrottling() ? Duration.ZERO : Duration.ofNanos(_stepCalculator.nanosPrPackage());
     long take;
     if (_configuration.getNumberOfShots() != null && _configuration.getNumberOfShots() > 0) {
       take = _configuration.getNumberOfShots();
       logger.info(String.format("Starting to produce %d data", take));
     } else {
-      take = delay == 0 ? _configuration.getSecondsToRun() * 1000 : (long) (_configuration.getSecondsToRun() / (delay / 1000.0));
+      take = delay.isZero() ? _configuration.getSecondsToRun() * 1000 : (long) (_configuration.getSecondsToRun() / (delay.toNanos() / 1_000_000_000.0));
       logger.info(String.format("Starting to produce data now for %d seconds", _configuration.getSecondsToRun()));
     }
+    final long takeFinal = take;
 
-    return Flux
-      .interval(Duration.ofMillis(delay))
-      .take(take)
-      .map(tick -> {
-        List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> data;
-
-        if ("float".equalsIgnoreCase(_configuration.getAmplitudeDataType())) {
-          List<Float> floatData = DoubleStream.iterate(0, i -> i + 1)
-            .limit(_configuration.getAmplitudesPrPackage())
-            .boxed()
-            .map(Double::floatValue)
-            .collect(Collectors.toList());
-
-          data = IntStream.range(0, _configuration.getNumberOfLoci())
-            .mapToObj(currentLocus -> constructFloatAvroObjects(currentLocus, floatData))
-            .collect(Collectors.toList());
-        } else {
-          List<Long> longData = LongStream.iterate(0, i -> i + 1)
-            .limit(_configuration.getAmplitudesPrPackage())
-            .boxed()
-            .collect(Collectors.toList());
-
-          data = IntStream.range(0, _configuration.getNumberOfLoci())
-            .mapToObj(currentLocus -> constructLongAvroObjects(currentLocus, longData))
-            .collect(Collectors.toList());
-
-        }
-        _stepCalculator.increment(1);
-        return data;
+    return Flux.defer(() -> {
+      TimingStats timingStats = new TimingStats();
+      ScheduledExecutorService timingLogger = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread thread = new Thread(r, "staticdata-timing-logger");
+        thread.setDaemon(true);
+        return thread;
       });
+      timingLogger.scheduleAtFixedRate(() -> logTimingSummary(timingStats), 30, 30, TimeUnit.SECONDS);
+      return Flux.create(sink -> {
+        Thread producerThread = new Thread(() -> {
+          long emitted = 0;
+          try {
+            while (!sink.isCancelled() && emitted < takeFinal) {
+              long nowNanos = Helpers.currentEpochNanos();
+              if (paceAndMaybeDrop(nowNanos, timingStats)) {
+                sink.next(Collections.<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>emptyList());
+                emitted++;
+                continue;
+              }
+              List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> data;
+
+              if ("float".equalsIgnoreCase(_configuration.getAmplitudeDataType())) {
+                List<Float> floatData = DoubleStream.iterate(0, i -> i + 1)
+                  .limit(_configuration.getAmplitudesPrPackage())
+                  .boxed()
+                  .map(Double::floatValue)
+                  .collect(Collectors.toList());
+
+                data = IntStream.range(0, _configuration.getNumberOfLoci())
+                  .mapToObj(currentLocus -> constructFloatAvroObjects(currentLocus, floatData))
+                  .collect(Collectors.toList());
+              } else {
+                List<Long> longData = LongStream.iterate(0, i -> i + 1)
+                  .limit(_configuration.getAmplitudesPrPackage())
+                  .boxed()
+                  .collect(Collectors.toList());
+
+                data = IntStream.range(0, _configuration.getNumberOfLoci())
+                  .mapToObj(currentLocus -> constructLongAvroObjects(currentLocus, longData))
+                  .collect(Collectors.toList());
+              }
+              _stepCalculator.increment(1);
+              sink.next(data);
+              emitted++;
+            }
+            sink.complete();
+          } catch (Throwable ex) {
+            sink.error(ex);
+          } finally {
+            logTimingSummary(timingStats);
+            timingLogger.shutdownNow();
+          }
+        }, "staticdata-producer");
+        producerThread.setDaemon(true);
+        producerThread.start();
+      });
+    });
+  }
+
+  private boolean paceAndMaybeDrop(long wallClockEpochNanos, TimingStats timingStats) {
+    long targetEpochNanos = _stepCalculator.currentEpochNanos();
+    long deltaNanos = targetEpochNanos - wallClockEpochNanos;
+    long warnNanos = _configuration.getTimeLagWarnMillis() * Helpers.millisInNano;
+    boolean warnLag = deltaNanos < 0 && warnNanos > 0 && (-deltaNanos) > warnNanos;
+    boolean pacingEnabled = _configuration.isTimePacingEnabled();
+    if (deltaNanos > 0) {
+      long sleptNanos = 0;
+      long preSleepLeadNanos = deltaNanos;
+      if (pacingEnabled) {
+        Helpers.sleepNanos(deltaNanos);
+        sleptNanos = deltaNanos;
+      }
+      long postDeltaNanos = pacingEnabled ? targetEpochNanos - Helpers.currentEpochNanos() : deltaNanos;
+      timingStats.record(postDeltaNanos, sleptNanos, false, false, preSleepLeadNanos);
+      return false;
+    }
+    if (!pacingEnabled) {
+      timingStats.record(deltaNanos, 0, false, warnLag);
+      return false;
+    }
+    long lagNanos = -deltaNanos;
+    long dropNanos = _configuration.getTimeLagDropMillis() * Helpers.millisInNano;
+    if (dropNanos > 0 && lagNanos > dropNanos) {
+      logger.warn("Dropping package to catch up. Lag={} ms (target={}, now={})",
+        lagNanos / Helpers.millisInNano, targetEpochNanos, wallClockEpochNanos);
+      timingStats.record(deltaNanos, 0, true, warnLag);
+      _stepCalculator.increment(1);
+      return true;
+    }
+    timingStats.record(deltaNanos, 0, false, warnLag);
+    return false;
+  }
+
+  private void logTimingSummary(TimingStats timingStats) {
+    TimingStats.Summary summary = timingStats.snapshotAndReset();
+    if (summary.totalPackages == 0) {
+      return;
+    }
+    double avgLagMs = summary.lagCount == 0 ? 0 : (summary.totalLagNanos / 1_000_000.0) / summary.lagCount;
+    double avgLeadMs = summary.leadCount == 0 ? 0 : (summary.totalLeadNanos / 1_000_000.0) / summary.leadCount;
+    double avgSleepMs = summary.sleepCount == 0 ? 0 : (summary.totalSleepNanos / 1_000_000.0) / summary.sleepCount;
+    double avgPreSleepLeadMs = summary.preSleepLeadCount == 0 ? 0 : (summary.totalPreSleepLeadNanos / 1_000_000.0) / summary.preSleepLeadCount;
+    double avgDeltaMs = summary.totalPackages == 0 ? 0 : (summary.totalDeltaNanos / 1_000_000.0) / summary.totalPackages;
+    double lastDeltaMs = summary.lastDeltaNanos / 1_000_000.0;
+    String avgDeltaDir = avgDeltaMs < 0 ? "behind" : "ahead";
+    String lastDeltaDir = lastDeltaMs < 0 ? "behind" : "ahead";
+    String message = new StringBuilder(256)
+      .append("Timing summary (last 30s)\n")
+      .append("  Fiber shots: ").append(summary.totalPackages)
+      .append(" (drops: ").append(summary.dropCount).append(")\n")
+      .append("  Delta vs wall clock: avg ")
+      .append(String.format("%.1f", Math.abs(avgDeltaMs))).append(" ms ").append(avgDeltaDir)
+      .append(", last ").append(String.format("%.1f", Math.abs(lastDeltaMs))).append(" ms ").append(lastDeltaDir).append("\n")
+      .append("  Lagging fiber shots: ").append(summary.lagCount)
+      .append(" (avg ").append(String.format("%.1f", avgLagMs)).append(" ms, max ")
+      .append(summary.maxLagNanos / Helpers.millisInNano).append(" ms)\n")
+      .append("  Leading fiber shots: ").append(summary.leadCount)
+      .append(" (avg ").append(String.format("%.1f", avgLeadMs)).append(" ms, max ")
+      .append(summary.maxLeadNanos / Helpers.millisInNano).append(" ms)\n")
+      .append("  Pacing: ").append(_configuration.isTimePacingEnabled())
+      .append(" (sleeps ").append(summary.sleepCount).append(", avg ")
+      .append(String.format("%.1f", avgSleepMs)).append(" ms")
+      .append(", pre-sleep lead avg ").append(String.format("%.1f", avgPreSleepLeadMs)).append(" ms)\n")
+      .append("  Package duration: ").append(String.format("%.1f", _stepCalculator.nanosPrPackage() / 1_000_000.0)).append(" ms")
+      .toString();
+    logger.info(message);
   }
 
   private PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> constructLongAvroObjects(int currentLocus, List<Long> data) {

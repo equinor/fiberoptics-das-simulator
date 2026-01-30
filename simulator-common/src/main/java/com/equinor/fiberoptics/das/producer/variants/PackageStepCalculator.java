@@ -81,7 +81,7 @@ public class PackageStepCalculator {
    * @return the current step time
    */
   public Instant currentStepTime() {
-    return Instant.ofEpochMilli(_currentTimePointNanos);
+    return Instant.ofEpochMilli(_currentTimePointNanos / millisInNano);
   }
 
   /**
@@ -103,6 +103,15 @@ public class PackageStepCalculator {
   }
 
   /**
+   * Returns the duration of each package in nanoseconds.
+   *
+   * @return the duration of each package in nanoseconds
+   */
+  public long nanosPrPackage() {
+    return _nanosPrPackage;
+  }
+
+  /**
    * Increments the current time point by a specified number of steps.
    *
    * @param times the number of steps to increment
@@ -117,6 +126,7 @@ public class PackageStepCalculator {
       logger.debug("New timepoint: {}", Instant.ofEpochMilli(_currentTimePointNanos / millisInNano));
     }
   }
+
 
   /**
    * Returns the current time point in nanoseconds.

@@ -44,7 +44,7 @@ das:
       simulator:
         amplitudeDataType: ${AMPLITUDE_DATA_TYPE:float}
         numberOfShots: ${NUMBER_OF_SHOTS:-1}
-        secondsToRun: ${SECONDS_TO_RUN:120}
+        secondsToRun: ${SECONDS_TO_RUN:240}
         pulseRate: ${PULSE_RATE:10000}
         maxFreq: ${MAX_NYQ_FREQ:5000}
         minFreq: ${MIN_NYQ_FREQ:0}
@@ -59,6 +59,9 @@ das:
         numberOfPrePopulatedValues: ${NUMBER_OF_PREPOPULATED_VALUES:100}
         amplitudesPrPackage: ${PACKAGE_SIZE:8192}
         startTimeEpochSecond: ${START_TIME_EPOCH_SECOND:0}
+        timePacingEnabled: ${TIME_PACING_ENABLED:true}
+        timeLagWarnMillis: ${TIME_LAG_WARN_MS:500}
+        timeLagDropMillis: ${TIME_LAG_DROP_MS:2000}
       static:
         amplitudeDataType: ${AMPLITUDE_DATA_TYPE:float}
         numberOfShots: ${NUMBER_OF_SHOTS:-1}
@@ -70,6 +73,9 @@ das:
         numberOfLoci: ${NUMBER_OF_LOCI}
         amplitudesPrPackage: ${PACKAGE_SIZE:8192}
         startTimeEpochSecond: ${START_TIME_EPOCH_SECOND:0}
+        timePacingEnabled: ${TIME_PACING_ENABLED:true}
+        timeLagWarnMillis: ${TIME_LAG_WARN_MS:500}
+        timeLagDropMillis: ${TIME_LAG_DROP_MS:2000}
     kafka:
       config:
         client.id: ${DAS_PRODUCER_KAFKA_CONFIG_CLIENT_ID:Simulator}
