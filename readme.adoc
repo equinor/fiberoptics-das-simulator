@@ -14,7 +14,8 @@ The data is sent trying to match the actual rate that a real interrogator would,
 control is made for the actual timing of the send operation. A real interrogator would try to send as fast as it received the signal from the
 upstream laser interrogator but needless to say we don't have that available for this example.
 
-You can make adjustment to most variables by updating the environment that the simulator starts in. Check the defaults.env file
+You can make adjustment to most variables by updating the environment that the simulator starts in. Check the defaults.env
+and defaults-remote-control.env files
 found int the same directory as this file.
 
 == Basic data flow
@@ -37,7 +38,8 @@ A successful DAS acquisition is made by initially contacting the Stream initiato
   "Custom": {
     "AnyCustomStuffHere": "XYZ",
     "SuchAsFirmwareId": "1.7.2-Rev5",
-    "OrSoftwareVersion": "0.1-Beta"
+    "OrSoftwareVersion": "0.1-Beta",
+    "OrIdentificationAboutVendorInternalProfiles" : "Profile-name.file"
   },
   "MeasurementStartTime": "2020-11-01T19:02:03.0Z",
   "VendorCode": "Simulator",
@@ -102,9 +104,83 @@ Control of the parameters of the process in this example is done via environment
 |DAS_PRODUCER_KAFKA_CONFIG_MAX_BLOCK_MS|60000| http://kafka.apache.org/documentation.html#producerconfigs
 |DAS_PRODUCER_KAFKA_CONFIG_MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION|5| http://kafka.apache.org/documentation.html#producerconfigs
 |DAS_PRODUCER_KAFKA_CONFIG_SEND_BUFFER_BYTES|-1| http://kafka.apache.org/documentation.html#producerconfigs
+|REMOTE_CONTROL_ENABLED|false|Enable remote-control mode. When true, the simulator waits for an APPLY request before producing data.
+|REMOTE_CONTROL_API_KEY|1234-abcde (defaults-remote-control.env)|Required API key for the simulator's remote-control endpoints. Callers must send X-Api-Key.
+|REMOTE_CONTROL_PROFILES_DIR|remote-control-profiles|Directory containing JSON profiles named <das-simulator-profile>.json.
 |===
 
 Any environment variable that starts with 'DAS_PRODUCER_KAFKA_CONFIG_' will be applied to the Kafka client configuration: http://kafka.apache.org/documentation.html#producerconfigs
+
+=== Remote control profiles
+
+When remote control is enabled, a valid X-Api-Key is required (defaults-remote-control.env provides a demo key).
+APPLY ignores the request body except for Custom.das-simulator-profile.
+The simulator loads the matching profile from REMOTE_CONTROL_PROFILES_DIR and uses that configuration
+to start producing data. A new AcquisitionId and MeasurementStartTime are generated on every APPLY,
+so stored profile values are not reused. STOP sends a best-effort stop signal to streaminitiator
+for the last applied acquisition id. Example profiles are included in the remote-control-profiles folder.
+
+=== Remote-control walkthrough (docker-compose)
+
+This step-by-step example starts the simulator with the random producer (SimulatorBoxUnit), then
+issues APPLY, SWITCH, and STOP calls using curl.
+
+1) Start the dependencies (Kafka, schema registry, streaminitiator). The `dependson-services/.env`
+   file configures the announced broker/schema registry addresses and the Kafka advertised host so
+   host-based clients get `localhost` endpoints:
+[source,bash]
+----
+docker-compose --env-file ./dependson-services/.env -f ./dependson-services/compose-kafka.yml up -d
+----
+
+2) Build and run the simulator in remote-control mode:
+[source,bash]
+----
+./mvnw clean package -DskipTests
+source ./defaults-remote-control.env
+export VARIANT_PLUGIN=SimulatorBoxUnit
+java -jar ./das-producer/target/das-producer-<version>.jar
+----
+
+If you see `java.net.UnknownHostException: broker`, ensure `dependson-services/.env` contains:
+[source,bash]
+----
+ANNOUNCED_BROKERS_INGRESS=localhost:9092
+ANNOUNCED_SCHEMAREGISTRY=http://localhost:8081
+KAFKA_ADVERTISED_HOST=localhost
+----
+and restart the docker-compose stack.
+
+3) Start the simulator (APPLY) using the first profile:
+[source,bash]
+----
+curl -X POST http://localhost:9091/api/acquisition/apply \
+  -H 'Content-Type: application/json' \
+  -H 'X-Api-Key: 1234-abcde' \
+  -d '{"Custom":{"das-simulator-profile":"019c0d85-dc19-7dfe-859e-8d0c066f3c46"}}'
+----
+
+4) Switch to a different profile (APPLY with a new profile id):
+[source,bash]
+----
+curl -X POST http://localhost:9091/api/acquisition/apply \
+  -H 'Content-Type: application/json' \
+  -H 'X-Api-Key: 1234-abcde' \
+  -d '{"Custom":{"das-simulator-profile":"019c0d85-2485-7ace-849c-e0e2be35c473"}}'
+----
+
+5) Stop the simulator:
+[source,bash]
+----
+curl -X POST http://localhost:9091/api/acquisition/stop \
+  -H 'Content-Type: application/json' \
+  -H 'X-Api-Key: 1234-abcde' \
+  -d '{}'
+----
+
+Note: You can also send the full profile JSON in the APPLY request body (for convenience),
+as long as Custom.das-simulator-profile is present; the simulator will still load the profile
+from disk and ignore other fields in the request.
 
 Details for ProdML can be found here: http://w3.energistics.org/energyML/data/prodml/v2.0/doc/prodml_schema_overview.html
 
@@ -112,14 +188,16 @@ Details for ProdML can be found here: http://w3.energistics.org/energyML/data/pr
 
 Note:
 
-You need Java 17 and you need docker and docker-compose installed to compile and run this.
+You need Java 21 and you need docker and docker-compose installed to compile and run this.
 
-Run the following commands in the same directory as this readme.adoc file (for Linux users):
+Run the following commands in the same directory as this readme.adoc file (for Linux users).
+This starts a DAS producer that produces immediately (non-remote mode). For remote-control mode,
+see the "Remote-control walkthrough (docker-compose)" section above.
 [source,bash]
 ----
-./mvnw clean install
+./mvnw clean install -DskipTests
 docker-compose --env-file ./dependson-services/.env -f ./dependson-services/compose-kafka.yml up
-source ./das-producer/defaults.env
+source ./defaults.env
 java -jar ./das-producer/target/das-producer-<version>.jar
 ----
 
@@ -228,8 +306,11 @@ a24c5a9e-510f-45ef-8112-3c6e6469e9c4
 Simulator box UUIDs:
 [source,text]
 ----
+00528e45-06d0-4110-bba4-e904aaa02657
 6fc8a265-1ec5-4daf-b6b5-f7649af2a07a
 1deb5d57-2fb9-418a-990b-4cf7252a0450
+1deb5d57-2fb9-418a-990b-4cf7252a0451
+1deb5d57-2fb9-418a-990b-4cf7252a0452
 1deb5d57-3fb9-418a-990b-4cf7252a0451
 1deb5d57-4fb9-418a-990b-4cf7252a0452
 ----
