@@ -32,14 +32,17 @@ import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
@@ -81,95 +84,173 @@ public class StaticDataUnit implements GenericDasProducer {
 
     return Flux.defer(() -> {
       TimingStats timingStats = new TimingStats();
-      ScheduledExecutorService timingLogger = Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread thread = new Thread(r, "staticdata-timing-logger");
-        thread.setDaemon(true);
-        return thread;
-      });
-      timingLogger.scheduleAtFixedRate(() -> logTimingSummary(timingStats), 30, 30, TimeUnit.SECONDS);
+      Scheduler timingScheduler = Schedulers.newSingle("staticdata-timing-logger");
+      Disposable timingDisposable = Flux.interval(Duration.ofSeconds(30), timingScheduler)
+        .doOnNext(tick -> logTimingSummary(timingStats))
+        .subscribe();
+      Scheduler producerScheduler = Schedulers.newSingle("staticdata-producer");
+      AtomicBoolean cleanedUp = new AtomicBoolean(false);
       return Flux.create(sink -> {
-        Thread producerThread = new Thread(() -> {
-          long emitted = 0;
-          try {
-            while (!sink.isCancelled() && emitted < takeFinal) {
-              long nowNanos = Helpers.currentEpochNanos();
-              if (paceAndMaybeDrop(nowNanos, timingStats)) {
-                sink.next(Collections.<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>emptyList());
-                emitted++;
-                continue;
-              }
-              List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> data;
-
-              if ("float".equalsIgnoreCase(_configuration.getAmplitudeDataType())) {
-                List<Float> floatData = DoubleStream.iterate(0, i -> i + 1)
-                  .limit(_configuration.getAmplitudesPrPackage())
-                  .boxed()
-                  .map(Double::floatValue)
-                  .collect(Collectors.toList());
-
-                data = IntStream.range(0, _configuration.getNumberOfLoci())
-                  .mapToObj(currentLocus -> constructFloatAvroObjects(currentLocus, floatData))
-                  .collect(Collectors.toList());
-              } else {
-                List<Long> longData = LongStream.iterate(0, i -> i + 1)
-                  .limit(_configuration.getAmplitudesPrPackage())
-                  .boxed()
-                  .collect(Collectors.toList());
-
-                data = IntStream.range(0, _configuration.getNumberOfLoci())
-                  .mapToObj(currentLocus -> constructLongAvroObjects(currentLocus, longData))
-                  .collect(Collectors.toList());
-              }
-              _stepCalculator.increment(1);
-              sink.next(data);
-              emitted++;
-            }
-            sink.complete();
-          } catch (Throwable ex) {
-            sink.error(ex);
-          } finally {
-            logTimingSummary(timingStats);
-            timingLogger.shutdownNow();
+        Scheduler.Worker worker = producerScheduler.createWorker();
+        AtomicLong emitted = new AtomicLong(0);
+        Runnable[] loop = new Runnable[1];
+        loop[0] = () -> {
+          if (sink.isCancelled()) {
+            cleanup(timingStats, timingDisposable, timingScheduler, producerScheduler, worker, cleanedUp);
+            return;
           }
-        }, "staticdata-producer");
-        producerThread.setDaemon(true);
-        producerThread.start();
+          if (emitted.get() >= takeFinal) {
+            sink.complete();
+            cleanup(timingStats, timingDisposable, timingScheduler, producerScheduler, worker, cleanedUp);
+            return;
+          }
+          long nowNanos = Helpers.currentEpochNanos();
+          PaceDecision decision = evaluatePacing(nowNanos);
+          if (decision.delayNanos > 0) {
+            worker.schedule(() -> emitAfterDelay(decision, emitted, takeFinal, sink, timingStats, loop[0],
+              timingDisposable, timingScheduler, producerScheduler, worker, cleanedUp), decision.delayNanos, TimeUnit.NANOSECONDS);
+            return;
+          }
+          emitNow(decision, emitted, takeFinal, sink, timingStats, loop[0], timingDisposable,
+            timingScheduler, producerScheduler, worker, cleanedUp);
+        };
+        worker.schedule(loop[0]);
       });
     });
   }
 
-  private boolean paceAndMaybeDrop(long wallClockEpochNanos, TimingStats timingStats) {
+  private PaceDecision evaluatePacing(long wallClockEpochNanos) {
     long targetEpochNanos = _stepCalculator.currentEpochNanos();
     long deltaNanos = targetEpochNanos - wallClockEpochNanos;
     long warnNanos = _configuration.getTimeLagWarnMillis() * Helpers.millisInNano;
     boolean warnLag = deltaNanos < 0 && warnNanos > 0 && (-deltaNanos) > warnNanos;
     boolean pacingEnabled = _configuration.isTimePacingEnabled();
     if (deltaNanos > 0) {
-      long sleptNanos = 0;
-      long preSleepLeadNanos = deltaNanos;
-      if (pacingEnabled) {
-        Helpers.sleepNanos(deltaNanos);
-        sleptNanos = deltaNanos;
-      }
-      long postDeltaNanos = pacingEnabled ? targetEpochNanos - Helpers.currentEpochNanos() : deltaNanos;
-      timingStats.record(postDeltaNanos, sleptNanos, false, false, preSleepLeadNanos);
-      return false;
-    }
-    if (!pacingEnabled) {
-      timingStats.record(deltaNanos, 0, false, warnLag);
-      return false;
+      return pacingEnabled
+        ? PaceDecision.delay(deltaNanos, targetEpochNanos)
+        : PaceDecision.immediate(deltaNanos, warnLag);
     }
     long lagNanos = -deltaNanos;
     long dropNanos = _configuration.getTimeLagDropMillis() * Helpers.millisInNano;
-    if (dropNanos > 0 && lagNanos > dropNanos) {
+    if (pacingEnabled && dropNanos > 0 && lagNanos > dropNanos) {
       logger.warn("Dropping package to catch up. Lag={} ms (target={}, now={})",
         lagNanos / Helpers.millisInNano, targetEpochNanos, wallClockEpochNanos);
-      timingStats.record(deltaNanos, 0, true, warnLag);
-      _stepCalculator.increment(1);
-      return true;
+      return PaceDecision.drop(deltaNanos, warnLag);
     }
-    timingStats.record(deltaNanos, 0, false, warnLag);
-    return false;
+    return PaceDecision.immediate(deltaNanos, warnLag);
+  }
+
+  private void emitAfterDelay(PaceDecision decision, AtomicLong emitted, long takeFinal,
+                              reactor.core.publisher.FluxSink<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> sink,
+                              TimingStats timingStats, Runnable loop,
+                              Disposable timingDisposable, Scheduler timingScheduler,
+                              Scheduler producerScheduler, Scheduler.Worker worker, AtomicBoolean cleanedUp) {
+    if (sink.isCancelled()) {
+      cleanup(timingStats, timingDisposable, timingScheduler, producerScheduler, worker, cleanedUp);
+      return;
+    }
+    if (emitted.get() >= takeFinal) {
+      sink.complete();
+      cleanup(timingStats, timingDisposable, timingScheduler, producerScheduler, worker, cleanedUp);
+      return;
+    }
+    long nowNanos = Helpers.currentEpochNanos();
+    long postDeltaNanos = decision.targetEpochNanos - nowNanos;
+    timingStats.record(postDeltaNanos, decision.delayNanos, false, false, decision.delayNanos);
+    emitData(sink);
+    _stepCalculator.increment(1);
+    emitted.incrementAndGet();
+    worker.schedule(loop);
+  }
+
+  private void emitNow(PaceDecision decision, AtomicLong emitted, long takeFinal,
+                       reactor.core.publisher.FluxSink<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> sink,
+                       TimingStats timingStats, Runnable loop,
+                       Disposable timingDisposable, Scheduler timingScheduler,
+                       Scheduler producerScheduler, Scheduler.Worker worker, AtomicBoolean cleanedUp) {
+    if (decision.drop) {
+      timingStats.record(decision.deltaNanos, 0, true, decision.warnLag);
+      _stepCalculator.increment(1);
+      sink.next(Collections.<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>emptyList());
+      emitted.incrementAndGet();
+      worker.schedule(loop);
+      return;
+    }
+    timingStats.record(decision.deltaNanos, 0, false, decision.warnLag);
+    emitData(sink);
+    _stepCalculator.increment(1);
+    emitted.incrementAndGet();
+    if (emitted.get() >= takeFinal) {
+      sink.complete();
+      cleanup(timingStats, timingDisposable, timingScheduler, producerScheduler, worker, cleanedUp);
+      return;
+    }
+    worker.schedule(loop);
+  }
+
+  private void emitData(reactor.core.publisher.FluxSink<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> sink) {
+    List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> data;
+    if ("float".equalsIgnoreCase(_configuration.getAmplitudeDataType())) {
+      List<Float> floatData = DoubleStream.iterate(0, i -> i + 1)
+        .limit(_configuration.getAmplitudesPrPackage())
+        .boxed()
+        .map(Double::floatValue)
+        .collect(Collectors.toList());
+
+      data = IntStream.range(0, _configuration.getNumberOfLoci())
+        .mapToObj(currentLocus -> constructFloatAvroObjects(currentLocus, floatData))
+        .collect(Collectors.toList());
+    } else {
+      List<Long> longData = LongStream.iterate(0, i -> i + 1)
+        .limit(_configuration.getAmplitudesPrPackage())
+        .boxed()
+        .collect(Collectors.toList());
+
+      data = IntStream.range(0, _configuration.getNumberOfLoci())
+        .mapToObj(currentLocus -> constructLongAvroObjects(currentLocus, longData))
+        .collect(Collectors.toList());
+    }
+    sink.next(data);
+  }
+
+  private void cleanup(TimingStats timingStats, Disposable timingDisposable, Scheduler timingScheduler,
+                       Scheduler producerScheduler, Scheduler.Worker worker, AtomicBoolean cleanedUp) {
+    if (!cleanedUp.compareAndSet(false, true)) {
+      return;
+    }
+    logTimingSummary(timingStats);
+    timingDisposable.dispose();
+    timingScheduler.dispose();
+    worker.dispose();
+    producerScheduler.dispose();
+  }
+
+  private static class PaceDecision {
+    private final long deltaNanos;
+    private final boolean warnLag;
+    private final boolean drop;
+    private final long delayNanos;
+    private final long targetEpochNanos;
+
+    private PaceDecision(long deltaNanos, boolean warnLag, boolean drop, long delayNanos, long targetEpochNanos) {
+      this.deltaNanos = deltaNanos;
+      this.warnLag = warnLag;
+      this.drop = drop;
+      this.delayNanos = delayNanos;
+      this.targetEpochNanos = targetEpochNanos;
+    }
+
+    private static PaceDecision delay(long delayNanos, long targetEpochNanos) {
+      return new PaceDecision(delayNanos, false, false, delayNanos, targetEpochNanos);
+    }
+
+    private static PaceDecision immediate(long deltaNanos, boolean warnLag) {
+      return new PaceDecision(deltaNanos, warnLag, false, 0, 0);
+    }
+
+    private static PaceDecision drop(long deltaNanos, boolean warnLag) {
+      return new PaceDecision(deltaNanos, warnLag, true, 0, 0);
+    }
   }
 
   private void logTimingSummary(TimingStats timingStats) {
