@@ -36,6 +36,10 @@ das:
     overrideBootstrapServersWith: ${KAFKA_SERVER_OVERRIDE:}
     overrideSchemaRegistryWith: ${SCHEMA_REGISTRY_URL_OVERRIDE:}
     variant: ${VARIANT_PLUGIN:SimulatorBoxUnit}
+    remoteControl:
+      enabled: ${REMOTE_CONTROL_ENABLED:false}
+      apiKey: ${REMOTE_CONTROL_API_KEY:}
+      profilesDirectory: ${REMOTE_CONTROL_PROFILES_DIR:remote-control-profiles}
     box:
       simulator:
         amplitudeDataType: ${AMPLITUDE_DATA_TYPE:float}
@@ -78,4 +82,3 @@ das:
         max.block.ms: ${DAS_PRODUCER_KAFKA_CONFIG_MAX_BLOCK_MS:60000}
         max.in.flight.requests.per.connection: ${DAS_PRODUCER_KAFKA_CONFIG_MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION :5}
         send.buffer.bytes: ${DAS_PRODUCER_KAFKA_CONFIG_SEND_BUFFER_BYTES:-1}
-

@@ -27,21 +27,19 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Headers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.stereotype.Component;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Component
 public class KafkaSender {
 
-  @Autowired
-  private KafkaProducer<DASMeasurementKey, DASMeasurement> producer;
-
-  @Autowired
-  private MeterRegistry meterRegistry;
+  private final AtomicReference<KafkaProducer<DASMeasurementKey, DASMeasurement>> producerRef = new AtomicReference<>();
+  private final MeterRegistry meterRegistry;
 
   public boolean isRunning = true;
 
@@ -51,9 +49,31 @@ public class KafkaSender {
   private long iterationStartTime = System.currentTimeMillis();
   private long messageCount = 0L;
 
+  public KafkaSender(MeterRegistry meterRegistry, ObjectProvider<KafkaProducer<DASMeasurementKey, DASMeasurement>> producerProvider) {
+    this.meterRegistry = meterRegistry;
+    KafkaProducer<DASMeasurementKey, DASMeasurement> producer = producerProvider.getIfAvailable();
+    if (producer != null) {
+      producerRef.set(producer);
+    }
+  }
+
+  public void setProducer(KafkaProducer<DASMeasurementKey, DASMeasurement> producer) {
+    if (producer == null) {
+      return;
+    }
+    producerRef.set(producer);
+    isRunning = true;
+    messageCount = 0L;
+    iterationStartTime = System.currentTimeMillis();
+  }
+
   public void send(ProducerRecord<DASMeasurementKey, DASMeasurement> data) {
     if (!isRunning) {
       // logger.info("Producer not running");
+      return;
+    }
+    KafkaProducer<DASMeasurementKey, DASMeasurement> producer = producerRef.get();
+    if (producer == null) {
       return;
     }
 
@@ -84,13 +104,18 @@ public class KafkaSender {
 
 
   public void close() {
+    KafkaProducer<DASMeasurementKey, DASMeasurement> producer = producerRef.getAndSet(null);
     try {
-      producer.flush();
+      if (producer != null) {
+        producer.flush();
+      }
     } catch (Exception e) {
       logger.warn("Exception flushing producer: {}", e.getMessage());
     }
     try {
-      producer.close(Duration.ofMillis(1000));
+      if (producer != null) {
+        producer.close(Duration.ofMillis(1000));
+      }
     } catch (Exception e) {
       logger.warn("Exception closing producer: {}", e.getMessage());
     }

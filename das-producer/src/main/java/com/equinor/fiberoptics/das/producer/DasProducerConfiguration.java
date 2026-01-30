@@ -46,4 +46,27 @@ public class DasProducerConfiguration {
   private String variant;
 
   private Map<Integer, Integer> partitionAssignments;
+
+  private RemoteControl remoteControl = new RemoteControl();
+
+  @Getter
+  @Setter
+  public static class RemoteControl {
+    /**
+     * When enabled, the simulator will not start producing data at startup.
+     * Instead, it will wait for a remote APPLY call to start an acquisition.
+     */
+    private boolean enabled = false;
+
+    /**
+     * Required API key for the simulator's remote-control endpoints.
+     * Callers must supply {@code X-Api-Key} with the same value.
+     */
+    private String apiKey;
+
+    /**
+     * Directory containing remote-control profiles as JSON files named {@code <das-simulator-profile>.json}.
+     */
+    private String profilesDirectory = "remote-control-profiles";
+  }
 }

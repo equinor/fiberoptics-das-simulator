@@ -1,0 +1,17 @@
+{
+  "NumberOfLoci": 100,
+  "SpatialSamplingInterval": 1.1,
+  "PulseWidthUnit": "ns",
+  "description": { "string": "" },
+  "Custom": { "das-simulator-profile": "019c0d85-dc19-7dfe-859e-8d0c066f3c46" },
+  "OpticalPathUUID": "00528e45-06d0-4110-bba4-e904afe02657",
+  "DasInstrumentBoxUUID": "00528e45-06d0-4110-bba4-e904aaa02657",
+  "GaugeLength": 10.209524,
+  "MaximumFrequency": 5000,
+  "StartLocusIndex": 0,
+  "PulseWidth": 100.50,
+  "AcquisitionId": "1666612d-fb5e-11f0-bc8b-de1062e2899a",
+  "PulseRate": 10000,
+  "VendorCode": "Simulator",
+  "MeasurementStartTime": "2026-01-27T08:56:35Z"
+}

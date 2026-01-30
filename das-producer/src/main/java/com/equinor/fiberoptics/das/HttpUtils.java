@@ -31,7 +31,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
-import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -48,6 +47,7 @@ public class HttpUtils {
   }
 
   private static final String API_ENDPOINT = "/%s/acquisition/start";
+  private static final String API_STOP_ENDPOINT = "/api/v1/acquisition/stop/%s";
 
 
   HttpUtils(SimulatorBoxUnitConfiguration simUnitConfig, DasProducerConfiguration dasProdConfig) {
@@ -57,6 +57,12 @@ public class HttpUtils {
 
   public AcquisitionStartDto startAcquisition() {
     SchemaVersions version = SchemaVersions.valueOf(_dasProducerConfig.getAcquisitionStartVersion());
+    String json = version == SchemaVersions.V1 ? asV1Json() : asV2Json();
+    return startAcquisition(json);
+  }
+
+  public AcquisitionStartDto startAcquisition(String acquisitionJson) {
+    SchemaVersions version = SchemaVersions.valueOf(_dasProducerConfig.getAcquisitionStartVersion());
     String apiEndpoint = version == SchemaVersions.V1 ? String.format(API_ENDPOINT, "api") : String.format(API_ENDPOINT, "api/v2");
 
     RestTemplate restTemplate = new RestTemplate();
@@ -65,11 +71,7 @@ public class HttpUtils {
     headers.setContentType(MediaType.APPLICATION_JSON);
     headers.set("X-Api-Key", _dasProducerConfig.getInitiatorserviceApiKey().trim());
 
-    String json = version == SchemaVersions.V1?
-      asV1Json() :
-      asV2Json();
-
-    var request = new HttpEntity<>(json, headers);
+    var request = new HttpEntity<>(acquisitionJson, headers);
     var response = restTemplate.exchange(
       _dasProducerConfig.getInitiatorserviceUrl() + apiEndpoint,
       HttpMethod.POST,
@@ -77,6 +79,26 @@ public class HttpUtils {
       AcquisitionStartDto.class);
 
     return response.getBody();
+  }
+
+  public void stopAcquisition(String acquisitionId) {
+    if (acquisitionId == null || acquisitionId.isBlank()) {
+      return;
+    }
+
+    RestTemplate restTemplate = new RestTemplate();
+    HttpHeaders headers = new HttpHeaders();
+    headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    headers.set("X-Api-Key", _dasProducerConfig.getInitiatorserviceApiKey().trim());
+
+    String endpoint = String.format(API_STOP_ENDPOINT, acquisitionId);
+    var request = new HttpEntity<>(null, headers);
+    restTemplate.exchange(
+      _dasProducerConfig.getInitiatorserviceUrl() + endpoint,
+      HttpMethod.POST,
+      request,
+      Void.class);
   }
 
   public boolean checkIfServiceIsFine(String service) {

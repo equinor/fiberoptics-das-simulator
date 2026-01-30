@@ -26,7 +26,9 @@ import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
@@ -43,6 +45,7 @@ import java.util.stream.IntStream;
  * @author Espen Tjonneland, espen@tjonneland.no
  */
 @Component("SimulatorBoxUnit")
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 @EnableConfigurationProperties({ SimulatorBoxUnitConfiguration.class})
 public class SimulatorBoxUnit implements GenericDasProducer {
   private static final Logger logger = LoggerFactory.getLogger(SimulatorBoxUnit.class);

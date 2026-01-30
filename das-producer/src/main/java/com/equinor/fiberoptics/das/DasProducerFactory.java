@@ -22,17 +22,22 @@ package com.equinor.fiberoptics.das;
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
 import com.equinor.fiberoptics.das.producer.dto.AcquisitionStartDto;
 import com.equinor.kafka.KafkaConfiguration;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
 import jakarta.annotation.PreDestroy;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Component
 public class DasProducerFactory {
@@ -43,6 +48,7 @@ public class DasProducerFactory {
   private final DasProducerConfiguration _dasProducerConfig;
 
   private final ApplicationContext _applicationContext;
+  private final AtomicReference<String> lastAcquisitionId = new AtomicReference<>();
 
   DasProducerFactory(KafkaConfiguration kafkaConfig, HttpUtils http, DasProducerConfiguration dasProducerConfig,
                      ApplicationContext applicationContext) {
@@ -59,32 +65,60 @@ public class DasProducerFactory {
   }
 
   @Bean
+  @ConditionalOnProperty(
+    prefix = "das.producer.remote-control",
+    name = "enabled",
+    havingValue = "false",
+    matchIfMissing = true)
   public KafkaProducer<DASMeasurementKey, DASMeasurement> producerFactory() {
+    return createProducerFromAcquisitionJsonInternal(null, true);
+  }
 
-    logger.info("Preflight checking if initiator service is alive.");
-    while (true) {
-      String healthCheckSi = _dasProducerConfig.getInitiatorserviceUrl().trim() + "/actuator/health";
-      if (_httpUtils.checkIfServiceIsFine(healthCheckSi)) break;
-      //Just do it
-      logger.info("Trying to reach Stream initiator service on: {} looking for a 200 OK.", healthCheckSi);
-      try {
-        Thread.sleep(5000);
-      } catch (InterruptedException e) {
-        logger.warn("Unable to sleep");
-      }
+  public KafkaProducer<DASMeasurementKey, DASMeasurement> createProducerFromAcquisitionJson(String acquisitionJson) {
+    return createProducerFromAcquisitionJsonInternal(acquisitionJson, false);
+  }
+
+  public String getLastAcquisitionId() {
+    return lastAcquisitionId.get();
+  }
+
+  public void stopAcquisitionBestEffort(String acquisitionId) {
+    if (acquisitionId == null || acquisitionId.isBlank()) {
+      return;
     }
+    try {
+      _httpUtils.stopAcquisition(acquisitionId);
+    } catch (Exception e) {
+      logger.warn("Best-effort stop acquisition failed for {}: {}", acquisitionId, e.getMessage());
+    }
+  }
 
-    logger.info("Calling start acquisition on URL {}", _dasProducerConfig.getInitiatorserviceUrl().trim());
-    AcquisitionStartDto acquisition = _httpUtils.startAcquisition();
+  private KafkaProducer<DASMeasurementKey, DASMeasurement> createProducerFromAcquisitionJsonInternal(
+    String acquisitionJson,
+    boolean exitOnInvalidPartitions) {
+    String effectiveAcquisitionJson = acquisitionJson;
+    if (effectiveAcquisitionJson == null || effectiveAcquisitionJson.isBlank()) {
+      HttpUtils.SchemaVersions version = HttpUtils.SchemaVersions.valueOf(_dasProducerConfig.getAcquisitionStartVersion());
+      effectiveAcquisitionJson = version == HttpUtils.SchemaVersions.V1
+        ? _httpUtils.asV1Json()
+        : _httpUtils.asV2Json();
+    }
+    extractAcquisitionId(effectiveAcquisitionJson).ifPresent(lastAcquisitionId::set);
+
+    AcquisitionStartDto acquisition = startAcquisitionWithPreflight(effectiveAcquisitionJson);
     logger.info("Got TOPIC={}, BOOTSTRAP_SERVERS={}, SCHEMA_REGISTRY={}, NUMBER_OF_PARTITIONS={}",
       acquisition.getTopic(), acquisition.getBootstrapServers(), acquisition.getSchemaRegistryUrl(),
       acquisition.getNumberOfPartitions());
     if (acquisition.getNumberOfPartitions() <= 0) {
-      logger.error("We are unable to run when the destination topic has {} partitions. Exiting.",
-        acquisition.getNumberOfPartitions());
-      logger.info("Stopping");
-      int exitValue = SpringApplication.exit(_applicationContext);
-      System.exit(exitValue);
+      if (exitOnInvalidPartitions) {
+        logger.error("We are unable to run when the destination topic has {} partitions. Exiting.",
+          acquisition.getNumberOfPartitions());
+        logger.info("Stopping");
+        int exitValue = SpringApplication.exit(_applicationContext);
+        System.exit(exitValue);
+      }
+      throw new IllegalStateException("Unable to run when the destination topic has " + acquisition.getNumberOfPartitions()
+        + " partitions.");
     }
 
     String actualSchemaRegistryServers;
@@ -121,5 +155,37 @@ public class DasProducerFactory {
 
     return new KafkaProducer<>(_configuration.kafkaProperties(actualBootstrapServeras,
       actualSchemaRegistryServers));
+  }
+
+  private AcquisitionStartDto startAcquisitionWithPreflight(String acquisitionJson) {
+    logger.info("Preflight checking if initiator service is alive.");
+    while (true) {
+      String healthCheckSi = _dasProducerConfig.getInitiatorserviceUrl().trim() + "/actuator/health";
+      if (_httpUtils.checkIfServiceIsFine(healthCheckSi)) break;
+      logger.info("Trying to reach Stream initiator service on: {} looking for a 200 OK.", healthCheckSi);
+      try {
+        Thread.sleep(5000);
+      } catch (InterruptedException e) {
+        logger.warn("Unable to sleep");
+      }
+    }
+
+    logger.info("Calling start acquisition on URL {}", _dasProducerConfig.getInitiatorserviceUrl().trim());
+    return _httpUtils.startAcquisition(acquisitionJson);
+  }
+
+  private Optional<String> extractAcquisitionId(String acquisitionJson) {
+    try {
+      JsonObject obj = JsonParser.parseString(acquisitionJson).getAsJsonObject();
+      if (obj.has("AcquisitionId")) {
+        return Optional.ofNullable(obj.get("AcquisitionId")).map(e -> e.getAsString());
+      }
+      if (obj.has("acquisitionId")) {
+        return Optional.ofNullable(obj.get("acquisitionId")).map(e -> e.getAsString());
+      }
+    } catch (Exception e) {
+      logger.warn("Unable to extract AcquisitionId from acquisition JSON: {}", e.getMessage());
+    }
+    return Optional.empty();
   }
 }
