@@ -109,7 +109,7 @@ Control of the parameters of the process in this example is done via environment
 |REMOTE_CONTROL_PROFILES_DIR|remote-control-profiles|Directory containing JSON profiles named <das-simulator-profile>.json.
 |TIME_PACING_ENABLED|true|Enable pacing of production to match the simulated package timestamps.
 |TIME_LAG_WARN_MS|500|Log a warning when the simulator lags behind wall-clock by more than this threshold.
-|TIME_LAG_DROP_MS|2000|Drop a package when lag exceeds this threshold to catch up (0 disables dropping).
+|TIME_LAG_DROP_MS|2000|Drop a fiber shot when lag exceeds this threshold to catch up (0 disables dropping).
 |===
 
 Any environment variable that starts with 'DAS_PRODUCER_KAFKA_CONFIG_' will be applied to the Kafka client configuration: http://kafka.apache.org/documentation.html#producerconfigs
@@ -232,7 +232,7 @@ Config Options:
 |AMPLITUDE_DATA_TYPE| float | Valuers allowed, "float" or "long"
 |TIME_PACING_ENABLED| true| Enable pacing of production to match the simulated package timestamps.
 |TIME_LAG_WARN_MS| 500| Log a warning when the simulator lags behind wall-clock by more than this threshold.
-|TIME_LAG_DROP_MS| 2000| Drop a package when lag exceeds this threshold to catch up (0 disables dropping).
+|TIME_LAG_DROP_MS| 2000| Drop a fiber shot when lag exceeds this threshold to catch up (0 disables dropping).
 |===
 
 === Static data unit
@@ -253,7 +253,7 @@ Config Options:
 |AMPLITUDE_DATA_TYPE| float | Valuers allowed, "float" or "long"
 |TIME_PACING_ENABLED| true| Enable pacing of production to match the simulated package timestamps.
 |TIME_LAG_WARN_MS| 500| Log a warning when the simulator lags behind wall-clock by more than this threshold.
-|TIME_LAG_DROP_MS| 2000| Drop a package when lag exceeds this threshold to catch up (0 disables dropping).
+|TIME_LAG_DROP_MS| 2000| Drop a fiber shot when lag exceeds this threshold to catch up (0 disables dropping).
 |===
 
 ==== Data that can be used in the configuration of simulator box
