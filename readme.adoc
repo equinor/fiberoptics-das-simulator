@@ -123,7 +123,7 @@ for the last applied acquisition id. Example profiles are included in the remote
 === Remote-control walkthrough (docker-compose)
 
 This step-by-step example starts the simulator with the random producer (SimulatorBoxUnit), then
-issues APPLY, SWITCH, and STOP calls using curl.
+issues APPLY, switch(using APPLY), and STOP calls using curl.
 
 1) Start the dependencies (Kafka, schema registry, streaminitiator). The `dependson-services/.env`
    file configures the announced broker/schema registry addresses and the Kafka advertised host so
