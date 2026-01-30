@@ -58,6 +58,7 @@ import java.util.stream.IntStream;
 @EnableConfigurationProperties({ SimulatorBoxUnitConfiguration.class})
 public class SimulatorBoxUnit implements GenericDasProducer {
   private static final Logger logger = LoggerFactory.getLogger(SimulatorBoxUnit.class);
+  private static final Duration TIMING_LOG_INTERVAL = Duration.ofSeconds(30);
 
   private final SimulatorBoxUnitConfiguration _configuration;
   private final PackageStepCalculator _stepCalculator;
@@ -87,7 +88,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
     return Flux.defer(() -> {
       TimingStats timingStats = new TimingStats();
       Scheduler timingScheduler = Schedulers.newSingle("simulatorbox-timing-logger");
-      Disposable timingDisposable = Flux.interval(Duration.ofSeconds(30), timingScheduler)
+      Disposable timingDisposable = Flux.interval(TIMING_LOG_INTERVAL, timingScheduler)
         .doOnNext(tick -> logTimingSummary(timingStats))
         .subscribe();
       Scheduler producerScheduler = Schedulers.newSingle("simulatorbox-producer");
@@ -249,12 +250,15 @@ public class SimulatorBoxUnit implements GenericDasProducer {
     double avgPreSleepLeadMs = summary.preSleepLeadCount == 0 ? 0 : (summary.totalPreSleepLeadNanos / 1_000_000.0) / summary.preSleepLeadCount;
     double avgDeltaMs = summary.totalPackages == 0 ? 0 : (summary.totalDeltaNanos / 1_000_000.0) / summary.totalPackages;
     double lastDeltaMs = summary.lastDeltaNanos / 1_000_000.0;
+    long intervalSeconds = Math.max(1, TIMING_LOG_INTERVAL.getSeconds());
+    double packagesPerSecond = summary.totalPackages / (double) intervalSeconds;
     String avgDeltaDir = avgDeltaMs < 0 ? "behind" : "ahead";
     String lastDeltaDir = lastDeltaMs < 0 ? "behind" : "ahead";
     String message = new StringBuilder(256)
-      .append("Timing summary (last 30s)\n")
+      .append("Timing summary (last ").append(intervalSeconds).append("s)\n")
       .append("  Fiber shots: ").append(summary.totalPackages)
       .append(" (drops: ").append(summary.dropCount).append(")\n")
+      .append("  Packages per second: ").append(String.format("%.1f", packagesPerSecond)).append("\n")
       .append("  Delta vs wall clock: avg ")
       .append(String.format("%.1f", Math.abs(avgDeltaMs))).append(" ms ").append(avgDeltaDir)
       .append(", last ").append(String.format("%.1f", Math.abs(lastDeltaMs))).append(" ms ").append(lastDeltaDir).append("\n")

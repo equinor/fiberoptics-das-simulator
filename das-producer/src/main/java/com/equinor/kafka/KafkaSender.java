@@ -45,10 +45,6 @@ public class KafkaSender {
 
   private static final Logger logger = LoggerFactory.getLogger(KafkaSender.class);
 
-  private static final long msBetweenPerformanceOutput = 10000;
-  private long iterationStartTime = System.currentTimeMillis();
-  private long messageCount = 0L;
-
   public KafkaSender(MeterRegistry meterRegistry, ObjectProvider<KafkaProducer<DASMeasurementKey, DASMeasurement>> producerProvider) {
     this.meterRegistry = meterRegistry;
     KafkaProducer<DASMeasurementKey, DASMeasurement> producer = producerProvider.getIfAvailable();
@@ -63,8 +59,6 @@ public class KafkaSender {
     }
     producerRef.set(producer);
     isRunning = true;
-    messageCount = 0L;
-    iterationStartTime = System.currentTimeMillis();
   }
 
   public void send(ProducerRecord<DASMeasurementKey, DASMeasurement> data) {
@@ -80,19 +74,9 @@ public class KafkaSender {
     Headers headers = data.headers();
     headers.add(KafkaHeaders.TIMESTAMP, longToBytes(data.value().getStartSnapshotTimeNano() / 1000000));
     producer.send(data, null);
-    messageCount++;
-
     meterRegistry.counter("ngrmdf_messages",
       "destinationTopic", data.topic()
     ).increment();
-
-    if (System.currentTimeMillis() - iterationStartTime >= msBetweenPerformanceOutput) {
-      if (messageCount > 0) {
-        logger.info("We are producing {} messages pr second.", (messageCount / (msBetweenPerformanceOutput / 1000)));
-      }
-      messageCount = 0L;
-      iterationStartTime = System.currentTimeMillis();
-    }
   }
 
 

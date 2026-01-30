@@ -136,6 +136,13 @@ issues APPLY, switch(using APPLY), and STOP calls using curl.
 docker-compose --env-file ./dependson-services/.env -f ./dependson-services/compose-kafka.yml up -d
 ----
 
+Optional: KafkaBat UI (port 5555)
+The stack also includes the KafkaBat UI so you can inspect topics, partitions, consumer groups, and
+message flow while the simulator is running. This is useful for quick validation of sequencing and
+volume without installing local Kafka tooling.
+
+Open http://localhost:5555 after the compose stack is up.
+
 2) Build and run the simulator in remote-control mode:
 [source,bash]
 ----
