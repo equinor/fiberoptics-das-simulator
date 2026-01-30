@@ -7,3 +7,4 @@ node_modules
 maven-wrapper.jar
 MavenWrapperDownloader.java
 *.tgz
+.DS_Store
