@@ -133,7 +133,8 @@ public class StaticDataUnit implements GenericDasProducer {
     }
     long lagNanos = -deltaNanos;
     long dropNanos = _configuration.getTimeLagDropMillis() * Helpers.millisInNano;
-    if (pacingEnabled && dropNanos > 0 && lagNanos > dropNanos) {
+    boolean syntheticStartTimeConfigured = _configuration.getStartTimeEpochSecond() != 0;
+    if (pacingEnabled && !syntheticStartTimeConfigured && dropNanos > 0 && lagNanos > dropNanos) {
       logger.warn("Dropping package to catch up. Lag={} ms (target={}, now={})",
         lagNanos / Helpers.millisInNano, targetEpochNanos, wallClockEpochNanos);
       return PaceDecision.drop(deltaNanos, warnLag);
