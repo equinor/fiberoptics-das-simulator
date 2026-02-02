@@ -39,6 +39,19 @@ public class KafkaConfiguration {
   private Map<String, String> config = new HashMap<>();
   private String topic;
   private int partitions;
+  /**
+   * Max number of pending send tasks per Kafka partition in {@link KafkaRelay}.
+   * <p>
+   * This is an application-level backpressure safeguard. When the queue is full, producers will block (or time out)
+   * instead of allowing unbounded memory growth.
+   */
+  private int relayQueueCapacity = 100;
+
+  /**
+   * How long {@link KafkaRelay} should block waiting for space in the per-partition queue when full.
+   * A value {@code <= 0} blocks indefinitely.
+   */
+  private long relayEnqueueTimeoutMillis = 0;
   public Map<String, Object> kafkaProperties(String bootstrapServers, String schemaRegistry) {
 
     Map<String, Object> props = new HashMap<>();
@@ -73,5 +86,21 @@ public class KafkaConfiguration {
 
   public void setPartitions(int partitions) {
     this.partitions = partitions;
+  }
+
+  public int getRelayQueueCapacity() {
+    return relayQueueCapacity;
+  }
+
+  public void setRelayQueueCapacity(int relayQueueCapacity) {
+    this.relayQueueCapacity = relayQueueCapacity;
+  }
+
+  public long getRelayEnqueueTimeoutMillis() {
+    return relayEnqueueTimeoutMillis;
+  }
+
+  public void setRelayEnqueueTimeoutMillis(long relayEnqueueTimeoutMillis) {
+    this.relayEnqueueTimeoutMillis = relayEnqueueTimeoutMillis;
   }
 }

@@ -31,8 +31,12 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -116,14 +120,61 @@ public class KafkaRelay {
   }
 
   private ExecutorService executorForPartition(int partition) {
-    return partitionExecutors.computeIfAbsent(partition, key -> Executors.newSingleThreadExecutor(new ThreadFactory() {
-      @Override
-      public Thread newThread(Runnable r) {
-        Thread thread = new Thread(r, "kafka-partition-sender-" + key);
-        thread.setDaemon(true);
-        return thread;
+    return partitionExecutors.computeIfAbsent(partition, this::createPartitionExecutor);
+  }
+
+  private ExecutorService createPartitionExecutor(int partition) {
+    int queueCapacity = Math.max(1, _kafkaConf.getRelayQueueCapacity());
+    long enqueueTimeoutMillis = _kafkaConf.getRelayEnqueueTimeoutMillis();
+    BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(queueCapacity);
+
+    ThreadFactory threadFactory = r -> {
+      Thread thread = new Thread(r, "kafka-partition-sender-" + partition);
+      thread.setDaemon(true);
+      return thread;
+    };
+
+    RejectedExecutionHandler rejectionHandler = new BlockingEnqueuePolicy(shuttingDown, enqueueTimeoutMillis);
+    ThreadPoolExecutor executor = new ThreadPoolExecutor(
+      1,
+      1,
+      0L,
+      TimeUnit.MILLISECONDS,
+      queue,
+      threadFactory,
+      rejectionHandler
+    );
+    return executor;
+  }
+
+  private static final class BlockingEnqueuePolicy implements RejectedExecutionHandler {
+    private final AtomicBoolean shuttingDown;
+    private final long enqueueTimeoutMillis;
+
+    private BlockingEnqueuePolicy(AtomicBoolean shuttingDown, long enqueueTimeoutMillis) {
+      this.shuttingDown = shuttingDown;
+      this.enqueueTimeoutMillis = enqueueTimeoutMillis;
+    }
+
+    @Override
+    public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+      if (executor.isShutdown() || shuttingDown.get()) {
+        throw new RejectedExecutionException("Executor is shut down");
       }
-    }));
+      try {
+        if (enqueueTimeoutMillis <= 0) {
+          executor.getQueue().put(r);
+          return;
+        }
+        boolean accepted = executor.getQueue().offer(r, enqueueTimeoutMillis, TimeUnit.MILLISECONDS);
+        if (!accepted) {
+          throw new RejectedExecutionException("Timed out waiting for queue space (" + enqueueTimeoutMillis + "ms)");
+        }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new RejectedExecutionException("Interrupted while waiting for queue space", e);
+      }
+    }
   }
 
 }
