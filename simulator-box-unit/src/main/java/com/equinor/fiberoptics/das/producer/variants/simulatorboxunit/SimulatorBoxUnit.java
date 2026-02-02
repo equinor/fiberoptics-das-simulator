@@ -74,6 +74,9 @@ public class SimulatorBoxUnit implements GenericDasProducer {
   public Flux<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> produce() {
     RandomDataCache dataCache = new RandomDataCache(_configuration.getNumberOfPrePopulatedValues(), _configuration.getAmplitudesPrPackage(), _configuration.getPulseRate(), _configuration.getAmplitudeDataType());
     Duration delay = _configuration.isDisableThrottling() ? Duration.ZERO : Duration.ofNanos(_stepCalculator.nanosPrPackage());
+    if (_configuration.isDisableThrottling() && _configuration.isTimePacingEnabled()) {
+      logger.info("disableThrottling=true: pacing and drop-to-catch-up are disabled.");
+    }
     long take;
     if (_configuration.getNumberOfShots() != null && _configuration.getNumberOfShots() > 0) {
       take = _configuration.getNumberOfShots().intValue();
@@ -96,6 +99,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
       return Flux.create(sink -> {
         Scheduler.Worker worker = producerScheduler.createWorker();
         AtomicLong emitted = new AtomicLong(0);
+        AtomicBoolean startTimeAligned = new AtomicBoolean(false);
         Runnable[] loop = new Runnable[1];
         loop[0] = () -> {
           if (sink.isCancelled()) {
@@ -108,6 +112,10 @@ public class SimulatorBoxUnit implements GenericDasProducer {
             return;
           }
           long nowNanos = Helpers.currentEpochNanos();
+          if (!startTimeAligned.get() && _configuration.getStartTimeEpochSecond() == 0) {
+            _stepCalculator.resetCurrentEpochNanos(nowNanos);
+            startTimeAligned.set(true);
+          }
           PaceDecision decision = evaluatePacing(nowNanos);
           if (decision.delayNanos > 0) {
             worker.schedule(() -> emitAfterDelay(decision, emitted, takeFinal, sink, timingStats, dataCache, loop[0],
@@ -127,7 +135,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
     long deltaNanos = targetEpochNanos - wallClockEpochNanos;
     long warnNanos = _configuration.getTimeLagWarnMillis() * Helpers.millisInNano;
     boolean warnLag = deltaNanos < 0 && warnNanos > 0 && (-deltaNanos) > warnNanos;
-    boolean pacingEnabled = _configuration.isTimePacingEnabled();
+    boolean pacingEnabled = _configuration.isTimePacingEnabled() && !_configuration.isDisableThrottling();
     if (deltaNanos > 0) {
       return pacingEnabled
         ? PaceDecision.delay(deltaNanos, targetEpochNanos)

@@ -138,6 +138,19 @@ public class PackageStepCalculator {
   }
 
   /**
+   * Resets the internal time point to the given epoch nanos and resets the step counter.
+   * <p>
+   * Intended for cases where the start time is based on wall clock "now" but actual production begins later
+   * (startup lag). This aligns the first emitted package timestamp to when production effectively starts.
+   *
+   * @param startTimeEpochNanos the start time in nanoseconds since epoch
+   */
+  public void resetCurrentEpochNanos(long startTimeEpochNanos) {
+    _currentTimePointNanos = startTimeEpochNanos;
+    _currentStep = 0;
+  }
+
+  /**
    * Returns the current time point in milliseconds.
    *
    * @return the current time point in milliseconds

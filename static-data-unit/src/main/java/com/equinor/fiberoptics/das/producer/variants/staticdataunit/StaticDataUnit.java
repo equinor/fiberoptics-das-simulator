@@ -73,6 +73,9 @@ public class StaticDataUnit implements GenericDasProducer {
   @Override
   public Flux<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> produce() {
     Duration delay = _configuration.isDisableThrottling() ? Duration.ZERO : Duration.ofNanos(_stepCalculator.nanosPrPackage());
+    if (_configuration.isDisableThrottling() && _configuration.isTimePacingEnabled()) {
+      logger.info("disableThrottling=true: pacing and drop-to-catch-up are disabled.");
+    }
     long take;
     if (_configuration.getNumberOfShots() != null && _configuration.getNumberOfShots() > 0) {
       take = _configuration.getNumberOfShots();
@@ -94,6 +97,7 @@ public class StaticDataUnit implements GenericDasProducer {
       return Flux.create(sink -> {
         Scheduler.Worker worker = producerScheduler.createWorker();
         AtomicLong emitted = new AtomicLong(0);
+        AtomicBoolean startTimeAligned = new AtomicBoolean(false);
         Runnable[] loop = new Runnable[1];
         loop[0] = () -> {
           if (sink.isCancelled()) {
@@ -106,6 +110,10 @@ public class StaticDataUnit implements GenericDasProducer {
             return;
           }
           long nowNanos = Helpers.currentEpochNanos();
+          if (!startTimeAligned.get() && _configuration.getStartTimeEpochSecond() == 0) {
+            _stepCalculator.resetCurrentEpochNanos(nowNanos);
+            startTimeAligned.set(true);
+          }
           PaceDecision decision = evaluatePacing(nowNanos);
           if (decision.delayNanos > 0) {
             worker.schedule(() -> emitAfterDelay(decision, emitted, takeFinal, sink, timingStats, loop[0],
@@ -125,7 +133,7 @@ public class StaticDataUnit implements GenericDasProducer {
     long deltaNanos = targetEpochNanos - wallClockEpochNanos;
     long warnNanos = _configuration.getTimeLagWarnMillis() * Helpers.millisInNano;
     boolean warnLag = deltaNanos < 0 && warnNanos > 0 && (-deltaNanos) > warnNanos;
-    boolean pacingEnabled = _configuration.isTimePacingEnabled();
+    boolean pacingEnabled = _configuration.isTimePacingEnabled() && !_configuration.isDisableThrottling();
     if (deltaNanos > 0) {
       return pacingEnabled
         ? PaceDecision.delay(deltaNanos, targetEpochNanos)
