@@ -33,7 +33,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
@@ -151,9 +150,7 @@ public class RemoteControlService {
     optionalText(updatedProfileRoot, "AcquisitionId").ifPresent(lastAppliedAcquisitionId::set);
     optionalText(updatedProfileRoot, "acquisitionId").ifPresent(lastAppliedAcquisitionId::set);
 
-    KafkaProducer<DASMeasurementKey, DASMeasurement> kafkaProducer =
-      dasProducerFactory.createProducerFromAcquisitionJson(profileJsonWithNewIdentity);
-    kafkaSender.setProducer(kafkaProducer);
+    kafkaSender.setProducers(dasProducerFactory.createProducersFromAcquisitionJson(profileJsonWithNewIdentity));
 
     GenericDasProducer simulator = beanFactory.getBean(dasProducerConfiguration.getVariant(), GenericDasProducer.class);
     Disposable disposable = simulator.produce()

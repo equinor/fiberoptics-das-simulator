@@ -100,7 +100,7 @@ public class RemoteControlExampleAcquisitionAppliedTest {
     DasSimulatorProfileResolver profileResolver = new DasSimulatorProfileResolver(dasCfg, objectMapper);
     @SuppressWarnings("unchecked")
     KafkaProducer<DASMeasurementKey, DASMeasurement> kafkaProducer = mock(KafkaProducer.class);
-    when(dasProducerFactory.createProducerFromAcquisitionJson(anyString())).thenReturn(kafkaProducer);
+    when(dasProducerFactory.createProducersFromAcquisitionJson(anyString())).thenReturn(List.of(kafkaProducer));
 
     // Producer asserts that the in-memory config values were updated from the profile JSON.
     GenericDasProducer producer = () -> {
@@ -133,8 +133,8 @@ public class RemoteControlExampleAcquisitionAppliedTest {
 
     // Assert: the producer factory and sender are wired using the resolved profile JSON.
     ArgumentCaptor<String> acquisitionCaptor = ArgumentCaptor.forClass(String.class);
-    verify(dasProducerFactory, times(1)).createProducerFromAcquisitionJson(acquisitionCaptor.capture());
-    verify(kafkaSender).setProducer(eq(kafkaProducer));
+    verify(dasProducerFactory, times(1)).createProducersFromAcquisitionJson(acquisitionCaptor.capture());
+    verify(kafkaSender).setProducers(eq(List.of(kafkaProducer)));
 
     // Sanity checks that critical identifiers are populated from the profile.
     assertNotNull(simCfg.getBoxUUID());

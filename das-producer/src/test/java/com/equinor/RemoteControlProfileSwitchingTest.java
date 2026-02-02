@@ -39,6 +39,7 @@ import reactor.core.publisher.Flux;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.Optional;
 
@@ -134,7 +135,7 @@ public class RemoteControlProfileSwitchingTest {
     KafkaProducer<DASMeasurementKey, DASMeasurement> kafkaProducer = mock(KafkaProducer.class);
     AtomicReference<String> firstAcquisitionId = new AtomicReference<>();
     AtomicReference<String> secondAcquisitionId = new AtomicReference<>();
-    when(dasProducerFactory.createProducerFromAcquisitionJson(anyString())).thenAnswer(invocation -> {
+    when(dasProducerFactory.createProducersFromAcquisitionJson(anyString())).thenAnswer(invocation -> {
       String json = invocation.getArgument(0, String.class);
       String id = objectMapper.readTree(json).get("AcquisitionId").asText();
       if (firstAcquisitionId.get() == null) {
@@ -142,7 +143,7 @@ public class RemoteControlProfileSwitchingTest {
       } else {
         secondAcquisitionId.set(id);
       }
-      return kafkaProducer;
+      return List.of(kafkaProducer);
     });
 
     // Simulate a running producer (never completes) so APPLY must treat it as "active".
@@ -168,17 +169,17 @@ public class RemoteControlProfileSwitchingTest {
 
     // Act: first apply starts the producer based on profileId1.
     service.apply(request1);
-    verify(dasProducerFactory, times(1)).createProducerFromAcquisitionJson(anyString());
+    verify(dasProducerFactory, times(1)).createProducersFromAcquisitionJson(anyString());
     assertNotNull(firstAcquisitionId.get());
 
     // Act: apply the same profile again (with different ids) should not recreate producer.
     service.apply(request1DifferentId);
-    verify(dasProducerFactory, times(1)).createProducerFromAcquisitionJson(anyString());
+    verify(dasProducerFactory, times(1)).createProducersFromAcquisitionJson(anyString());
 
     // Act: switching profiles should attempt a stop; even if it fails, switching must continue.
     doThrow(new RuntimeException("stop endpoint missing")).when(dasProducerFactory).stopAcquisitionBestEffort(anyString());
     service.apply(request2);
-    verify(dasProducerFactory, times(2)).createProducerFromAcquisitionJson(anyString());
+    verify(dasProducerFactory, times(2)).createProducersFromAcquisitionJson(anyString());
     verify(dasProducerFactory).stopAcquisitionBestEffort(eq(firstAcquisitionId.get()));
     if (secondAcquisitionId.get() != null) {
       assertNotEquals(firstAcquisitionId.get(), secondAcquisitionId.get());
@@ -226,10 +227,10 @@ public class RemoteControlProfileSwitchingTest {
     @SuppressWarnings("unchecked")
     KafkaProducer<DASMeasurementKey, DASMeasurement> kafkaProducer = mock(KafkaProducer.class);
     AtomicReference<String> generatedAcquisitionId = new AtomicReference<>();
-    when(dasProducerFactory.createProducerFromAcquisitionJson(anyString())).thenAnswer(invocation -> {
+    when(dasProducerFactory.createProducersFromAcquisitionJson(anyString())).thenAnswer(invocation -> {
       String json = invocation.getArgument(0, String.class);
       generatedAcquisitionId.set(objectMapper.readTree(json).get("AcquisitionId").asText());
-      return kafkaProducer;
+      return List.of(kafkaProducer);
     });
 
     GenericDasProducer neverEndingProducer = () -> Flux.never();

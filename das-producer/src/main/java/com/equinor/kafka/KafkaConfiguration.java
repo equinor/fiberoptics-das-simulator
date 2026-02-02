@@ -40,6 +40,13 @@ public class KafkaConfiguration {
   private String topic;
   private int partitions;
   /**
+   * Number of KafkaProducer instances to use in this process.
+   * <p>
+   * Each producer has its own buffer and background IO, which can improve throughput in high-volume scenarios.
+   * Partitions are deterministically mapped to a producer to preserve per-partition ordering.
+   */
+  private int producerInstances = 2;
+  /**
    * Max number of pending send tasks per Kafka partition in {@link KafkaRelay}.
    * <p>
    * This is an application-level backpressure safeguard. When the queue is full, producers will block (or time out)
@@ -52,6 +59,11 @@ public class KafkaConfiguration {
    * A value {@code <= 0} blocks indefinitely.
    */
   private long relayEnqueueTimeoutMillis = 0;
+
+  /**
+   * Emit a warning log when enqueueing a send task blocks for longer than this threshold.
+   */
+  private long relayEnqueueWarnMillis = 1000;
   public Map<String, Object> kafkaProperties(String bootstrapServers, String schemaRegistry) {
 
     Map<String, Object> props = new HashMap<>();
@@ -88,6 +100,14 @@ public class KafkaConfiguration {
     this.partitions = partitions;
   }
 
+  public int getProducerInstances() {
+    return producerInstances;
+  }
+
+  public void setProducerInstances(int producerInstances) {
+    this.producerInstances = producerInstances;
+  }
+
   public int getRelayQueueCapacity() {
     return relayQueueCapacity;
   }
@@ -102,5 +122,13 @@ public class KafkaConfiguration {
 
   public void setRelayEnqueueTimeoutMillis(long relayEnqueueTimeoutMillis) {
     this.relayEnqueueTimeoutMillis = relayEnqueueTimeoutMillis;
+  }
+
+  public long getRelayEnqueueWarnMillis() {
+    return relayEnqueueWarnMillis;
+  }
+
+  public void setRelayEnqueueWarnMillis(long relayEnqueueWarnMillis) {
+    this.relayEnqueueWarnMillis = relayEnqueueWarnMillis;
   }
 }

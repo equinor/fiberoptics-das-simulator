@@ -75,7 +75,9 @@ public class KafkaRelay {
         partitionEntry.value.getStartSnapshotTimeNano() / millisInNano,
         partitionEntry.key, partitionEntry.value);
     try {
-      executorForPartition(currentPartition).execute(() -> {
+      ExecutorService executor = executorForPartition(currentPartition);
+      long enqueueStartNanos = System.nanoTime();
+      executor.execute(() -> {
         try {
           _kafkaSendChannel.send(data);
         } catch (InterruptException e) {
@@ -89,6 +91,7 @@ public class KafkaRelay {
           }
         }
       });
+      maybeWarnOnBlockedEnqueue(currentPartition, executor, enqueueStartNanos);
     } catch (RejectedExecutionException e) {
       if (!shuttingDown.get()) {
         logger.warn("Send rejected for partition {}: {}", currentPartition, e.getMessage());
@@ -145,6 +148,25 @@ public class KafkaRelay {
       rejectionHandler
     );
     return executor;
+  }
+
+  private void maybeWarnOnBlockedEnqueue(int partition, ExecutorService executor, long enqueueStartNanos) {
+    long warnMillis = _kafkaConf.getRelayEnqueueWarnMillis();
+    if (warnMillis <= 0) {
+      return;
+    }
+    long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - enqueueStartNanos);
+    if (elapsedMillis < warnMillis) {
+      return;
+    }
+    if (executor instanceof ThreadPoolExecutor tpe) {
+      int queueSize = tpe.getQueue().size();
+      int queueCapacity = queueSize + tpe.getQueue().remainingCapacity();
+      logger.warn("Backpressure: blocked {}ms enqueueing send to partition {} (queue {}/{}, activeThreads={})",
+        elapsedMillis, partition, queueSize, queueCapacity, tpe.getActiveCount());
+    } else {
+      logger.warn("Backpressure: blocked {}ms enqueueing send to partition {}", elapsedMillis, partition);
+    }
   }
 
   private static final class BlockingEnqueuePolicy implements RejectedExecutionHandler {

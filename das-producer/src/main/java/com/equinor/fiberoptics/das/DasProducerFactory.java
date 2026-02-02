@@ -22,12 +22,14 @@ package com.equinor.fiberoptics.das;
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
 import com.equinor.fiberoptics.das.producer.dto.AcquisitionStartDto;
 import com.equinor.kafka.KafkaConfiguration;
+import com.equinor.kafka.KafkaSender;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
 import jakarta.annotation.PreDestroy;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -36,6 +38,11 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -46,15 +53,18 @@ public class DasProducerFactory {
   private final HttpUtils _httpUtils;
   private final KafkaConfiguration _configuration;
   private final DasProducerConfiguration _dasProducerConfig;
+  private final KafkaSender kafkaSender;
 
   private final ApplicationContext _applicationContext;
   private final AtomicReference<String> lastAcquisitionId = new AtomicReference<>();
 
   DasProducerFactory(KafkaConfiguration kafkaConfig, HttpUtils http, DasProducerConfiguration dasProducerConfig,
+                     KafkaSender kafkaSender,
                      ApplicationContext applicationContext) {
     _configuration = kafkaConfig;
     _httpUtils = http;
     _dasProducerConfig = dasProducerConfig;
+    this.kafkaSender = kafkaSender;
     _applicationContext = applicationContext;
   }
 
@@ -71,11 +81,18 @@ public class DasProducerFactory {
     havingValue = "false",
     matchIfMissing = true)
   public KafkaProducer<DASMeasurementKey, DASMeasurement> producerFactory() {
-    return createProducerFromAcquisitionJsonInternal(null, true);
+    List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers =
+      createProducersFromAcquisitionJsonInternal(null, true);
+    kafkaSender.setProducers(producers);
+    return producers.get(0);
   }
 
   public KafkaProducer<DASMeasurementKey, DASMeasurement> createProducerFromAcquisitionJson(String acquisitionJson) {
     return createProducerFromAcquisitionJsonInternal(acquisitionJson, false);
+  }
+
+  public List<KafkaProducer<DASMeasurementKey, DASMeasurement>> createProducersFromAcquisitionJson(String acquisitionJson) {
+    return createProducersFromAcquisitionJsonInternal(acquisitionJson, false);
   }
 
   public String getLastAcquisitionId() {
@@ -94,6 +111,14 @@ public class DasProducerFactory {
   }
 
   private KafkaProducer<DASMeasurementKey, DASMeasurement> createProducerFromAcquisitionJsonInternal(
+    String acquisitionJson,
+    boolean exitOnInvalidPartitions) {
+    List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers =
+      createProducersFromAcquisitionJsonInternal(acquisitionJson, exitOnInvalidPartitions);
+    return producers.get(0);
+  }
+
+  private List<KafkaProducer<DASMeasurementKey, DASMeasurement>> createProducersFromAcquisitionJsonInternal(
     String acquisitionJson,
     boolean exitOnInvalidPartitions) {
     String effectiveAcquisitionJson = acquisitionJson;
@@ -152,9 +177,32 @@ public class DasProducerFactory {
     } else {
       actualBootstrapServeras = acquisition.getBootstrapServers();
     }
-
-    return new KafkaProducer<>(_configuration.kafkaProperties(actualBootstrapServeras,
-      actualSchemaRegistryServers));
+    Map<String, Object> baseProps = _configuration.kafkaProperties(actualBootstrapServeras, actualSchemaRegistryServers);
+    int configuredInstances = Math.max(1, _configuration.getProducerInstances());
+    int partitionsInAssignment = 0;
+    try {
+      partitionsInAssignment = new HashSet<>(acquisition.getPartitionAssignments().values()).size();
+    } catch (Exception ignored) {
+      // best-effort
+    }
+    int effectivePartitionCount = Math.max(1, partitionsInAssignment);
+    int instances = Math.min(configuredInstances, effectivePartitionCount);
+    if (instances < configuredInstances) {
+      logger.info("Reducing Kafka producer instances from {} to {} (partition assignments cover {} partitions).",
+        configuredInstances, instances, effectivePartitionCount);
+    }
+    List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers = new ArrayList<>(instances);
+    for (int i = 0; i < instances; i++) {
+      Map<String, Object> props = baseProps;
+      if (instances > 1) {
+        props = new HashMap<>(baseProps);
+        Object clientId = props.get(ProducerConfig.CLIENT_ID_CONFIG);
+        String baseClientId = clientId == null ? "das-simulator" : String.valueOf(clientId);
+        props.put(ProducerConfig.CLIENT_ID_CONFIG, baseClientId + "-" + i);
+      }
+      producers.add(new KafkaProducer<>(props));
+    }
+    return List.copyOf(producers);
   }
 
   private AcquisitionStartDto startAcquisitionWithPreflight(String acquisitionJson) {

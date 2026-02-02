@@ -278,6 +278,8 @@ public class StaticDataUnit implements GenericDasProducer {
     double packagesPerSecond = summary.totalPackages / (double) intervalSeconds;
     String avgDeltaDir = avgDeltaMs < 0 ? "behind" : "ahead";
     String lastDeltaDir = lastDeltaMs < 0 ? "behind" : "ahead";
+    boolean pacingConfigured = _configuration.isTimePacingEnabled();
+    boolean pacingEffective = pacingConfigured && !_configuration.isDisableThrottling();
     String message = new StringBuilder(256)
       .append("Timing summary (last ").append(intervalSeconds).append("s)\n")
       .append("  Fiber shots: ").append(summary.totalPackages)
@@ -292,7 +294,9 @@ public class StaticDataUnit implements GenericDasProducer {
       .append("  Leading fiber shots: ").append(summary.leadCount)
       .append(" (avg ").append(String.format("%.1f", avgLeadMs)).append(" ms, max ")
       .append(summary.maxLeadNanos / Helpers.millisInNano).append(" ms)\n")
-      .append("  Pacing: ").append(_configuration.isTimePacingEnabled())
+      .append("  Pacing: configured=").append(pacingConfigured)
+      .append(", effective=").append(pacingEffective)
+      .append(" (disableThrottling=").append(_configuration.isDisableThrottling()).append(")")
       .append(" (sleeps ").append(summary.sleepCount).append(", avg ")
       .append(String.format("%.1f", avgSleepMs)).append(" ms")
       .append(", pre-sleep lead avg ").append(String.format("%.1f", avgPreSleepLeadMs)).append(" ms)\n")

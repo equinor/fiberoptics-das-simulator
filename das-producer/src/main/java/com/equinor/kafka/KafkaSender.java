@@ -27,37 +27,42 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Headers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.stereotype.Component;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Component
 public class KafkaSender {
 
-  private final AtomicReference<KafkaProducer<DASMeasurementKey, DASMeasurement>> producerRef = new AtomicReference<>();
+  private final AtomicReference<List<KafkaProducer<DASMeasurementKey, DASMeasurement>>> producersRef = new AtomicReference<>();
   private final MeterRegistry meterRegistry;
 
   public boolean isRunning = true;
 
   private static final Logger logger = LoggerFactory.getLogger(KafkaSender.class);
 
-  public KafkaSender(MeterRegistry meterRegistry, ObjectProvider<KafkaProducer<DASMeasurementKey, DASMeasurement>> producerProvider) {
+  public KafkaSender(MeterRegistry meterRegistry) {
     this.meterRegistry = meterRegistry;
-    KafkaProducer<DASMeasurementKey, DASMeasurement> producer = producerProvider.getIfAvailable();
-    if (producer != null) {
-      producerRef.set(producer);
-    }
   }
 
   public void setProducer(KafkaProducer<DASMeasurementKey, DASMeasurement> producer) {
     if (producer == null) {
       return;
     }
-    producerRef.set(producer);
+    setProducers(List.of(producer));
+  }
+
+  public void setProducers(List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers) {
+    if (producers == null || producers.isEmpty() || producers.stream().anyMatch(Objects::isNull)) {
+      return;
+    }
+    List<KafkaProducer<DASMeasurementKey, DASMeasurement>> previous = producersRef.getAndSet(List.copyOf(producers));
+    closeProducers(previous);
     isRunning = true;
   }
 
@@ -66,10 +71,11 @@ public class KafkaSender {
       // logger.info("Producer not running");
       return;
     }
-    KafkaProducer<DASMeasurementKey, DASMeasurement> producer = producerRef.get();
-    if (producer == null) {
+    List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers = producersRef.get();
+    if (producers == null || producers.isEmpty()) {
       return;
     }
+    KafkaProducer<DASMeasurementKey, DASMeasurement> producer = producerForPartition(producers, data.partition());
 
     Headers headers = data.headers();
     headers.add(KafkaHeaders.TIMESTAMP, longToBytes(data.value().getStartSnapshotTimeNano() / 1000000));
@@ -88,21 +94,40 @@ public class KafkaSender {
 
 
   public void close() {
-    KafkaProducer<DASMeasurementKey, DASMeasurement> producer = producerRef.getAndSet(null);
-    try {
-      if (producer != null) {
-        producer.flush();
-      }
-    } catch (Exception e) {
-      logger.warn("Exception flushing producer: {}", e.getMessage());
-    }
-    try {
-      if (producer != null) {
-        producer.close(Duration.ofMillis(1000));
-      }
-    } catch (Exception e) {
-      logger.warn("Exception closing producer: {}", e.getMessage());
-    }
+    List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers = producersRef.getAndSet(null);
+    closeProducers(producers);
     isRunning = false;
+  }
+
+  private KafkaProducer<DASMeasurementKey, DASMeasurement> producerForPartition(
+    List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers,
+    Integer partition) {
+    if (producers.size() == 1) {
+      return producers.get(0);
+    }
+    int p = partition == null ? 0 : partition;
+    int idx = Math.floorMod(p, producers.size());
+    return producers.get(idx);
+  }
+
+  private void closeProducers(List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers) {
+    if (producers == null || producers.isEmpty()) {
+      return;
+    }
+    for (KafkaProducer<DASMeasurementKey, DASMeasurement> producer : producers) {
+      if (producer == null) {
+        continue;
+      }
+      try {
+        producer.flush();
+      } catch (Exception e) {
+        logger.warn("Exception flushing producer: {}", e.getMessage());
+      }
+      try {
+        producer.close(Duration.ofMillis(1000));
+      } catch (Exception e) {
+        logger.warn("Exception closing producer: {}", e.getMessage());
+      }
+    }
   }
 }

@@ -77,6 +77,10 @@ das:
         timeLagWarnMillis: ${TIME_LAG_WARN_MS:500}
         timeLagDropMillis: ${TIME_LAG_DROP_MS:2000}
     kafka:
+      producerInstances: ${DAS_PRODUCER_KAFKA_PRODUCER_INSTANCES:2}
+      relayQueueCapacity: ${DAS_PRODUCER_KAFKA_RELAY_QUEUE_CAPACITY:100}
+      relayEnqueueTimeoutMillis: ${DAS_PRODUCER_KAFKA_RELAY_ENQUEUE_TIMEOUT_MILLIS:0}
+      relayEnqueueWarnMillis: ${DAS_PRODUCER_KAFKA_RELAY_ENQUEUE_WARN_MILLIS:1000}
       config:
         client.id: ${DAS_PRODUCER_KAFKA_CONFIG_CLIENT_ID:Simulator}
         acks: ${DAS_PRODUCER_KAFKA_CONFIG_ACKS:1}
