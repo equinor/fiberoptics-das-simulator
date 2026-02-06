@@ -17,16 +17,16 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
+
 package com.equinor.fiberoptics.das.producer.variants;
 
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
+import java.util.List;
 import reactor.core.publisher.Flux;
 
-import java.util.List;
-
 /**
- * Minimal
+ * Minimal producer contract for simulated DAS data.
  */
 public interface GenericDasProducer {
   Flux<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> produce();

@@ -17,17 +17,20 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
+
 package com.equinor.fiberoptics.das.producer.variants;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.math.BigDecimal;
-import java.time.Instant;
 
 import static com.equinor.fiberoptics.das.producer.variants.util.Helpers.millisInNano;
 import static com.equinor.fiberoptics.das.producer.variants.util.Helpers.nanosInSecond;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Calculates per-package timing and step information for simulated data.
+ */
 public class PackageStepCalculator {
 
   private static final Logger _logger = LoggerFactory.getLogger(PackageStepCalculator.class);
@@ -47,9 +50,16 @@ public class PackageStepCalculator {
    * @param amplitudesPrPackage  the number of amplitudes per package
    * @param loci                 the number of loci
    */
-  public PackageStepCalculator(long startTimeEpochNano, float maximumFrequency, int amplitudesPrPackage, int loci) {
-    if (amplitudesPrPackage <= 0 || (amplitudesPrPackage & (amplitudesPrPackage - 1)) != 0) {
-      throw new IllegalArgumentException("The number: " + amplitudesPrPackage + " is not a power of 2.");
+  public PackageStepCalculator(
+      long startTimeEpochNano,
+      float maximumFrequency,
+      int amplitudesPrPackage,
+      int loci) {
+    if (amplitudesPrPackage <= 0
+        || (amplitudesPrPackage & (amplitudesPrPackage - 1)) != 0) {
+      throw new IllegalArgumentException(
+          "The number: " + amplitudesPrPackage + " is not a power of 2."
+      );
     }
 
     _nanosPrPackage = (long) (nanosInSecond / ((maximumFrequency * 2) / amplitudesPrPackage));
@@ -59,8 +69,14 @@ public class PackageStepCalculator {
     _loci = loci;
     _currentStep = 0;
 
-    _logger.info("Package step calculator initialized for start: {}, maximumFrequency, {}, amplitudesPrPackage:{}, loci: {}",
-      Instant.ofEpochMilli(startTimeEpochNano / 1_000_000), maximumFrequency, amplitudesPrPackage, loci);
+    _logger.info(
+        "Package step calculator initialized for start: {}, maximumFrequency: {}, "
+            + "amplitudesPrPackage: {}, loci: {}",
+        Instant.ofEpochMilli(startTimeEpochNano / 1_000_000),
+        maximumFrequency,
+        amplitudesPrPackage,
+        loci
+    );
   }
 
   /**
@@ -71,7 +87,11 @@ public class PackageStepCalculator {
    * @param amplitudesPrPackage  the number of amplitudes per package
    * @param loci                 the number of loci
    */
-  public PackageStepCalculator(Instant startTime, float maximumFrequency, int amplitudesPrPackage, int loci) {
+  public PackageStepCalculator(
+      Instant startTime,
+      float maximumFrequency,
+      int amplitudesPrPackage,
+      int loci) {
     this(startTime.toEpochMilli() * millisInNano, maximumFrequency, amplitudesPrPackage, loci);
   }
 
@@ -118,12 +138,18 @@ public class PackageStepCalculator {
    */
   public void increment(int times) {
     if (_logger.isDebugEnabled()) {
-      _logger.debug("Update timepoint: {}", Instant.ofEpochMilli(_currentTimePointNanos / millisInNano));
+      _logger.debug(
+          "Update timepoint: {}",
+          Instant.ofEpochMilli(_currentTimePointNanos / millisInNano)
+      );
     }
     _currentTimePointNanos += (_nanosPrPackage * times);
     _currentStep += times;
     if (_logger.isDebugEnabled()) {
-      _logger.debug("New timepoint: {}", Instant.ofEpochMilli(_currentTimePointNanos / millisInNano));
+      _logger.debug(
+          "New timepoint: {}",
+          Instant.ofEpochMilli(_currentTimePointNanos / millisInNano)
+      );
     }
   }
 
@@ -139,9 +165,10 @@ public class PackageStepCalculator {
 
   /**
    * Resets the internal time point to the given epoch nanos and resets the step counter.
-   * <p>
-   * Intended for cases where the start time is based on wall clock "now" but actual production begins later
-   * (startup lag). This aligns the first emitted package timestamp to when production effectively starts.
+   *
+   * <p>Intended for cases where the start time is based on wall clock "now" but actual production
+   * begins later (startup lag). This aligns the first emitted package timestamp to when production
+   * effectively starts.
    *
    * @param startTimeEpochNanos the start time in nanoseconds since epoch
    */

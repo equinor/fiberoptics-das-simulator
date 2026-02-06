@@ -36,22 +36,30 @@ import org.slf4j.LoggerFactory;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.stereotype.Component;
 
+/**
+ * Sends measurements to Kafka using a managed producer set.
+ */
 @Component
 public class KafkaSender {
 
-  private final AtomicReference<
-      List<KafkaProducer<DASMeasurementKey, DASMeasurement>>> _producersRef =
-        new AtomicReference<>();
+  private final AtomicReference<List<KafkaProducer<DASMeasurementKey, DASMeasurement>>>
+      _producersRef = new AtomicReference<>();
   private final MeterRegistry _meterRegistry;
 
   public boolean isRunning = true;
 
   private static final Logger _logger = LoggerFactory.getLogger(KafkaSender.class);
 
+  /**
+   * Creates a sender that reports metrics to the provided registry.
+   */
   public KafkaSender(MeterRegistry meterRegistry) {
     _meterRegistry = meterRegistry;
   }
 
+  /**
+   * Sets a single producer.
+   */
   public void setProducer(KafkaProducer<DASMeasurementKey, DASMeasurement> producer) {
     if (producer == null) {
       return;
@@ -59,17 +67,23 @@ public class KafkaSender {
     setProducers(List.of(producer));
   }
 
+  /**
+   * Replaces the current producer set.
+   */
   public void setProducers(List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers) {
     if (producers == null || producers.isEmpty()
         || producers.stream().anyMatch(Objects::isNull)) {
       return;
     }
     List<KafkaProducer<DASMeasurementKey, DASMeasurement>> previous =
-      _producersRef.getAndSet(List.copyOf(producers));
+        _producersRef.getAndSet(List.copyOf(producers));
     closeProducers(previous);
     isRunning = true;
   }
 
+  /**
+   * Sends a record to Kafka.
+   */
   public void send(ProducerRecord<DASMeasurementKey, DASMeasurement> data) {
     if (!isRunning) {
       // logger.info("Producer not running");
@@ -85,14 +99,15 @@ public class KafkaSender {
     Headers headers = data.headers();
     headers.add(
         KafkaHeaders.TIMESTAMP,
-        longToBytes(data.value().getStartSnapshotTimeNano() / 1000000)
+        longToBytes(data.value().getStartSnapshotTimeNano() / 1_000_000)
     );
     producer.send(data, null);
-    _meterRegistry.counter("ngrmdf_messages",
-      "destinationTopic", data.topic()
+    _meterRegistry.counter(
+        "ngrmdf_messages",
+        "destinationTopic",
+        data.topic()
     ).increment();
   }
-
 
   private byte[] longToBytes(long x) {
     ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
@@ -100,9 +115,12 @@ public class KafkaSender {
     return buffer.array();
   }
 
-
+  /**
+   * Closes all producers.
+   */
   public void close() {
-    List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers = _producersRef.getAndSet(null);
+    List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers =
+        _producersRef.getAndSet(null);
     closeProducers(producers);
     isRunning = false;
   }

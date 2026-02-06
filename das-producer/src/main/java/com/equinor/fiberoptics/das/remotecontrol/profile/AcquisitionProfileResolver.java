@@ -23,10 +23,12 @@ package com.equinor.fiberoptics.das.remotecontrol.profile;
 import com.fasterxml.jackson.databind.JsonNode;
 
 /**
- * Resolves an acquisition profile based on the incoming request's {@code Custom} object.
+ * Resolves acquisition profiles from incoming request metadata.
  */
 public interface AcquisitionProfileResolver {
   /**
+   * Resolves a profile JSON payload for an acquisition request.
+   *
    * @param customNode The {@code Custom} part of an incoming APPLY request.
    * @return A full DASAcquisition JSON payload to use for starting the acquisition.
    */

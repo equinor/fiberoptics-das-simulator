@@ -31,6 +31,9 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST endpoints for remote-control acquisition actions.
+ */
 @RestController
 @RequestMapping(path = "/api/acquisition")
 @ConditionalOnProperty(
@@ -43,6 +46,9 @@ public class RemoteControlController {
   private final RemoteControlService _remoteControlService;
   private final DasProducerConfiguration _dasProducerConfiguration;
 
+  /**
+   * Creates a controller for remote-control endpoints.
+   */
   public RemoteControlController(
       RemoteControlService remoteControlService,
       DasProducerConfiguration dasProducerConfiguration) {
@@ -51,6 +57,9 @@ public class RemoteControlController {
     ensureApiKeyConfigured();
   }
 
+  /**
+   * Applies a new acquisition profile.
+   */
   @PostMapping(path = "/apply", consumes = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<?> apply(
       @RequestHeader(value = "X-Api-Key", required = false) String apiKey,
@@ -60,6 +69,9 @@ public class RemoteControlController {
     return ResponseEntity.ok().build();
   }
 
+  /**
+   * Stops the active acquisition.
+   */
   @PostMapping(path = "/stop", consumes = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<?> stop(
       @RequestHeader(value = "X-Api-Key", required = false) String apiKey,

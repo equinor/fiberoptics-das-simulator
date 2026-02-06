@@ -17,10 +17,14 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
+
 package com.equinor.fiberoptics.das.producer.variants.util;
 
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * Collects timing statistics for simulated packages.
+ */
 public class TimingStats {
 
   private final AtomicLong _totalPackages = new AtomicLong();
@@ -39,11 +43,22 @@ public class TimingStats {
   private final AtomicLong _dropCount = new AtomicLong();
   private final AtomicLong _warnLagCount = new AtomicLong();
 
+  /**
+   * Records timing stats without a pre-sleep lead value.
+   */
   public void record(long deltaNanos, long sleptNanos, boolean dropped, boolean warnLag) {
     record(deltaNanos, sleptNanos, dropped, warnLag, 0);
   }
 
-  public void record(long deltaNanos, long sleptNanos, boolean dropped, boolean warnLag, long preSleepLeadNanos) {
+  /**
+   * Records timing stats for a single package.
+   */
+  public void record(
+      long deltaNanos,
+      long sleptNanos,
+      boolean dropped,
+      boolean warnLag,
+      long preSleepLeadNanos) {
     _totalPackages.incrementAndGet();
     _totalDeltaNanos.addAndGet(deltaNanos);
     _lastDeltaNanos.set(deltaNanos);
@@ -73,6 +88,9 @@ public class TimingStats {
     }
   }
 
+  /**
+   * Returns a summary snapshot and resets internal counters.
+   */
   public Summary snapshotAndReset() {
     Summary summary = new Summary();
     summary.totalPackages = _totalPackages.getAndSet(0);
@@ -103,6 +121,9 @@ public class TimingStats {
     } while (!max.compareAndSet(current, candidate));
   }
 
+  /**
+   * Summary counters for a snapshot interval.
+   */
   public static class Summary {
     public long totalPackages;
     public long lagCount;

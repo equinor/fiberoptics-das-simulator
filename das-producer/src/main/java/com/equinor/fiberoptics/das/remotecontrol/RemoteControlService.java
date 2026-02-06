@@ -49,6 +49,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import reactor.core.Disposable;
 
+/**
+ * Applies and stops remote-controlled acquisitions.
+ */
 @Service
 public class RemoteControlService {
 
@@ -67,6 +70,9 @@ public class RemoteControlService {
   private final AtomicReference<String> _currentConfigHash = new AtomicReference<>();
   private final AtomicReference<String> _lastAppliedAcquisitionId = new AtomicReference<>();
 
+  /**
+   * Creates the remote-control service with required dependencies.
+   */
   public RemoteControlService(
       BeanFactory beanFactory,
       DasProducerConfiguration dasProducerConfiguration,
@@ -86,12 +92,18 @@ public class RemoteControlService {
     _acquisitionProfileResolver = acquisitionProfileResolver;
   }
 
+  /**
+   * Result of a stop request.
+   */
   public enum StopResult {
     STOPPED,
     ALREADY_STOPPED,
     NOT_FOUND
   }
 
+  /**
+   * Applies an acquisition configuration from JSON.
+   */
   public synchronized void apply(String acquisitionJson) {
     if (acquisitionJson == null || acquisitionJson.isBlank()) {
       throw new BadRequestException(
@@ -162,11 +174,11 @@ public class RemoteControlService {
     optionalText(updatedProfileRoot, "acquisitionId").ifPresent(_lastAppliedAcquisitionId::set);
 
     _kafkaSender.setProducers(
-      _dasProducerFactory.createProducersFromAcquisitionJson(profileJsonWithNewIdentity)
+        _dasProducerFactory.createProducersFromAcquisitionJson(profileJsonWithNewIdentity)
     );
 
     GenericDasProducer simulator = _beanFactory.getBean(
-      _dasProducerConfiguration.getVariant(),
+        _dasProducerConfiguration.getVariant(),
         GenericDasProducer.class
     );
     Disposable disposable = simulator.produce()
@@ -192,6 +204,9 @@ public class RemoteControlService {
     _logger.info("APPLY accepted. Producer started.");
   }
 
+  /**
+   * Stops the current acquisition, optionally matching the requested id.
+   */
   public synchronized StopResult stop(Optional<String> acquisitionJson) {
     Optional<String> requestedAcquisitionId = acquisitionJson
         .flatMap(json -> extractStringField(json, "AcquisitionId", "acquisitionId"));
@@ -397,8 +412,8 @@ public class RemoteControlService {
         objectNode.remove("measurementStartTime");
       }
       byte[] canonical = _objectMapper.writer()
-        .with(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
-        .writeValueAsBytes(copy);
+          .with(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
+          .writeValueAsBytes(copy);
       return sha256Bytes(canonical);
     } catch (Exception e) {
       return sha256(root.toString());
@@ -419,6 +434,9 @@ public class RemoteControlService {
     }
   }
 
+  /**
+   * Thrown when a request payload is invalid.
+   */
   @ResponseStatus(HttpStatus.BAD_REQUEST)
   public static class BadRequestException extends RuntimeException {
     public BadRequestException(String message) {
@@ -426,6 +444,9 @@ public class RemoteControlService {
     }
   }
 
+  /**
+   * Thrown when remote-control credentials are invalid.
+   */
   @ResponseStatus(HttpStatus.UNAUTHORIZED)
   public static class UnauthorizedException extends RuntimeException {
   }

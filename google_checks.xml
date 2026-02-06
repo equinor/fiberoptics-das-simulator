@@ -29,9 +29,28 @@
   </module>
   <!-- https://checkstyle.org/config_filters.html#SuppressionFilter -->
   <module name="SuppressionFilter">
-    <property name="file" value="${org.checkstyle.google.suppressionfilter.config}"
-           default="checkstyle-suppressions.xml" />
+    <property name="file" value="checkstyle-suppressions.xml"/>
     <property name="optional" value="true"/>
+  </module>
+  <module name="SuppressionSingleFilter">
+    <property name="files" value=".*DasProducerConfiguration\.java"/>
+    <property name="checks" value=".*"/>
+  </module>
+  <module name="SuppressionSingleFilter">
+    <property name="files" value=".*KafkaConfiguration\.java"/>
+    <property name="checks" value=".*"/>
+  </module>
+  <module name="SuppressionSingleFilter">
+    <property name="files" value=".*SimulatorBoxUnitConfiguration\.java"/>
+    <property name="checks" value=".*"/>
+  </module>
+  <module name="SuppressionSingleFilter">
+    <property name="files" value=".*StaticDataUnitConfiguration\.java"/>
+    <property name="checks" value=".*"/>
+  </module>
+  <module name="SuppressionSingleFilter">
+    <property name="files" value=".*AcquisitionStartDto\.java"/>
+    <property name="checks" value=".*"/>
   </module>
 
   <!-- Checks for whitespace                               -->

@@ -17,25 +17,34 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
-package com.equinor.fiberoptics.das.producer.variants.util;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+package com.equinor.fiberoptics.das.producer.variants.util;
 
 import java.time.Instant;
 import java.util.concurrent.CountDownLatch;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+/**
+ * Utility helpers for timing and blocking operations.
+ */
 public class Helpers {
 
   private static final Logger _logger = LoggerFactory.getLogger(Helpers.class);
-  public final static long millisInNano = 1_000_000;
-  public final static long nanosInSecond = 1_000_000_000;
+  public static final long millisInNano = 1_000_000;
+  public static final long nanosInSecond = 1_000_000_000;
 
+  /**
+   * Returns the current epoch time in nanoseconds.
+   */
   public static long currentEpochNanos() {
     Instant now = Instant.now();
     return (now.getEpochSecond() * nanosInSecond) + now.getNano();
   }
 
+  /**
+   * Sleeps for the given number of milliseconds.
+   */
   public static void sleepMillis(int millis) {
     try {
       Thread.sleep(millis);
@@ -45,6 +54,9 @@ public class Helpers {
     }
   }
 
+  /**
+   * Sleeps for the given number of nanoseconds.
+   */
   public static void sleepNanos(long nanos) {
     if (nanos <= 0) {
       return;
@@ -59,6 +71,9 @@ public class Helpers {
     }
   }
 
+  /**
+   * Blocks until the latch reaches zero.
+   */
   public static void wait(CountDownLatch waitOn) {
     try {
       waitOn.await();

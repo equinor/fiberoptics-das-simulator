@@ -44,6 +44,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+/**
+ * Relays produced measurements to Kafka with partition ordering.
+ */
 @Component
 public class KafkaRelay {
 
@@ -64,6 +67,9 @@ public class KafkaRelay {
     _dasProducerConfig = dasProducerConfiguration;
   }
 
+  /**
+   * Enqueues a measurement for Kafka delivery.
+   */
   public void relayToKafka(
       PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> partitionEntry
   ) {
@@ -122,6 +128,9 @@ public class KafkaRelay {
     );
   }
 
+  /**
+   * Shuts down partition executors and closes the sender.
+   */
   public void teardown() {
     _logger.info("Send complete. Shutting down thread now");
     _shuttingDown.set(true);
@@ -159,7 +168,7 @@ public class KafkaRelay {
     };
 
     RejectedExecutionHandler rejectionHandler = new BlockingEnqueuePolicy(
-      _shuttingDown,
+        _shuttingDown,
         enqueueTimeoutMillis
     );
     ThreadPoolExecutor executor = new ThreadPoolExecutor(

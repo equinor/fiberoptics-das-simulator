@@ -17,14 +17,21 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
+
 package com.equinor.fiberoptics.das.producer.variants;
 
+/**
+ * Container for a Kafka partition with key and value payloads.
+ */
 public class PartitionKeyValueEntry<K, V> {
 
   public final K key;
   public final V value;
   public final Integer partition;
 
+  /**
+   * Creates a new entry.
+   */
   public PartitionKeyValueEntry(K key, V value, Integer partition) {
     this.key = key;
     this.value = value;

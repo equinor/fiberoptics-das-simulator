@@ -68,6 +68,9 @@ public class DasProducerApplication {
   private final DasProducerFactory _dasProducerFactory;
   private final AtomicBoolean _shutdownHookRegistered = new AtomicBoolean(false);
 
+  /**
+   * Creates the application with required dependencies.
+   */
   @Autowired
   public DasProducerApplication(
       BeanFactory beanFactory,
@@ -80,17 +83,23 @@ public class DasProducerApplication {
     _dasProducerFactory = dasProducerFactory;
   }
 
+  /**
+   * Application entry point.
+   */
   public static void main(final String[] args) {
     SpringApplication.run(DasProducerApplication.class, args);
   }
 
+  /**
+   * Starts the producer once the application is ready.
+   */
   @EventListener
   public void onApplicationEvent(ApplicationReadyEvent event) {
     _logger.info("ApplicationReadyEvent");
 
     if (_dasProducerConfig.getRemoteControl() != null
         && _dasProducerConfig.getRemoteControl().isEnabled()) {
-        _logger.info(
+      _logger.info(
           "Remote-control mode enabled. Waiting for POST /api/acquisition/apply to start producing."
       );
       return;

@@ -29,6 +29,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import org.springframework.stereotype.Component;
 
+/**
+ * Resolves DAS simulator profiles from the configured profiles directory.
+ */
 @Component
 public class DasSimulatorProfileResolver implements AcquisitionProfileResolver {
 

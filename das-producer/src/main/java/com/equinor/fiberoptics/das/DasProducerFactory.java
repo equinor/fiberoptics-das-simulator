@@ -48,6 +48,9 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
+/**
+ * Factory for creating Kafka producers based on acquisition payloads.
+ */
 @Component
 public class DasProducerFactory {
   private static final Logger _logger = LoggerFactory.getLogger(DasProducerFactory.class);
@@ -73,12 +76,18 @@ public class DasProducerFactory {
     _applicationContext = applicationContext;
   }
 
+  /**
+   * Logs shutdown when the Spring context is destroyed.
+   */
   @PreDestroy
   public void onDestroy() throws Exception {
     _logger.info("Spring Container is destroyed!");
     Thread.sleep(1000);
   }
 
+  /**
+   * Provides a producer bean for non-remote control mode.
+   */
   @Bean
   @ConditionalOnProperty(
       prefix = "das.producer.remote-control",
@@ -92,22 +101,34 @@ public class DasProducerFactory {
     return producers.get(0);
   }
 
+  /**
+   * Creates a single producer from an acquisition JSON payload.
+   */
   public KafkaProducer<DASMeasurementKey, DASMeasurement> createProducerFromAcquisitionJson(
       String acquisitionJson
   ) {
     return createProducerFromAcquisitionJsonInternal(acquisitionJson, false);
   }
 
+  /**
+   * Creates producer instances from an acquisition JSON payload.
+   */
   public List<KafkaProducer<DASMeasurementKey, DASMeasurement>> createProducersFromAcquisitionJson(
       String acquisitionJson
   ) {
     return createProducersFromAcquisitionJsonInternal(acquisitionJson, false);
   }
 
+  /**
+   * Returns the last acquisition id observed during preflight.
+   */
   public String getLastAcquisitionId() {
     return _lastAcquisitionId.get();
   }
 
+  /**
+   * Attempts to stop the acquisition, ignoring best-effort failures.
+   */
   public void stopAcquisitionBestEffort(String acquisitionId) {
     if (acquisitionId == null || acquisitionId.isBlank()) {
       return;
@@ -115,7 +136,7 @@ public class DasProducerFactory {
     try {
       _httpUtils.stopAcquisition(acquisitionId);
     } catch (Exception e) {
-        _logger.warn(
+      _logger.warn(
           "Best-effort stop acquisition failed for {}: {}",
           acquisitionId,
           e.getMessage()
@@ -124,26 +145,26 @@ public class DasProducerFactory {
   }
 
   private KafkaProducer<DASMeasurementKey, DASMeasurement>
-        createProducerFromAcquisitionJsonInternal(
-      String acquisitionJson,
-      boolean exitOnInvalidPartitions) {
+      createProducerFromAcquisitionJsonInternal(
+          String acquisitionJson,
+          boolean exitOnInvalidPartitions) {
     List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers =
         createProducersFromAcquisitionJsonInternal(acquisitionJson, exitOnInvalidPartitions);
     return producers.get(0);
   }
 
   private List<KafkaProducer<DASMeasurementKey, DASMeasurement>>
-        createProducersFromAcquisitionJsonInternal(
-      String acquisitionJson,
-      boolean exitOnInvalidPartitions) {
+      createProducersFromAcquisitionJsonInternal(
+          String acquisitionJson,
+          boolean exitOnInvalidPartitions) {
     String effectiveAcquisitionJson = acquisitionJson;
     if (effectiveAcquisitionJson == null || effectiveAcquisitionJson.isBlank()) {
       HttpUtils.SchemaVersions version = HttpUtils.SchemaVersions.valueOf(
           _dasProducerConfig.getAcquisitionStartVersion()
       );
       effectiveAcquisitionJson = version == HttpUtils.SchemaVersions.V1
-        ? _httpUtils.asV1Json()
-        : _httpUtils.asV2Json();
+          ? _httpUtils.asV1Json()
+          : _httpUtils.asV2Json();
     }
     extractAcquisitionId(effectiveAcquisitionJson).ifPresent(_lastAcquisitionId::set);
 
@@ -166,9 +187,9 @@ public class DasProducerFactory {
         System.exit(exitValue);
       }
       throw new IllegalStateException(
-        "Unable to run when the destination topic has "
-          + acquisition.getNumberOfPartitions()
-          + " partitions."
+          "Unable to run when the destination topic has "
+              + acquisition.getNumberOfPartitions()
+              + " partitions."
       );
     }
 
@@ -176,7 +197,7 @@ public class DasProducerFactory {
     if (_dasProducerConfig.getOverrideSchemaRegistryWith() != null
         && !_dasProducerConfig.getOverrideSchemaRegistryWith().isBlank()) {
       actualSchemaRegistryServers = _dasProducerConfig.getOverrideSchemaRegistryWith();
-        _logger.info(
+      _logger.info(
           "Overriding incoming schema registry server {} with: {}",
           acquisition.getSchemaRegistryUrl(),
           actualSchemaRegistryServers
@@ -198,7 +219,7 @@ public class DasProducerFactory {
     if (_dasProducerConfig.getOverrideBootstrapServersWith() != null
         && !_dasProducerConfig.getOverrideBootstrapServersWith().isBlank()) {
       actualBootstrapServeras = _dasProducerConfig.getOverrideBootstrapServersWith();
-        _logger.info(
+      _logger.info(
           "Overriding incoming bootstrap server {} with: {}",
           acquisition.getBootstrapServers(),
           actualBootstrapServeras
@@ -220,7 +241,7 @@ public class DasProducerFactory {
     int effectivePartitionCount = Math.max(1, partitionsInAssignment);
     int instances = Math.min(configuredInstances, effectivePartitionCount);
     if (instances < configuredInstances) {
-        _logger.info(
+      _logger.info(
           "Reducing Kafka producer instances from {} to {} "
               + "(partition assignments cover {} partitions).",
           configuredInstances,
@@ -270,7 +291,7 @@ public class DasProducerFactory {
         return Optional.ofNullable(obj.get("acquisitionId")).map(e -> e.getAsString());
       }
     } catch (Exception e) {
-        _logger.warn(
+      _logger.warn(
           "Unable to extract AcquisitionId from acquisition JSON: {}",
           e.getMessage()
       );
@@ -294,7 +315,7 @@ public class DasProducerFactory {
                 + url
         );
       }
-      logger.info(
+      _logger.info(
           "Trying to reach {} at {} looking for a 200 OK.",
           environmentComponentName,
           url
@@ -302,7 +323,7 @@ public class DasProducerFactory {
       try {
         Thread.sleep(5000);
       } catch (InterruptedException e) {
-        logger.warn("Unable to sleep");
+        _logger.warn("Unable to sleep");
       }
     }
   }

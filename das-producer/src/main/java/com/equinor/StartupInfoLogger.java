@@ -40,6 +40,9 @@ import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
+/**
+ * Logs a startup summary of configuration and environment settings.
+ */
 @Component
 public class StartupInfoLogger {
 
@@ -48,10 +51,15 @@ public class StartupInfoLogger {
   private final Environment _environment;
   private final ObjectProvider<BuildProperties> _buildPropertiesProvider;
   private final DasProducerConfiguration _dasProducerConfiguration;
-  private final ObjectProvider<SimulatorBoxUnitConfiguration> _simulatorBoxUnitConfigurationProvider;
-  private final ObjectProvider<StaticDataUnitConfiguration> _staticDataUnitConfigurationProvider;
+  private final ObjectProvider<SimulatorBoxUnitConfiguration>
+      _simulatorBoxUnitConfigurationProvider;
+  private final ObjectProvider<StaticDataUnitConfiguration>
+      _staticDataUnitConfigurationProvider;
   private final ObjectProvider<KafkaConfiguration> _kafkaConfigurationProvider;
 
+  /**
+   * Creates a startup logger with configuration providers.
+   */
   public StartupInfoLogger(
       Environment environment,
       ObjectProvider<BuildProperties> buildPropertiesProvider,
@@ -68,6 +76,9 @@ public class StartupInfoLogger {
     _kafkaConfigurationProvider = kafkaConfigurationProvider;
   }
 
+  /**
+   * Emits the startup summary after the application is ready.
+   */
   @EventListener
   public void onApplicationReady(ApplicationReadyEvent ignored) {
     String message = buildStartupMessage();

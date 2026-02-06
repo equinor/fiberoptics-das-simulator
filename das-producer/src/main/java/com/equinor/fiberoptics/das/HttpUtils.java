@@ -40,6 +40,9 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+/**
+ * HTTP client helper for acquisition start/stop calls.
+ */
 @Service
 public class HttpUtils {
   private static final Logger _logger = LoggerFactory.getLogger(HttpUtils.class);
@@ -58,6 +61,9 @@ public class HttpUtils {
     _dasProducerConfig = dasProdConfig;
   }
 
+  /**
+   * Starts an acquisition using the configured schema version.
+   */
   public AcquisitionStartDto startAcquisition() {
     SchemaVersions version = SchemaVersions.valueOf(
         _dasProducerConfig.getAcquisitionStartVersion()
@@ -66,6 +72,9 @@ public class HttpUtils {
     return startAcquisition(json);
   }
 
+  /**
+   * Starts an acquisition using the provided JSON payload.
+   */
   public AcquisitionStartDto startAcquisition(String acquisitionJson) {
     SchemaVersions version = SchemaVersions.valueOf(
         _dasProducerConfig.getAcquisitionStartVersion()
@@ -74,13 +83,13 @@ public class HttpUtils {
         ? String.format(API_ENDPOINT, "api")
         : String.format(API_ENDPOINT, "api/v2");
 
-    RestTemplate restTemplate = new RestTemplate();
     HttpHeaders headers = new HttpHeaders();
     headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
     headers.setContentType(MediaType.APPLICATION_JSON);
     headers.set("X-Api-Key", _dasProducerConfig.getInitiatorserviceApiKey().trim());
 
     var request = new HttpEntity<>(acquisitionJson, headers);
+    RestTemplate restTemplate = new RestTemplate();
     var response = restTemplate.exchange(
         _dasProducerConfig.getInitiatorserviceUrl() + apiEndpoint,
         HttpMethod.POST,
@@ -91,12 +100,14 @@ public class HttpUtils {
     return response.getBody();
   }
 
+  /**
+   * Sends a stop request for the given acquisition id.
+   */
   public void stopAcquisition(String acquisitionId) {
     if (acquisitionId == null || acquisitionId.isBlank()) {
       return;
     }
 
-    RestTemplate restTemplate = new RestTemplate();
     HttpHeaders headers = new HttpHeaders();
     headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
     headers.setContentType(MediaType.APPLICATION_JSON);
@@ -104,6 +115,7 @@ public class HttpUtils {
 
     String endpoint = String.format(API_STOP_ENDPOINT, acquisitionId);
     var request = new HttpEntity<>(null, headers);
+    RestTemplate restTemplate = new RestTemplate();
     restTemplate.exchange(
         _dasProducerConfig.getInitiatorserviceUrl() + endpoint,
         HttpMethod.POST,
@@ -112,6 +124,9 @@ public class HttpUtils {
     );
   }
 
+  /**
+   * Checks whether the given service responds with a 2xx status.
+   */
   public boolean checkIfServiceIsFine(String service) {
     RestTemplate rt = new RestTemplate();
     HttpStatusCode statusCode;
@@ -132,6 +147,9 @@ public class HttpUtils {
     return statusCode.is2xxSuccessful();
   }
 
+  /**
+   * Builds a version 1 acquisition JSON payload using simulator configuration.
+   */
   public String asV1Json() {
     String acquisitionId = UUID.randomUUID().toString();
     Map<String, String> custom = new HashMap<>();
@@ -157,6 +175,9 @@ public class HttpUtils {
     ));
   }
 
+  /**
+   * Builds a version 2 acquisition JSON payload using simulator configuration.
+   */
   public String asV2Json() {
     String acquisitionId = UUID.randomUUID().toString();
     Map<String, String> custom = new HashMap<>();

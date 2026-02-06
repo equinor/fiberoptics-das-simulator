@@ -43,6 +43,7 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
@@ -56,7 +57,7 @@ import reactor.core.scheduler.Schedulers;
  */
 @Component("SimulatorBoxUnit")
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-@EnableConfigurationProperties({ SimulatorBoxUnitConfiguration.class})
+@EnableConfigurationProperties({SimulatorBoxUnitConfiguration.class})
 public class SimulatorBoxUnit implements GenericDasProducer {
   private static final Logger _logger = LoggerFactory.getLogger(SimulatorBoxUnit.class);
   private static final Duration _TIMING_LOG_INTERVAL = Duration.ofSeconds(30);
@@ -64,57 +65,56 @@ public class SimulatorBoxUnit implements GenericDasProducer {
   private final SimulatorBoxUnitConfiguration _configuration;
   private final PackageStepCalculator _stepCalculator;
 
+  /**
+   * Creates a new simulator box unit.
+   */
   public SimulatorBoxUnit(SimulatorBoxUnitConfiguration configuration) {
     _configuration = configuration;
     _stepCalculator = new PackageStepCalculator(
-      _configuration.getStartTimeInstant(),
-      _configuration.getMaxFreq(),
-      _configuration.getAmplitudesPrPackage(),
-      _configuration.getNumberOfLoci()
+        _configuration.getStartTimeInstant(),
+        _configuration.getMaxFreq(),
+        _configuration.getAmplitudesPrPackage(),
+        _configuration.getNumberOfLoci()
     );
   }
 
+  /**
+   * Produces simulated measurements.
+   */
   @Override
   public Flux<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> produce() {
     RandomDataCache dataCache = new RandomDataCache(
-      _configuration.getNumberOfPrePopulatedValues(),
-      _configuration.getAmplitudesPrPackage(),
-      _configuration.getPulseRate(),
-      _configuration.getAmplitudeDataType()
+        _configuration.getNumberOfPrePopulatedValues(),
+        _configuration.getAmplitudesPrPackage(),
+        _configuration.getPulseRate(),
+        _configuration.getAmplitudeDataType()
     );
     Duration delay = _configuration.isDisableThrottling()
-      ? Duration.ZERO
-      : Duration.ofNanos(_stepCalculator.nanosPrPackage());
+        ? Duration.ZERO
+        : Duration.ofNanos(_stepCalculator.nanosPrPackage());
     if (_configuration.isDisableThrottling() && _configuration.isTimePacingEnabled()) {
-      _logger.info(
-        "disableThrottling=true: pacing and drop-to-catch-up are disabled."
-      );
+      _logger.info("disableThrottling=true: pacing and drop-to-catch-up are disabled.");
     }
     long take;
     if (_configuration.getNumberOfShots() != null && _configuration.getNumberOfShots() > 0) {
       take = _configuration.getNumberOfShots().intValue();
-      _logger.info(String.format("Starting to produce %d data", take));
-
+      _logger.info("Starting to produce {} data", take);
     } else {
+      double packagesPerSecond = _configuration.getSecondsToRun()
+          / (delay.toNanos() / 1_000_000_000.0);
       take = delay.isZero()
-        ? _configuration.getSecondsToRun() * 1000
-        : (long) (
-            _configuration.getSecondsToRun()
-                / (delay.toNanos() / 1_000_000_000.0)
-          );
+          ? _configuration.getSecondsToRun() * 1000
+          : (long) packagesPerSecond;
       _logger.info(
-        String.format(
-          "Starting to produce data now for %d seconds",
+          "Starting to produce data now for {} seconds",
           _configuration.getSecondsToRun()
-        )
       );
-
     }
     final long takeFinal = take;
     return Flux.defer(() -> {
       TimingStats timingStats = new TimingStats();
       Scheduler timingScheduler = Schedulers.newSingle("simulatorbox-timing-logger");
-        Disposable timingDisposable = Flux.interval(_TIMING_LOG_INTERVAL, timingScheduler)
+      Disposable timingDisposable = Flux.interval(_TIMING_LOG_INTERVAL, timingScheduler)
           .doOnNext(tick -> logTimingSummary(timingStats))
           .subscribe();
       Scheduler producerScheduler = Schedulers.newSingle("simulatorbox-producer");
@@ -127,24 +127,24 @@ public class SimulatorBoxUnit implements GenericDasProducer {
         loop[0] = () -> {
           if (sink.isCancelled()) {
             cleanup(
-              timingStats,
-              timingDisposable,
-              timingScheduler,
-              producerScheduler,
-              worker,
-              cleanedUp
+                timingStats,
+                timingDisposable,
+                timingScheduler,
+                producerScheduler,
+                worker,
+                cleanedUp
             );
             return;
           }
           if (emitted.get() >= takeFinal) {
             sink.complete();
             cleanup(
-              timingStats,
-              timingDisposable,
-              timingScheduler,
-              producerScheduler,
-              worker,
-              cleanedUp
+                timingStats,
+                timingDisposable,
+                timingScheduler,
+                producerScheduler,
+                worker,
+                cleanedUp
             );
             return;
           }
@@ -156,38 +156,38 @@ public class SimulatorBoxUnit implements GenericDasProducer {
           PaceDecision decision = evaluatePacing(nowNanos);
           if (decision._delayNanos > 0) {
             worker.schedule(
-              () -> emitAfterDelay(
-                decision,
-                emitted,
-                takeFinal,
-                sink,
-                timingStats,
-                dataCache,
-                loop[0],
-                timingDisposable,
-                timingScheduler,
-                producerScheduler,
-                worker,
-                cleanedUp
-              ),
-              decision._delayNanos,
-              TimeUnit.NANOSECONDS
+                () -> emitAfterDelay(
+                    decision,
+                    emitted,
+                    takeFinal,
+                    sink,
+                    timingStats,
+                    dataCache,
+                    loop[0],
+                    timingDisposable,
+                    timingScheduler,
+                    producerScheduler,
+                    worker,
+                    cleanedUp
+                ),
+                decision._delayNanos,
+                TimeUnit.NANOSECONDS
             );
             return;
           }
           emitNow(
-            decision,
-            emitted,
-            takeFinal,
-            sink,
-            timingStats,
-            dataCache,
-            loop[0],
-            timingDisposable,
-            timingScheduler,
-            producerScheduler,
-            worker,
-            cleanedUp
+              decision,
+              emitted,
+              takeFinal,
+              sink,
+              timingStats,
+              dataCache,
+              loop[0],
+              timingDisposable,
+              timingScheduler,
+              producerScheduler,
+              worker,
+              cleanedUp
           );
         };
         worker.schedule(loop[0]);
@@ -200,14 +200,14 @@ public class SimulatorBoxUnit implements GenericDasProducer {
     long deltaNanos = targetEpochNanos - wallClockEpochNanos;
     long warnNanos = _configuration.getTimeLagWarnMillis() * Helpers.millisInNano;
     boolean warnLag = deltaNanos < 0
-      && warnNanos > 0
-      && (-deltaNanos) > warnNanos;
+        && warnNanos > 0
+        && (-deltaNanos) > warnNanos;
     boolean pacingEnabled = _configuration.isTimePacingEnabled()
-      && !_configuration.isDisableThrottling();
+        && !_configuration.isDisableThrottling();
     if (deltaNanos > 0) {
       return pacingEnabled
-        ? PaceDecision.delay(deltaNanos, targetEpochNanos)
-        : PaceDecision.immediate(deltaNanos, warnLag);
+          ? PaceDecision.delay(deltaNanos, targetEpochNanos)
+          : PaceDecision.immediate(deltaNanos, warnLag);
     }
     long lagNanos = -deltaNanos;
     long dropNanos = _configuration.getTimeLagDropMillis() * Helpers.millisInNano;
@@ -217,10 +217,10 @@ public class SimulatorBoxUnit implements GenericDasProducer {
         && dropNanos > 0
         && lagNanos > dropNanos) {
       _logger.warn(
-        "Dropping package to catch up. Lag={} ms (target={}, now={})",
-        lagNanos / Helpers.millisInNano,
-        targetEpochNanos,
-        wallClockEpochNanos
+          "Dropping package to catch up. Lag={} ms (target={}, now={})",
+          lagNanos / Helpers.millisInNano,
+          targetEpochNanos,
+          wallClockEpochNanos
       );
       return PaceDecision.drop(deltaNanos, warnLag);
     }
@@ -228,50 +228,50 @@ public class SimulatorBoxUnit implements GenericDasProducer {
   }
 
   private void emitAfterDelay(
-    PaceDecision decision,
-    AtomicLong emitted,
-    long takeFinal,
-    reactor.core.publisher.FluxSink<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> sink,
-    TimingStats timingStats,
-    RandomDataCache dataCache,
-    Runnable loop,
-    Disposable timingDisposable,
-    Scheduler timingScheduler,
-    Scheduler producerScheduler,
-    Scheduler.Worker worker,
-    AtomicBoolean cleanedUp
+      PaceDecision decision,
+      AtomicLong emitted,
+      long takeFinal,
+      FluxSink<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> sink,
+      TimingStats timingStats,
+      RandomDataCache dataCache,
+      Runnable loop,
+      Disposable timingDisposable,
+      Scheduler timingScheduler,
+      Scheduler producerScheduler,
+      Scheduler.Worker worker,
+      AtomicBoolean cleanedUp
   ) {
     if (sink.isCancelled()) {
       cleanup(
-        timingStats,
-        timingDisposable,
-        timingScheduler,
-        producerScheduler,
-        worker,
-        cleanedUp
+          timingStats,
+          timingDisposable,
+          timingScheduler,
+          producerScheduler,
+          worker,
+          cleanedUp
       );
       return;
     }
     if (emitted.get() >= takeFinal) {
       sink.complete();
       cleanup(
-        timingStats,
-        timingDisposable,
-        timingScheduler,
-        producerScheduler,
-        worker,
-        cleanedUp
+          timingStats,
+          timingDisposable,
+          timingScheduler,
+          producerScheduler,
+          worker,
+          cleanedUp
       );
       return;
     }
     long nowNanos = Helpers.currentEpochNanos();
     long postDeltaNanos = decision._targetEpochNanos - nowNanos;
     timingStats.record(
-      postDeltaNanos,
-      decision._delayNanos,
-      false,
-      false,
-      decision._delayNanos
+        postDeltaNanos,
+        decision._delayNanos,
+        false,
+        false,
+        decision._delayNanos
     );
     emitData(sink, dataCache);
     _stepCalculator.increment(1);
@@ -280,24 +280,24 @@ public class SimulatorBoxUnit implements GenericDasProducer {
   }
 
   private void emitNow(
-    PaceDecision decision,
-    AtomicLong emitted,
-    long takeFinal,
-    reactor.core.publisher.FluxSink<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> sink,
-    TimingStats timingStats,
-    RandomDataCache dataCache,
-    Runnable loop,
-    Disposable timingDisposable,
-    Scheduler timingScheduler,
-    Scheduler producerScheduler,
-    Scheduler.Worker worker,
-    AtomicBoolean cleanedUp
+      PaceDecision decision,
+      AtomicLong emitted,
+      long takeFinal,
+      FluxSink<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> sink,
+      TimingStats timingStats,
+      RandomDataCache dataCache,
+      Runnable loop,
+      Disposable timingDisposable,
+      Scheduler timingScheduler,
+      Scheduler producerScheduler,
+      Scheduler.Worker worker,
+      AtomicBoolean cleanedUp
   ) {
     if (decision._drop) {
       timingStats.record(decision._deltaNanos, 0, true, decision._warnLag);
       _stepCalculator.increment(1);
       sink.next(
-        Collections.<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>emptyList()
+          Collections.<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>emptyList()
       );
       emitted.incrementAndGet();
       worker.schedule(loop);
@@ -310,12 +310,12 @@ public class SimulatorBoxUnit implements GenericDasProducer {
     if (emitted.get() >= takeFinal) {
       sink.complete();
       cleanup(
-        timingStats,
-        timingDisposable,
-        timingScheduler,
-        producerScheduler,
-        worker,
-        cleanedUp
+          timingStats,
+          timingDisposable,
+          timingScheduler,
+          producerScheduler,
+          worker,
+          cleanedUp
       );
       return;
     }
@@ -323,29 +323,29 @@ public class SimulatorBoxUnit implements GenericDasProducer {
   }
 
   private void emitData(
-    reactor.core.publisher.FluxSink<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> sink,
-    RandomDataCache dataCache
+      FluxSink<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> sink,
+      RandomDataCache dataCache
   ) {
     List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>> data =
-      IntStream.range(0, _configuration.getNumberOfLoci())
-        .mapToObj(
-          currentLocus -> constructAvroObjects(
-            currentLocus,
-            dataCache.getFloat(),
-            dataCache.getLong()
-          )
-        )
-        .collect(Collectors.toList());
+        IntStream.range(0, _configuration.getNumberOfLoci())
+            .mapToObj(
+                currentLocus -> constructAvroObjects(
+                    currentLocus,
+                    dataCache.getFloat(),
+                    dataCache.getLong()
+                )
+            )
+            .collect(Collectors.toList());
     sink.next(data);
   }
 
   private void cleanup(
-    TimingStats timingStats,
-    Disposable timingDisposable,
-    Scheduler timingScheduler,
-    Scheduler producerScheduler,
-    Scheduler.Worker worker,
-    AtomicBoolean cleanedUp
+      TimingStats timingStats,
+      Disposable timingDisposable,
+      Scheduler timingScheduler,
+      Scheduler producerScheduler,
+      Scheduler.Worker worker,
+      AtomicBoolean cleanedUp
   ) {
     if (!cleanedUp.compareAndSet(false, true)) {
       return;
@@ -365,11 +365,11 @@ public class SimulatorBoxUnit implements GenericDasProducer {
     private final long _targetEpochNanos;
 
     private PaceDecision(
-      long deltaNanos,
-      boolean warnLag,
-      boolean drop,
-      long delayNanos,
-      long targetEpochNanos
+        long deltaNanos,
+        boolean warnLag,
+        boolean drop,
+        long delayNanos,
+        long targetEpochNanos
     ) {
       _deltaNanos = deltaNanos;
       _warnLag = warnLag;
@@ -380,11 +380,11 @@ public class SimulatorBoxUnit implements GenericDasProducer {
 
     private static PaceDecision delay(long delayNanos, long targetEpochNanos) {
       return new PaceDecision(
-        delayNanos,
-        false,
-        false,
-        delayNanos,
-        targetEpochNanos
+          delayNanos,
+          false,
+          false,
+          delayNanos,
+          targetEpochNanos
       );
     }
 
@@ -424,7 +424,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
     String lastDeltaDir = lastDeltaMs < 0 ? "behind" : "ahead";
     boolean pacingConfigured = _configuration.isTimePacingEnabled();
     boolean pacingEffective = pacingConfigured
-      && !_configuration.isDisableThrottling();
+        && !_configuration.isDisableThrottling();
     String message = new StringBuilder(256)
         .append("Timing summary (last ")
         .append(intervalSeconds)
@@ -485,21 +485,21 @@ public class SimulatorBoxUnit implements GenericDasProducer {
   }
 
   private PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> constructAvroObjects(
-    int currentLocus,
-    List<Float> floatData,
-    List<Long> longData
+      int currentLocus,
+      List<Float> floatData,
+      List<Long> longData
   ) {
     return new PartitionKeyValueEntry<>(
-      DASMeasurementKey.newBuilder()
-        .setLocus(currentLocus)
-        .build(),
-      DASMeasurement.newBuilder()
-        .setStartSnapshotTimeNano(_stepCalculator.currentEpochNanos())
-        .setTrustedTimeSource(true)
-        .setLocus(currentLocus)
-        .setAmplitudesFloat(floatData)
-        .setAmplitudesLong(longData)
-        .build(),
-      currentLocus);
+        DASMeasurementKey.newBuilder()
+            .setLocus(currentLocus)
+            .build(),
+        DASMeasurement.newBuilder()
+            .setStartSnapshotTimeNano(_stepCalculator.currentEpochNanos())
+            .setTrustedTimeSource(true)
+            .setLocus(currentLocus)
+            .setAmplitudesFloat(floatData)
+            .setAmplitudesLong(longData)
+            .build(),
+        currentLocus);
   }
 }

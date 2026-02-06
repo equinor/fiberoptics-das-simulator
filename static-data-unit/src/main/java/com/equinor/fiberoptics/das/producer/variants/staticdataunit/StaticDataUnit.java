@@ -51,7 +51,7 @@ import reactor.core.scheduler.Schedulers;
 
 /**
  * This is a static data unit for testing that data is flowing as expected on the platform,
- * so that we can make asserts on the data flowing out and perform black-box testing
+ * so that we can make asserts on the data flowing out and perform black-box testing.
  *
  * @author Inge Knudsen, iknu@equinor.com
  */
@@ -65,40 +65,43 @@ public class StaticDataUnit implements GenericDasProducer {
   private final StaticDataUnitConfiguration _configuration;
   private final PackageStepCalculator _stepCalculator;
 
+  /**
+   * Creates a new static data unit.
+   */
   public StaticDataUnit(StaticDataUnitConfiguration configuration) {
     _configuration = configuration;
     _stepCalculator = new PackageStepCalculator(
-      _configuration.getStartTimeInstant(),
-      _configuration.getMaxFreq(),
-      _configuration.getAmplitudesPrPackage(),
-      _configuration.getNumberOfLoci()
+        _configuration.getStartTimeInstant(),
+        _configuration.getMaxFreq(),
+        _configuration.getAmplitudesPrPackage(),
+        _configuration.getNumberOfLoci()
     );
   }
 
+  /**
+   * Produces static measurements.
+   */
   @Override
   public Flux<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> produce() {
     Duration delay = _configuration.isDisableThrottling()
-      ? Duration.ZERO
-      : Duration.ofNanos(_stepCalculator.nanosPrPackage());
+        ? Duration.ZERO
+        : Duration.ofNanos(_stepCalculator.nanosPrPackage());
     if (_configuration.isDisableThrottling() && _configuration.isTimePacingEnabled()) {
       _logger.info("disableThrottling=true: pacing and drop-to-catch-up are disabled.");
     }
     long take;
     if (_configuration.getNumberOfShots() != null && _configuration.getNumberOfShots() > 0) {
       take = _configuration.getNumberOfShots();
-      _logger.info(String.format("Starting to produce %d data", take));
+      _logger.info("Starting to produce {} data", take);
     } else {
+      double packagesPerSecond = _configuration.getSecondsToRun()
+          / (delay.toNanos() / 1_000_000_000.0);
       take = delay.isZero()
-        ? _configuration.getSecondsToRun() * 1000
-        : (long) (
-            _configuration.getSecondsToRun()
-                / (delay.toNanos() / 1_000_000_000.0)
-          );
-        _logger.info(
-          String.format(
-              "Starting to produce data now for %d seconds",
-              _configuration.getSecondsToRun()
-          )
+          ? _configuration.getSecondsToRun() * 1000
+          : (long) packagesPerSecond;
+      _logger.info(
+          "Starting to produce data now for {} seconds",
+          _configuration.getSecondsToRun()
       );
     }
     final long takeFinal = take;
@@ -106,7 +109,7 @@ public class StaticDataUnit implements GenericDasProducer {
     return Flux.defer(() -> {
       TimingStats timingStats = new TimingStats();
       Scheduler timingScheduler = Schedulers.newSingle("staticdata-timing-logger");
-        Disposable timingDisposable = Flux.interval(_TIMING_LOG_INTERVAL, timingScheduler)
+      Disposable timingDisposable = Flux.interval(_TIMING_LOG_INTERVAL, timingScheduler)
           .doOnNext(tick -> logTimingSummary(timingStats))
           .subscribe();
       Scheduler producerScheduler = Schedulers.newSingle("staticdata-producer");
@@ -189,13 +192,15 @@ public class StaticDataUnit implements GenericDasProducer {
     long targetEpochNanos = _stepCalculator.currentEpochNanos();
     long deltaNanos = targetEpochNanos - wallClockEpochNanos;
     long warnNanos = _configuration.getTimeLagWarnMillis() * Helpers.millisInNano;
-    boolean warnLag = deltaNanos < 0 && warnNanos > 0 && (-deltaNanos) > warnNanos;
+    boolean warnLag = deltaNanos < 0
+        && warnNanos > 0
+        && (-deltaNanos) > warnNanos;
     boolean pacingEnabled = _configuration.isTimePacingEnabled()
-      && !_configuration.isDisableThrottling();
+        && !_configuration.isDisableThrottling();
     if (deltaNanos > 0) {
       return pacingEnabled
-        ? PaceDecision.delay(deltaNanos, targetEpochNanos)
-        : PaceDecision.immediate(deltaNanos, warnLag);
+          ? PaceDecision.delay(deltaNanos, targetEpochNanos)
+          : PaceDecision.immediate(deltaNanos, warnLag);
     }
     long lagNanos = -deltaNanos;
     long dropNanos = _configuration.getTimeLagDropMillis() * Helpers.millisInNano;
@@ -204,7 +209,7 @@ public class StaticDataUnit implements GenericDasProducer {
         && !syntheticStartTimeConfigured
         && dropNanos > 0
         && lagNanos > dropNanos) {
-        _logger.warn(
+      _logger.warn(
           "Dropping package to catch up. Lag={} ms (target={}, now={})",
           lagNanos / Helpers.millisInNano,
           targetEpochNanos,
@@ -283,7 +288,7 @@ public class StaticDataUnit implements GenericDasProducer {
       timingStats.record(decision._deltaNanos, 0, true, decision._warnLag);
       _stepCalculator.increment(1);
       sink.next(
-        Collections.<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>emptyList()
+          Collections.<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>emptyList()
       );
       emitted.incrementAndGet();
       worker.schedule(loop);
