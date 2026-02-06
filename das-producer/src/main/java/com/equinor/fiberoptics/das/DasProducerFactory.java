@@ -50,15 +50,15 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class DasProducerFactory {
-  private static final Logger logger = LoggerFactory.getLogger(DasProducerFactory.class);
+  private static final Logger _logger = LoggerFactory.getLogger(DasProducerFactory.class);
 
   private final HttpUtils _httpUtils;
   private final KafkaConfiguration _configuration;
   private final DasProducerConfiguration _dasProducerConfig;
-  private final KafkaSender kafkaSender;
+  private final KafkaSender _kafkaSender;
 
   private final ApplicationContext _applicationContext;
-  private final AtomicReference<String> lastAcquisitionId = new AtomicReference<>();
+  private final AtomicReference<String> _lastAcquisitionId = new AtomicReference<>();
 
   DasProducerFactory(
       KafkaConfiguration kafkaConfig,
@@ -69,13 +69,13 @@ public class DasProducerFactory {
     _configuration = kafkaConfig;
     _httpUtils = http;
     _dasProducerConfig = dasProducerConfig;
-    this.kafkaSender = kafkaSender;
+    _kafkaSender = kafkaSender;
     _applicationContext = applicationContext;
   }
 
   @PreDestroy
   public void onDestroy() throws Exception {
-    logger.info("Spring Container is destroyed!");
+    _logger.info("Spring Container is destroyed!");
     Thread.sleep(1000);
   }
 
@@ -88,7 +88,7 @@ public class DasProducerFactory {
   public KafkaProducer<DASMeasurementKey, DASMeasurement> producerFactory() {
     List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers =
         createProducersFromAcquisitionJsonInternal(null, true);
-    kafkaSender.setProducers(producers);
+    _kafkaSender.setProducers(producers);
     return producers.get(0);
   }
 
@@ -105,7 +105,7 @@ public class DasProducerFactory {
   }
 
   public String getLastAcquisitionId() {
-    return lastAcquisitionId.get();
+    return _lastAcquisitionId.get();
   }
 
   public void stopAcquisitionBestEffort(String acquisitionId) {
@@ -115,7 +115,7 @@ public class DasProducerFactory {
     try {
       _httpUtils.stopAcquisition(acquisitionId);
     } catch (Exception e) {
-      logger.warn(
+        _logger.warn(
           "Best-effort stop acquisition failed for {}: {}",
           acquisitionId,
           e.getMessage()
@@ -145,10 +145,10 @@ public class DasProducerFactory {
         ? _httpUtils.asV1Json()
         : _httpUtils.asV2Json();
     }
-    extractAcquisitionId(effectiveAcquisitionJson).ifPresent(lastAcquisitionId::set);
+    extractAcquisitionId(effectiveAcquisitionJson).ifPresent(_lastAcquisitionId::set);
 
     AcquisitionStartDto acquisition = startAcquisitionWithPreflight(effectiveAcquisitionJson);
-    logger.info(
+    _logger.info(
         "Got TOPIC={}, BOOTSTRAP_SERVERS={}, SCHEMA_REGISTRY={}, NUMBER_OF_PARTITIONS={}",
         acquisition.getTopic(),
         acquisition.getBootstrapServers(),
@@ -157,11 +157,11 @@ public class DasProducerFactory {
     );
     if (acquisition.getNumberOfPartitions() <= 0) {
       if (exitOnInvalidPartitions) {
-        logger.error(
+        _logger.error(
             "We are unable to run when the destination topic has {} partitions. Exiting.",
             acquisition.getNumberOfPartitions()
         );
-        logger.info("Stopping");
+        _logger.info("Stopping");
         int exitValue = SpringApplication.exit(_applicationContext);
         System.exit(exitValue);
       }
@@ -176,7 +176,7 @@ public class DasProducerFactory {
     if (_dasProducerConfig.getOverrideSchemaRegistryWith() != null
         && !_dasProducerConfig.getOverrideSchemaRegistryWith().isBlank()) {
       actualSchemaRegistryServers = _dasProducerConfig.getOverrideSchemaRegistryWith();
-      logger.info(
+        _logger.info(
           "Overriding incoming schema registry server {} with: {}",
           acquisition.getSchemaRegistryUrl(),
           actualSchemaRegistryServers
@@ -184,7 +184,7 @@ public class DasProducerFactory {
     } else {
       actualSchemaRegistryServers = acquisition.getSchemaRegistryUrl();
     }
-    logger.info("Preflight checking if Schema registry is alive.");
+    _logger.info("Preflight checking if Schema registry is alive.");
     waitForServiceOrTimeout(
         actualSchemaRegistryServers,
         () -> _httpUtils.checkIfServiceIsFine(actualSchemaRegistryServers),
@@ -198,7 +198,7 @@ public class DasProducerFactory {
     if (_dasProducerConfig.getOverrideBootstrapServersWith() != null
         && !_dasProducerConfig.getOverrideBootstrapServersWith().isBlank()) {
       actualBootstrapServeras = _dasProducerConfig.getOverrideBootstrapServersWith();
-      logger.info(
+        _logger.info(
           "Overriding incoming bootstrap server {} with: {}",
           acquisition.getBootstrapServers(),
           actualBootstrapServeras
@@ -220,7 +220,7 @@ public class DasProducerFactory {
     int effectivePartitionCount = Math.max(1, partitionsInAssignment);
     int instances = Math.min(configuredInstances, effectivePartitionCount);
     if (instances < configuredInstances) {
-      logger.info(
+        _logger.info(
           "Reducing Kafka producer instances from {} to {} "
               + "(partition assignments cover {} partitions).",
           configuredInstances,
@@ -243,7 +243,7 @@ public class DasProducerFactory {
   }
 
   private AcquisitionStartDto startAcquisitionWithPreflight(String acquisitionJson) {
-    logger.info("Preflight checking if initiator service is alive.");
+    _logger.info("Preflight checking if initiator service is alive.");
     String healthCheckSi = _dasProducerConfig.getInitiatorserviceUrl().trim()
         + "/actuator/health";
     waitForServiceOrTimeout(
@@ -253,7 +253,7 @@ public class DasProducerFactory {
         "initiator service"
     );
 
-    logger.info(
+    _logger.info(
         "Calling start acquisition on URL {}",
         _dasProducerConfig.getInitiatorserviceUrl().trim()
     );
@@ -270,7 +270,7 @@ public class DasProducerFactory {
         return Optional.ofNullable(obj.get("acquisitionId")).map(e -> e.getAsString());
       }
     } catch (Exception e) {
-      logger.warn(
+        _logger.warn(
           "Unable to extract AcquisitionId from acquisition JSON: {}",
           e.getMessage()
       );

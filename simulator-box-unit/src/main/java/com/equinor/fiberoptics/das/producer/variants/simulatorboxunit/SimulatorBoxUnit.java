@@ -58,15 +58,15 @@ import reactor.core.scheduler.Schedulers;
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 @EnableConfigurationProperties({ SimulatorBoxUnitConfiguration.class})
 public class SimulatorBoxUnit implements GenericDasProducer {
-  private static final Logger logger = LoggerFactory.getLogger(SimulatorBoxUnit.class);
-  private static final Duration TIMING_LOG_INTERVAL = Duration.ofSeconds(30);
+  private static final Logger _logger = LoggerFactory.getLogger(SimulatorBoxUnit.class);
+  private static final Duration _TIMING_LOG_INTERVAL = Duration.ofSeconds(30);
 
   private final SimulatorBoxUnitConfiguration _configuration;
   private final PackageStepCalculator _stepCalculator;
 
   public SimulatorBoxUnit(SimulatorBoxUnitConfiguration configuration) {
-    this._configuration = configuration;
-    this._stepCalculator = new PackageStepCalculator(
+    _configuration = configuration;
+    _stepCalculator = new PackageStepCalculator(
       _configuration.getStartTimeInstant(),
       _configuration.getMaxFreq(),
       _configuration.getAmplitudesPrPackage(),
@@ -86,14 +86,14 @@ public class SimulatorBoxUnit implements GenericDasProducer {
       ? Duration.ZERO
       : Duration.ofNanos(_stepCalculator.nanosPrPackage());
     if (_configuration.isDisableThrottling() && _configuration.isTimePacingEnabled()) {
-      logger.info(
+      _logger.info(
         "disableThrottling=true: pacing and drop-to-catch-up are disabled."
       );
     }
     long take;
     if (_configuration.getNumberOfShots() != null && _configuration.getNumberOfShots() > 0) {
       take = _configuration.getNumberOfShots().intValue();
-      logger.info(String.format("Starting to produce %d data", take));
+      _logger.info(String.format("Starting to produce %d data", take));
 
     } else {
       take = delay.isZero()
@@ -102,7 +102,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
             _configuration.getSecondsToRun()
                 / (delay.toNanos() / 1_000_000_000.0)
           );
-      logger.info(
+      _logger.info(
         String.format(
           "Starting to produce data now for %d seconds",
           _configuration.getSecondsToRun()
@@ -114,7 +114,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
     return Flux.defer(() -> {
       TimingStats timingStats = new TimingStats();
       Scheduler timingScheduler = Schedulers.newSingle("simulatorbox-timing-logger");
-      Disposable timingDisposable = Flux.interval(TIMING_LOG_INTERVAL, timingScheduler)
+        Disposable timingDisposable = Flux.interval(_TIMING_LOG_INTERVAL, timingScheduler)
           .doOnNext(tick -> logTimingSummary(timingStats))
           .subscribe();
       Scheduler producerScheduler = Schedulers.newSingle("simulatorbox-producer");
@@ -154,7 +154,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
             startTimeAligned.set(true);
           }
           PaceDecision decision = evaluatePacing(nowNanos);
-          if (decision.delayNanos > 0) {
+          if (decision._delayNanos > 0) {
             worker.schedule(
               () -> emitAfterDelay(
                 decision,
@@ -170,7 +170,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
                 worker,
                 cleanedUp
               ),
-              decision.delayNanos,
+              decision._delayNanos,
               TimeUnit.NANOSECONDS
             );
             return;
@@ -216,7 +216,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
         && !syntheticStartTimeConfigured
         && dropNanos > 0
         && lagNanos > dropNanos) {
-      logger.warn(
+      _logger.warn(
         "Dropping package to catch up. Lag={} ms (target={}, now={})",
         lagNanos / Helpers.millisInNano,
         targetEpochNanos,
@@ -265,13 +265,13 @@ public class SimulatorBoxUnit implements GenericDasProducer {
       return;
     }
     long nowNanos = Helpers.currentEpochNanos();
-    long postDeltaNanos = decision.targetEpochNanos - nowNanos;
+    long postDeltaNanos = decision._targetEpochNanos - nowNanos;
     timingStats.record(
       postDeltaNanos,
-      decision.delayNanos,
+      decision._delayNanos,
       false,
       false,
-      decision.delayNanos
+      decision._delayNanos
     );
     emitData(sink, dataCache);
     _stepCalculator.increment(1);
@@ -293,8 +293,8 @@ public class SimulatorBoxUnit implements GenericDasProducer {
     Scheduler.Worker worker,
     AtomicBoolean cleanedUp
   ) {
-    if (decision.drop) {
-      timingStats.record(decision.deltaNanos, 0, true, decision.warnLag);
+    if (decision._drop) {
+      timingStats.record(decision._deltaNanos, 0, true, decision._warnLag);
       _stepCalculator.increment(1);
       sink.next(
         Collections.<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>emptyList()
@@ -303,7 +303,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
       worker.schedule(loop);
       return;
     }
-    timingStats.record(decision.deltaNanos, 0, false, decision.warnLag);
+    timingStats.record(decision._deltaNanos, 0, false, decision._warnLag);
     emitData(sink, dataCache);
     _stepCalculator.increment(1);
     emitted.incrementAndGet();
@@ -358,11 +358,11 @@ public class SimulatorBoxUnit implements GenericDasProducer {
   }
 
   private static class PaceDecision {
-    private final long deltaNanos;
-    private final boolean warnLag;
-    private final boolean drop;
-    private final long delayNanos;
-    private final long targetEpochNanos;
+    private final long _deltaNanos;
+    private final boolean _warnLag;
+    private final boolean _drop;
+    private final long _delayNanos;
+    private final long _targetEpochNanos;
 
     private PaceDecision(
       long deltaNanos,
@@ -371,11 +371,11 @@ public class SimulatorBoxUnit implements GenericDasProducer {
       long delayNanos,
       long targetEpochNanos
     ) {
-      this.deltaNanos = deltaNanos;
-      this.warnLag = warnLag;
-      this.drop = drop;
-      this.delayNanos = delayNanos;
-      this.targetEpochNanos = targetEpochNanos;
+      _deltaNanos = deltaNanos;
+      _warnLag = warnLag;
+      _drop = drop;
+      _delayNanos = delayNanos;
+      _targetEpochNanos = targetEpochNanos;
     }
 
     private static PaceDecision delay(long delayNanos, long targetEpochNanos) {
@@ -418,7 +418,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
         ? 0
         : (summary.totalDeltaNanos / 1_000_000.0) / summary.totalPackages;
     double lastDeltaMs = summary.lastDeltaNanos / 1_000_000.0;
-    long intervalSeconds = Math.max(1, TIMING_LOG_INTERVAL.getSeconds());
+    long intervalSeconds = Math.max(1, _TIMING_LOG_INTERVAL.getSeconds());
     double packagesPerSecond = summary.totalPackages / (double) intervalSeconds;
     String avgDeltaDir = avgDeltaMs < 0 ? "behind" : "ahead";
     String lastDeltaDir = lastDeltaMs < 0 ? "behind" : "ahead";
@@ -481,7 +481,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
         )
         .append(" ms")
         .toString();
-    logger.info(message);
+    _logger.info(message);
   }
 
   private PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> constructAvroObjects(

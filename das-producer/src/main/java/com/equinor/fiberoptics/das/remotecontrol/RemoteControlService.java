@@ -52,20 +52,20 @@ import reactor.core.Disposable;
 @Service
 public class RemoteControlService {
 
-  private static final Logger logger = LoggerFactory.getLogger(RemoteControlService.class);
+  private static final Logger _logger = LoggerFactory.getLogger(RemoteControlService.class);
 
-  private final BeanFactory beanFactory;
-  private final DasProducerConfiguration dasProducerConfiguration;
-  private final SimulatorBoxUnitConfiguration simulatorBoxUnitConfiguration;
-  private final DasProducerFactory dasProducerFactory;
-  private final KafkaRelay kafkaRelay;
-  private final KafkaSender kafkaSender;
-  private final ObjectMapper objectMapper;
-  private final AcquisitionProfileResolver acquisitionProfileResolver;
+  private final BeanFactory _beanFactory;
+  private final DasProducerConfiguration _dasProducerConfiguration;
+  private final SimulatorBoxUnitConfiguration _simulatorBoxUnitConfiguration;
+  private final DasProducerFactory _dasProducerFactory;
+  private final KafkaRelay _kafkaRelay;
+  private final KafkaSender _kafkaSender;
+  private final ObjectMapper _objectMapper;
+  private final AcquisitionProfileResolver _acquisitionProfileResolver;
 
-  private final AtomicReference<Disposable> runDisposable = new AtomicReference<>();
-  private final AtomicReference<String> currentConfigHash = new AtomicReference<>();
-  private final AtomicReference<String> lastAppliedAcquisitionId = new AtomicReference<>();
+  private final AtomicReference<Disposable> _runDisposable = new AtomicReference<>();
+  private final AtomicReference<String> _currentConfigHash = new AtomicReference<>();
+  private final AtomicReference<String> _lastAppliedAcquisitionId = new AtomicReference<>();
 
   public RemoteControlService(
       BeanFactory beanFactory,
@@ -76,14 +76,14 @@ public class RemoteControlService {
       KafkaSender kafkaSender,
       ObjectMapper objectMapper,
       AcquisitionProfileResolver acquisitionProfileResolver) {
-    this.beanFactory = beanFactory;
-    this.dasProducerConfiguration = dasProducerConfiguration;
-    this.simulatorBoxUnitConfiguration = simulatorBoxUnitConfiguration;
-    this.dasProducerFactory = dasProducerFactory;
-    this.kafkaRelay = kafkaRelay;
-    this.kafkaSender = kafkaSender;
-    this.objectMapper = objectMapper;
-    this.acquisitionProfileResolver = acquisitionProfileResolver;
+    _beanFactory = beanFactory;
+    _dasProducerConfiguration = dasProducerConfiguration;
+    _simulatorBoxUnitConfiguration = simulatorBoxUnitConfiguration;
+    _dasProducerFactory = dasProducerFactory;
+    _kafkaRelay = kafkaRelay;
+    _kafkaSender = kafkaSender;
+    _objectMapper = objectMapper;
+    _acquisitionProfileResolver = acquisitionProfileResolver;
   }
 
   public enum StopResult {
@@ -101,7 +101,7 @@ public class RemoteControlService {
 
     JsonNode root;
     try {
-      root = objectMapper.readTree(acquisitionJson);
+      root = _objectMapper.readTree(acquisitionJson);
     } catch (Exception e) {
       throw new BadRequestException("Invalid JSON payload.");
     }
@@ -110,11 +110,11 @@ public class RemoteControlService {
     if (custom == null) {
       custom = root.get("custom");
     }
-    String profileJson = acquisitionProfileResolver.resolveAcquisitionJson(custom);
+    String profileJson = _acquisitionProfileResolver.resolveAcquisitionJson(custom);
 
     JsonNode profileRoot;
     try {
-      profileRoot = objectMapper.readTree(profileJson);
+      profileRoot = _objectMapper.readTree(profileJson);
     } catch (Exception e) {
       throw new IllegalStateException(
         "Resolved profile JSON could not be parsed: " + e.getMessage(),
@@ -124,18 +124,18 @@ public class RemoteControlService {
 
     String hash = profileHash(profileRoot);
     boolean running = isRunning();
-    if (running && hash.equals(currentConfigHash.get())) {
-      logger.info("APPLY received with identical configuration while running. No-op.");
+    if (running && hash.equals(_currentConfigHash.get())) {
+      _logger.info("APPLY received with identical configuration while running. No-op.");
       return;
     }
 
     if (running) {
-      String previousAcquisitionId = lastAppliedAcquisitionId.get();
+      String previousAcquisitionId = _lastAppliedAcquisitionId.get();
       if (previousAcquisitionId != null && !previousAcquisitionId.isBlank()) {
         try {
-          dasProducerFactory.stopAcquisitionBestEffort(previousAcquisitionId);
+          _dasProducerFactory.stopAcquisitionBestEffort(previousAcquisitionId);
         } catch (Exception e) {
-          logger.warn(
+          _logger.warn(
               "Best-effort stop acquisition threw. Continuing with switch. {}",
               e.getMessage()
           );
@@ -146,7 +146,7 @@ public class RemoteControlService {
     ObjectNode updatedProfileRoot = withNewAcquisitionIdentity(profileRoot);
     String profileJsonWithNewIdentity;
     try {
-      profileJsonWithNewIdentity = objectMapper.writeValueAsString(updatedProfileRoot);
+      profileJsonWithNewIdentity = _objectMapper.writeValueAsString(updatedProfileRoot);
     } catch (Exception e) {
       throw new IllegalStateException(
         "Failed to serialize updated profile JSON: " + e.getMessage(),
@@ -158,38 +158,38 @@ public class RemoteControlService {
 
     stopCurrentInternal();
 
-    optionalText(updatedProfileRoot, "AcquisitionId").ifPresent(lastAppliedAcquisitionId::set);
-    optionalText(updatedProfileRoot, "acquisitionId").ifPresent(lastAppliedAcquisitionId::set);
+    optionalText(updatedProfileRoot, "AcquisitionId").ifPresent(_lastAppliedAcquisitionId::set);
+    optionalText(updatedProfileRoot, "acquisitionId").ifPresent(_lastAppliedAcquisitionId::set);
 
-    kafkaSender.setProducers(
-        dasProducerFactory.createProducersFromAcquisitionJson(profileJsonWithNewIdentity)
+    _kafkaSender.setProducers(
+      _dasProducerFactory.createProducersFromAcquisitionJson(profileJsonWithNewIdentity)
     );
 
-    GenericDasProducer simulator = beanFactory.getBean(
-        dasProducerConfiguration.getVariant(),
+    GenericDasProducer simulator = _beanFactory.getBean(
+      _dasProducerConfiguration.getVariant(),
         GenericDasProducer.class
     );
     Disposable disposable = simulator.produce()
         .subscribe(
             batch -> {
               for (PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> entry : batch) {
-                kafkaRelay.relayToKafka(entry);
+                _kafkaRelay.relayToKafka(entry);
               }
             },
             ex -> {
-              logger.warn("Error emitted from producer: {}", ex.getMessage(), ex);
+              _logger.warn("Error emitted from producer: {}", ex.getMessage(), ex);
               stopCurrentInternal();
             },
             () -> {
-              logger.info("Producer completed.");
+              _logger.info("Producer completed.");
               stopCurrentInternal();
             }
         );
 
-    runDisposable.set(disposable);
-    currentConfigHash.set(hash);
+    _runDisposable.set(disposable);
+    _currentConfigHash.set(hash);
 
-    logger.info("APPLY accepted. Producer started.");
+    _logger.info("APPLY accepted. Producer started.");
   }
 
   public synchronized StopResult stop(Optional<String> acquisitionJson) {
@@ -198,7 +198,7 @@ public class RemoteControlService {
 
     if (!isRunning()) {
       if (requestedAcquisitionId.isPresent()) {
-        String last = lastAppliedAcquisitionId.get();
+        String last = _lastAppliedAcquisitionId.get();
         return requestedAcquisitionId.get().equals(last)
           ? StopResult.ALREADY_STOPPED
           : StopResult.NOT_FOUND;
@@ -207,18 +207,18 @@ public class RemoteControlService {
     }
 
     if (requestedAcquisitionId.isPresent()) {
-      String last = lastAppliedAcquisitionId.get();
+      String last = _lastAppliedAcquisitionId.get();
       if (last != null && !requestedAcquisitionId.get().equals(last)) {
         return StopResult.NOT_FOUND;
       }
     }
 
-    String stopAcquisitionId = requestedAcquisitionId.orElseGet(lastAppliedAcquisitionId::get);
+    String stopAcquisitionId = requestedAcquisitionId.orElseGet(_lastAppliedAcquisitionId::get);
     if (stopAcquisitionId != null && !stopAcquisitionId.isBlank()) {
       try {
-        dasProducerFactory.stopAcquisitionBestEffort(stopAcquisitionId);
+        _dasProducerFactory.stopAcquisitionBestEffort(stopAcquisitionId);
       } catch (Exception e) {
-        logger.warn(
+        _logger.warn(
             "Best-effort stop acquisition failed for {}: {}",
             stopAcquisitionId,
             e.getMessage()
@@ -230,23 +230,23 @@ public class RemoteControlService {
   }
 
   private boolean isRunning() {
-    Disposable d = runDisposable.get();
+    Disposable d = _runDisposable.get();
     return d != null && !d.isDisposed();
   }
 
   private void stopCurrentInternal() {
-    Disposable d = runDisposable.getAndSet(null);
+    Disposable d = _runDisposable.getAndSet(null);
     if (d != null && !d.isDisposed()) {
       try {
         d.dispose();
       } catch (Exception e) {
-        logger.warn("Exception disposing producer subscription: {}", e.getMessage());
+        _logger.warn("Exception disposing producer subscription: {}", e.getMessage());
       }
     }
     try {
-      kafkaRelay.teardown();
+      _kafkaRelay.teardown();
     } catch (Exception e) {
-      logger.warn("Exception tearing down kafka relay: {}", e.getMessage());
+      _logger.warn("Exception tearing down kafka relay: {}", e.getMessage());
     }
   }
 
@@ -260,28 +260,28 @@ public class RemoteControlService {
       throw new BadRequestException("StartLocusIndex must be >= 0.");
     }
 
-    simulatorBoxUnitConfiguration.setNumberOfLoci(numberOfLoci);
-    simulatorBoxUnitConfiguration.setStartLocusIndex(startLocusIndex);
+    _simulatorBoxUnitConfiguration.setNumberOfLoci(numberOfLoci);
+    _simulatorBoxUnitConfiguration.setStartLocusIndex(startLocusIndex);
 
     optionalDouble(root, "PulseRate")
-        .ifPresent(v -> simulatorBoxUnitConfiguration.setPulseRate((int) Math.round(v)));
+        .ifPresent(v -> _simulatorBoxUnitConfiguration.setPulseRate((int) Math.round(v)));
     optionalDouble(root, "MaximumFrequency")
-        .ifPresent(v -> simulatorBoxUnitConfiguration.setMaxFreq((float) v.doubleValue()));
+        .ifPresent(v -> _simulatorBoxUnitConfiguration.setMaxFreq((float) v.doubleValue()));
     optionalDouble(root, "SpatialSamplingInterval")
         .ifPresent(
-            v -> simulatorBoxUnitConfiguration.setSpatialSamplingInterval((float) v.doubleValue())
+            v -> _simulatorBoxUnitConfiguration.setSpatialSamplingInterval((float) v.doubleValue())
         );
     optionalDouble(root, "GaugeLength")
-        .ifPresent(v -> simulatorBoxUnitConfiguration.setGaugeLength((float) v.doubleValue()));
+        .ifPresent(v -> _simulatorBoxUnitConfiguration.setGaugeLength((float) v.doubleValue()));
     optionalDouble(root, "PulseWidth")
-        .ifPresent(v -> simulatorBoxUnitConfiguration.setPulseWidth((float) v.doubleValue()));
+        .ifPresent(v -> _simulatorBoxUnitConfiguration.setPulseWidth((float) v.doubleValue()));
 
     optionalText(root, "OpticalPathUUID")
-        .ifPresent(simulatorBoxUnitConfiguration::setOpticalPathUUID);
+        .ifPresent(_simulatorBoxUnitConfiguration::setOpticalPathUUID);
     optionalText(root, "DasInstrumentBoxUUID")
-        .ifPresent(simulatorBoxUnitConfiguration::setBoxUUID);
+        .ifPresent(_simulatorBoxUnitConfiguration::setBoxUUID);
     optionalText(root, "VendorCode")
-        .ifPresent(dasProducerConfiguration::setVendorCode);
+        .ifPresent(_dasProducerConfiguration::setVendorCode);
   }
 
   private ObjectNode withNewAcquisitionIdentity(JsonNode root) {
@@ -345,7 +345,7 @@ public class RemoteControlService {
 
   private Optional<String> extractStringField(String json, String... candidateFieldNames) {
     try {
-      JsonNode root = objectMapper.readTree(json);
+      JsonNode root = _objectMapper.readTree(json);
       for (String name : candidateFieldNames) {
         JsonNode node = root.get(name);
         if (node != null && node.isTextual() && !node.asText().isBlank()) {
@@ -360,7 +360,7 @@ public class RemoteControlService {
 
   private Optional<Integer> extractIntField(String json, String... candidateFieldNames) {
     try {
-      JsonNode root = objectMapper.readTree(json);
+      JsonNode root = _objectMapper.readTree(json);
       for (String name : candidateFieldNames) {
         JsonNode node = root.get(name);
         if (node != null && node.canConvertToInt()) {
@@ -396,7 +396,7 @@ public class RemoteControlService {
         objectNode.remove("MeasurementStartTime");
         objectNode.remove("measurementStartTime");
       }
-      byte[] canonical = objectMapper.writer()
+      byte[] canonical = _objectMapper.writer()
         .with(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
         .writeValueAsBytes(copy);
       return sha256Bytes(canonical);

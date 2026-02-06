@@ -43,14 +43,14 @@ import org.springframework.stereotype.Component;
 @Component
 public class StartupInfoLogger {
 
-  private static final Logger logger = LoggerFactory.getLogger(StartupInfoLogger.class);
+  private static final Logger _logger = LoggerFactory.getLogger(StartupInfoLogger.class);
 
-  private final Environment environment;
-  private final ObjectProvider<BuildProperties> buildPropertiesProvider;
-  private final DasProducerConfiguration dasProducerConfiguration;
-  private final ObjectProvider<SimulatorBoxUnitConfiguration> simulatorBoxUnitConfigurationProvider;
-  private final ObjectProvider<StaticDataUnitConfiguration> staticDataUnitConfigurationProvider;
-  private final ObjectProvider<KafkaConfiguration> kafkaConfigurationProvider;
+  private final Environment _environment;
+  private final ObjectProvider<BuildProperties> _buildPropertiesProvider;
+  private final DasProducerConfiguration _dasProducerConfiguration;
+  private final ObjectProvider<SimulatorBoxUnitConfiguration> _simulatorBoxUnitConfigurationProvider;
+  private final ObjectProvider<StaticDataUnitConfiguration> _staticDataUnitConfigurationProvider;
+  private final ObjectProvider<KafkaConfiguration> _kafkaConfigurationProvider;
 
   public StartupInfoLogger(
       Environment environment,
@@ -60,27 +60,27 @@ public class StartupInfoLogger {
       ObjectProvider<StaticDataUnitConfiguration> staticDataUnitConfigurationProvider,
       ObjectProvider<KafkaConfiguration> kafkaConfigurationProvider
   ) {
-    this.environment = environment;
-    this.buildPropertiesProvider = buildPropertiesProvider;
-    this.dasProducerConfiguration = dasProducerConfiguration;
-    this.simulatorBoxUnitConfigurationProvider = simulatorBoxUnitConfigurationProvider;
-    this.staticDataUnitConfigurationProvider = staticDataUnitConfigurationProvider;
-    this.kafkaConfigurationProvider = kafkaConfigurationProvider;
+    _environment = environment;
+    _buildPropertiesProvider = buildPropertiesProvider;
+    _dasProducerConfiguration = dasProducerConfiguration;
+    _simulatorBoxUnitConfigurationProvider = simulatorBoxUnitConfigurationProvider;
+    _staticDataUnitConfigurationProvider = staticDataUnitConfigurationProvider;
+    _kafkaConfigurationProvider = kafkaConfigurationProvider;
   }
 
   @EventListener
   public void onApplicationReady(ApplicationReadyEvent ignored) {
     String message = buildStartupMessage();
-    logger.info(message);
+    _logger.info(message);
   }
 
   private String buildStartupMessage() {
     Map<String, Object> lines = new LinkedHashMap<>();
     lines.put("time", Instant.now().toString());
     lines.put("java", System.getProperty("java.version"));
-    lines.put("profiles.active", join(environment.getActiveProfiles()));
+    lines.put("profiles.active", join(_environment.getActiveProfiles()));
 
-    buildPropertiesProvider.ifAvailable(build -> {
+    _buildPropertiesProvider.ifAvailable(build -> {
       lines.put("app.group", build.getGroup());
       lines.put("app.artifact", build.getArtifact());
       lines.put("app.name", build.getName());
@@ -95,61 +95,61 @@ public class StartupInfoLogger {
       lines.putIfAbsent("app.implementationVersion", implementationVersion);
     }
 
-    lines.put("das.producer.variant", nullToEmpty(dasProducerConfiguration.getVariant()));
-    lines.put("das.producer.vendorCode", nullToEmpty(dasProducerConfiguration.getVendorCode()));
+    lines.put("das.producer.variant", nullToEmpty(_dasProducerConfiguration.getVariant()));
+    lines.put("das.producer.vendorCode", nullToEmpty(_dasProducerConfiguration.getVendorCode()));
     lines.put(
         "das.producer.amplitudesPrPackage",
-        dasProducerConfiguration.getAmplitudesPrPackage()
+        _dasProducerConfiguration.getAmplitudesPrPackage()
     );
     lines.put(
         "das.producer.initiatorserviceUrl",
-        nullToEmpty(dasProducerConfiguration.getInitiatorserviceUrl())
+        nullToEmpty(_dasProducerConfiguration.getInitiatorserviceUrl())
     );
     lines.put(
         "das.producer.acquisitionStartVersion",
-        nullToEmpty(dasProducerConfiguration.getAcquisitionStartVersion())
+        nullToEmpty(_dasProducerConfiguration.getAcquisitionStartVersion())
     );
     lines.put(
         "das.producer.overrideBootstrapServersWith",
-        nullToEmpty(dasProducerConfiguration.getOverrideBootstrapServersWith())
+        nullToEmpty(_dasProducerConfiguration.getOverrideBootstrapServersWith())
     );
     lines.put(
         "das.producer.overrideSchemaRegistryWith",
-        nullToEmpty(dasProducerConfiguration.getOverrideSchemaRegistryWith())
+        nullToEmpty(_dasProducerConfiguration.getOverrideSchemaRegistryWith())
     );
 
-    if (dasProducerConfiguration.getRemoteControl() != null) {
+    if (_dasProducerConfiguration.getRemoteControl() != null) {
       lines.put(
           "das.producer.remoteControl.enabled",
-          dasProducerConfiguration.getRemoteControl().isEnabled()
+          _dasProducerConfiguration.getRemoteControl().isEnabled()
       );
       lines.put(
           "das.producer.remoteControl.profilesDirectory",
-          nullToEmpty(dasProducerConfiguration.getRemoteControl().getProfilesDirectory())
+          nullToEmpty(_dasProducerConfiguration.getRemoteControl().getProfilesDirectory())
       );
       lines.put(
           "das.producer.remoteControl.apiKey",
-          masked("REMOTE_CONTROL_API_KEY", dasProducerConfiguration.getRemoteControl().getApiKey())
+          masked("REMOTE_CONTROL_API_KEY", _dasProducerConfiguration.getRemoteControl().getApiKey())
       );
     }
     lines.put(
         "das.producer.initiatorserviceApiKey",
-        masked("INITIATOR_API_KEY", dasProducerConfiguration.getInitiatorserviceApiKey())
+        masked("INITIATOR_API_KEY", _dasProducerConfiguration.getInitiatorserviceApiKey())
     );
 
-    kafkaConfigurationProvider.ifAvailable(kafka -> {
+    _kafkaConfigurationProvider.ifAvailable(kafka -> {
       lines.put("das.producer.kafka.topic", nullToEmpty(kafka.getTopic()));
       lines.put("das.producer.kafka.partitions", kafka.getPartitions());
     });
 
-    String variant = nullToEmpty(dasProducerConfiguration.getVariant());
+    String variant = nullToEmpty(_dasProducerConfiguration.getVariant());
     if ("SimulatorBoxUnit".equalsIgnoreCase(variant)) {
-      simulatorBoxUnitConfigurationProvider.ifAvailable(cfg -> putSimulatorBoxUnit(lines, cfg));
+      _simulatorBoxUnitConfigurationProvider.ifAvailable(cfg -> putSimulatorBoxUnit(lines, cfg));
     } else if ("StaticDataUnit".equalsIgnoreCase(variant)) {
-      staticDataUnitConfigurationProvider.ifAvailable(cfg -> putStaticDataUnit(lines, cfg));
+      _staticDataUnitConfigurationProvider.ifAvailable(cfg -> putStaticDataUnit(lines, cfg));
     } else {
-      simulatorBoxUnitConfigurationProvider.ifAvailable(cfg -> putSimulatorBoxUnit(lines, cfg));
-      staticDataUnitConfigurationProvider.ifAvailable(cfg -> putStaticDataUnit(lines, cfg));
+      _simulatorBoxUnitConfigurationProvider.ifAvailable(cfg -> putSimulatorBoxUnit(lines, cfg));
+      _staticDataUnitConfigurationProvider.ifAvailable(cfg -> putStaticDataUnit(lines, cfg));
     }
 
     StringBuilder sb = new StringBuilder(512);

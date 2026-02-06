@@ -40,16 +40,16 @@ import org.springframework.stereotype.Component;
 public class KafkaSender {
 
   private final AtomicReference<
-      List<KafkaProducer<DASMeasurementKey, DASMeasurement>>> producersRef =
+      List<KafkaProducer<DASMeasurementKey, DASMeasurement>>> _producersRef =
         new AtomicReference<>();
-  private final MeterRegistry meterRegistry;
+  private final MeterRegistry _meterRegistry;
 
   public boolean isRunning = true;
 
-  private static final Logger logger = LoggerFactory.getLogger(KafkaSender.class);
+  private static final Logger _logger = LoggerFactory.getLogger(KafkaSender.class);
 
   public KafkaSender(MeterRegistry meterRegistry) {
-    this.meterRegistry = meterRegistry;
+    _meterRegistry = meterRegistry;
   }
 
   public void setProducer(KafkaProducer<DASMeasurementKey, DASMeasurement> producer) {
@@ -65,7 +65,7 @@ public class KafkaSender {
       return;
     }
     List<KafkaProducer<DASMeasurementKey, DASMeasurement>> previous =
-        producersRef.getAndSet(List.copyOf(producers));
+      _producersRef.getAndSet(List.copyOf(producers));
     closeProducers(previous);
     isRunning = true;
   }
@@ -75,7 +75,7 @@ public class KafkaSender {
       // logger.info("Producer not running");
       return;
     }
-    List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers = producersRef.get();
+    List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers = _producersRef.get();
     if (producers == null || producers.isEmpty()) {
       return;
     }
@@ -88,7 +88,7 @@ public class KafkaSender {
         longToBytes(data.value().getStartSnapshotTimeNano() / 1000000)
     );
     producer.send(data, null);
-    meterRegistry.counter("ngrmdf_messages",
+    _meterRegistry.counter("ngrmdf_messages",
       "destinationTopic", data.topic()
     ).increment();
   }
@@ -102,7 +102,7 @@ public class KafkaSender {
 
 
   public void close() {
-    List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers = producersRef.getAndSet(null);
+    List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers = _producersRef.getAndSet(null);
     closeProducers(producers);
     isRunning = false;
   }
@@ -130,12 +130,12 @@ public class KafkaSender {
       try {
         producer.flush();
       } catch (Exception e) {
-        logger.warn("Exception flushing producer: {}", e.getMessage());
+        _logger.warn("Exception flushing producer: {}", e.getMessage());
       }
       try {
         producer.close(Duration.ofMillis(1000));
       } catch (Exception e) {
-        logger.warn("Exception closing producer: {}", e.getMessage());
+        _logger.warn("Exception closing producer: {}", e.getMessage());
       }
     }
   }

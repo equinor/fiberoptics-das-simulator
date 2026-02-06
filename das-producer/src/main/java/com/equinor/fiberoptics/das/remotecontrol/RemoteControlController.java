@@ -40,14 +40,14 @@ import org.springframework.web.bind.annotation.RestController;
 )
 public class RemoteControlController {
 
-  private final RemoteControlService remoteControlService;
-  private final DasProducerConfiguration dasProducerConfiguration;
+  private final RemoteControlService _remoteControlService;
+  private final DasProducerConfiguration _dasProducerConfiguration;
 
   public RemoteControlController(
       RemoteControlService remoteControlService,
       DasProducerConfiguration dasProducerConfiguration) {
-    this.remoteControlService = remoteControlService;
-    this.dasProducerConfiguration = dasProducerConfiguration;
+    _remoteControlService = remoteControlService;
+    _dasProducerConfiguration = dasProducerConfiguration;
     ensureApiKeyConfigured();
   }
 
@@ -56,7 +56,7 @@ public class RemoteControlController {
       @RequestHeader(value = "X-Api-Key", required = false) String apiKey,
       @RequestBody String acquisitionJson) {
     verifyApiKey(apiKey);
-    remoteControlService.apply(acquisitionJson);
+    _remoteControlService.apply(acquisitionJson);
     return ResponseEntity.ok().build();
   }
 
@@ -65,7 +65,7 @@ public class RemoteControlController {
       @RequestHeader(value = "X-Api-Key", required = false) String apiKey,
       @RequestBody(required = false) String acquisitionJson) {
     verifyApiKey(apiKey);
-    RemoteControlService.StopResult result = remoteControlService.stop(
+    RemoteControlService.StopResult result = _remoteControlService.stop(
         Optional.ofNullable(acquisitionJson)
     );
     return result == RemoteControlService.StopResult.NOT_FOUND
@@ -74,23 +74,23 @@ public class RemoteControlController {
   }
 
   private void verifyApiKey(String apiKey) {
-    if (dasProducerConfiguration.getRemoteControl() == null) {
+    if (_dasProducerConfiguration.getRemoteControl() == null) {
       return;
     }
-    String configured = dasProducerConfiguration.getRemoteControl().getApiKey();
+    String configured = _dasProducerConfiguration.getRemoteControl().getApiKey();
     if (apiKey == null || !configured.equals(apiKey)) {
       throw new RemoteControlService.UnauthorizedException();
     }
   }
 
   private void ensureApiKeyConfigured() {
-    if (dasProducerConfiguration.getRemoteControl() == null) {
+    if (_dasProducerConfiguration.getRemoteControl() == null) {
       return;
     }
-    if (!dasProducerConfiguration.getRemoteControl().isEnabled()) {
+    if (!_dasProducerConfiguration.getRemoteControl().isEnabled()) {
       return;
     }
-    String configured = dasProducerConfiguration.getRemoteControl().getApiKey();
+    String configured = _dasProducerConfiguration.getRemoteControl().getApiKey();
     if (configured == null || configured.isBlank()) {
       throw new IllegalStateException(
         "Remote control is enabled but no API key is configured. "

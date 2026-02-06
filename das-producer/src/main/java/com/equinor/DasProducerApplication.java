@@ -61,12 +61,12 @@ import org.springframework.retry.annotation.EnableRetry;
 @EnableRetry
 public class DasProducerApplication {
 
-  private static final Logger logger = LoggerFactory.getLogger(DasProducerApplication.class);
+  private static final Logger _logger = LoggerFactory.getLogger(DasProducerApplication.class);
   private final BeanFactory _beanFactory;
   private final DasProducerConfiguration _dasProducerConfig;
   private final KafkaRelay _kafkaRelay;
   private final DasProducerFactory _dasProducerFactory;
-  private final AtomicBoolean shutdownHookRegistered = new AtomicBoolean(false);
+  private final AtomicBoolean _shutdownHookRegistered = new AtomicBoolean(false);
 
   @Autowired
   public DasProducerApplication(
@@ -74,10 +74,10 @@ public class DasProducerApplication {
       DasProducerConfiguration dasProducerConfig,
       KafkaRelay kafkaRelay,
       DasProducerFactory dasProducerFactory) {
-    this._beanFactory = beanFactory;
-    this._dasProducerConfig = dasProducerConfig;
-    this._kafkaRelay = kafkaRelay;
-    this._dasProducerFactory = dasProducerFactory;
+    _beanFactory = beanFactory;
+    _dasProducerConfig = dasProducerConfig;
+    _kafkaRelay = kafkaRelay;
+    _dasProducerFactory = dasProducerFactory;
   }
 
   public static void main(final String[] args) {
@@ -86,11 +86,11 @@ public class DasProducerApplication {
 
   @EventListener
   public void onApplicationEvent(ApplicationReadyEvent event) {
-    logger.info("ApplicationReadyEvent");
+    _logger.info("ApplicationReadyEvent");
 
     if (_dasProducerConfig.getRemoteControl() != null
         && _dasProducerConfig.getRemoteControl().isEnabled()) {
-      logger.info(
+        _logger.info(
           "Remote-control mode enabled. Waiting for POST /api/acquisition/apply to start producing."
       );
       return;
@@ -117,7 +117,7 @@ public class DasProducerApplication {
         .subscribe(
             relayToKafka,
             ex -> {
-              logger.warn("Error emitted from producer: {}", ex.getMessage());
+              _logger.warn("Error emitted from producer: {}", ex.getMessage());
               _dasProducerFactory.stopAcquisitionBestEffort(
                   _dasProducerFactory.getLastAcquisitionId()
               );
@@ -133,18 +133,18 @@ public class DasProducerApplication {
 
     Helpers.wait(latch);
     _kafkaRelay.teardown();
-    logger.info("Job done. Exiting.");
+    _logger.info("Job done. Exiting.");
     if (exitWhenDone) {
       System.exit(0);
     }
   }
 
   private void registerShutdownHook() {
-    if (!shutdownHookRegistered.compareAndSet(false, true)) {
+    if (!_shutdownHookRegistered.compareAndSet(false, true)) {
       return;
     }
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-      logger.info("Shutdown hook triggered. Sending stop signal.");
+      _logger.info("Shutdown hook triggered. Sending stop signal.");
       _dasProducerFactory.stopAcquisitionBestEffort(
           _dasProducerFactory.getLastAcquisitionId()
       );

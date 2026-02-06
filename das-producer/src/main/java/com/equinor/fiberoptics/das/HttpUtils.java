@@ -42,7 +42,7 @@ import org.springframework.web.client.RestTemplate;
 
 @Service
 public class HttpUtils {
-  private static final Logger logger = LoggerFactory.getLogger(HttpUtils.class);
+  private static final Logger _logger = LoggerFactory.getLogger(HttpUtils.class);
   private final SimulatorBoxUnitConfiguration _simBoxConfig;
   private final DasProducerConfiguration _dasProducerConfig;
 
@@ -121,14 +121,14 @@ public class HttpUtils {
           .execute()
           .getStatusCode();
     } catch (Exception e) {
-      logger.info(
+      _logger.info(
           "Got an exception when querying {}. Got: {}",
           service,
           e.getMessage()
       );
       return false;
     }
-    logger.info("Got status code {}", statusCode);
+    _logger.info("Got status code {}", statusCode);
     return statusCode.is2xxSuccessful();
   }
 

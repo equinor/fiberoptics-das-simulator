@@ -30,7 +30,7 @@ import static com.equinor.fiberoptics.das.producer.variants.util.Helpers.nanosIn
 
 public class PackageStepCalculator {
 
-  private static final Logger logger = LoggerFactory.getLogger(PackageStepCalculator.class);
+  private static final Logger _logger = LoggerFactory.getLogger(PackageStepCalculator.class);
 
   private final long _nanosPrPackage;
   private final double _secondsPrPackage;
@@ -59,7 +59,7 @@ public class PackageStepCalculator {
     _loci = loci;
     _currentStep = 0;
 
-    logger.info("Package step calculator initialized for start: {}, maximumFrequency, {}, amplitudesPrPackage:{}, loci: {}",
+    _logger.info("Package step calculator initialized for start: {}, maximumFrequency, {}, amplitudesPrPackage:{}, loci: {}",
       Instant.ofEpochMilli(startTimeEpochNano / 1_000_000), maximumFrequency, amplitudesPrPackage, loci);
   }
 
@@ -117,13 +117,13 @@ public class PackageStepCalculator {
    * @param times the number of steps to increment
    */
   public void increment(int times) {
-    if (logger.isDebugEnabled()) {
-      logger.debug("Update timepoint: {}", Instant.ofEpochMilli(_currentTimePointNanos / millisInNano));
+    if (_logger.isDebugEnabled()) {
+      _logger.debug("Update timepoint: {}", Instant.ofEpochMilli(_currentTimePointNanos / millisInNano));
     }
     _currentTimePointNanos += (_nanosPrPackage * times);
     _currentStep += times;
-    if (logger.isDebugEnabled()) {
-      logger.debug("New timepoint: {}", Instant.ofEpochMilli(_currentTimePointNanos / millisInNano));
+    if (_logger.isDebugEnabled()) {
+      _logger.debug("New timepoint: {}", Instant.ofEpochMilli(_currentTimePointNanos / millisInNano));
     }
   }
 

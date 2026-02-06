@@ -27,7 +27,7 @@ import java.util.concurrent.CountDownLatch;
 
 public class Helpers {
 
-  private static final Logger logger = LoggerFactory.getLogger(Helpers.class);
+  private static final Logger _logger = LoggerFactory.getLogger(Helpers.class);
   public final static long millisInNano = 1_000_000;
   public final static long nanosInSecond = 1_000_000_000;
 
@@ -40,7 +40,7 @@ public class Helpers {
     try {
       Thread.sleep(millis);
     } catch (InterruptedException e) {
-      logger.error("Interrupted Thread");
+      _logger.error("Interrupted Thread");
       throw new RuntimeException("Interrupted thread");
     }
   }
@@ -54,7 +54,7 @@ public class Helpers {
     try {
       Thread.sleep(millis, nanosPart);
     } catch (InterruptedException e) {
-      logger.error("Interrupted Thread");
+      _logger.error("Interrupted Thread");
       throw new RuntimeException("Interrupted thread");
     }
   }
@@ -63,7 +63,7 @@ public class Helpers {
     try {
       waitOn.await();
     } catch (InterruptedException e) {
-      logger.error("Interrupted waiting on CountDownLatch");
+      _logger.error("Interrupted waiting on CountDownLatch");
       throw new RuntimeException("Interrupted thread");
     }
   }

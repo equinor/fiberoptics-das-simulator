@@ -41,7 +41,7 @@ public class RandomDataCache {
   private int _currentIndex = 0;
   private final int _numberOfPrepoluatedValues;
 
-  private static final Logger logger = LoggerFactory.getLogger(RandomDataCache.class);
+  private static final Logger _logger = LoggerFactory.getLogger(RandomDataCache.class);
 
   public RandomDataCache(
     int numberOfPrePopuluatedValues,
@@ -84,24 +84,24 @@ public class RandomDataCache {
   }
 
   private List<Long>[] prepareLongEntries() {
-    logger.info("Pre-populating {} long buffer values.", _numberOfPrepoluatedValues);
+    _logger.info("Pre-populating {} long buffer values.", _numberOfPrepoluatedValues);
     @SuppressWarnings("unchecked")
     List<Long>[] toReturn = new List[_numberOfPrepoluatedValues];
     for (int i = 0; i < _numberOfPrepoluatedValues; i++) {
       toReturn[i] = new LongArrayList(getAmplitudesLong(i));
     }
-    logger.info("Done.");
+    _logger.info("Done.");
     return toReturn;
   }
 
   private List<Float>[] prepareFloatEntries() {
-    logger.info("Pre-populating {} float buffer values.", _numberOfPrepoluatedValues);
+    _logger.info("Pre-populating {} float buffer values.", _numberOfPrepoluatedValues);
     @SuppressWarnings("unchecked")
     List<Float>[] toReturn = new List[_numberOfPrepoluatedValues];
     for (int i = 0; i < _numberOfPrepoluatedValues; i++) {
       toReturn[i] = new FloatArrayList(getAmplitudesFloat(i));
     }
-    logger.info("Done.");
+    _logger.info("Done.");
     return toReturn;
   }
 
@@ -136,38 +136,38 @@ public class RandomDataCache {
   }
 
   private static final class FloatArrayList extends AbstractList<Float> implements RandomAccess {
-    private final float[] data;
+    private final float[] _data;
 
     private FloatArrayList(float[] data) {
-      this.data = data;
+      _data = data;
     }
 
     @Override
     public Float get(int index) {
-      return data[index];
+      return _data[index];
     }
 
     @Override
     public int size() {
-      return data.length;
+      return _data.length;
     }
   }
 
   private static final class LongArrayList extends AbstractList<Long> implements RandomAccess {
-    private final long[] data;
+    private final long[] _data;
 
     private LongArrayList(long[] data) {
-      this.data = data;
+      _data = data;
     }
 
     @Override
     public Long get(int index) {
-      return data[index];
+      return _data[index];
     }
 
     @Override
     public int size() {
-      return data.length;
+      return _data.length;
     }
   }
 }

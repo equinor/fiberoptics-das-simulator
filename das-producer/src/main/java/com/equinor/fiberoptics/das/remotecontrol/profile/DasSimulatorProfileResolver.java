@@ -32,14 +32,14 @@ import org.springframework.stereotype.Component;
 @Component
 public class DasSimulatorProfileResolver implements AcquisitionProfileResolver {
 
-  private final DasProducerConfiguration dasProducerConfiguration;
-  private final ObjectMapper objectMapper;
+  private final DasProducerConfiguration _dasProducerConfiguration;
+  private final ObjectMapper _objectMapper;
 
   public DasSimulatorProfileResolver(
       DasProducerConfiguration dasProducerConfiguration,
       ObjectMapper objectMapper) {
-    this.dasProducerConfiguration = dasProducerConfiguration;
-    this.objectMapper = objectMapper;
+    _dasProducerConfiguration = dasProducerConfiguration;
+    _objectMapper = objectMapper;
   }
 
   @Override
@@ -63,8 +63,8 @@ public class DasSimulatorProfileResolver implements AcquisitionProfileResolver {
     }
 
     String profilesDirectory;
-    if (dasProducerConfiguration.getRemoteControl() != null) {
-      profilesDirectory = dasProducerConfiguration.getRemoteControl()
+    if (_dasProducerConfiguration.getRemoteControl() != null) {
+      profilesDirectory = _dasProducerConfiguration.getRemoteControl()
         .getProfilesDirectory();
     } else {
       profilesDirectory = "remote-control-profiles";
@@ -85,7 +85,7 @@ public class DasSimulatorProfileResolver implements AcquisitionProfileResolver {
 
     try {
       String json = Files.readString(profileFile, StandardCharsets.UTF_8);
-      objectMapper.readTree(json);
+      _objectMapper.readTree(json);
       return json;
     } catch (AcquisitionProfileNotFoundException e) {
       throw e;
