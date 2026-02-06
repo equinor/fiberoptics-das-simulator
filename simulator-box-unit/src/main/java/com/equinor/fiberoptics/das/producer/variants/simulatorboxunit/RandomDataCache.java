@@ -17,15 +17,15 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
-package com.equinor.fiberoptics.das.producer.variants.simulatorboxunit;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+package com.equinor.fiberoptics.das.producer.variants.simulatorboxunit;
 
 import java.util.AbstractList;
 import java.util.List;
 import java.util.Random;
 import java.util.RandomAccess;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A very simple data-source that provides random(ish) data.
@@ -41,10 +41,14 @@ public class RandomDataCache {
   private int _currentIndex = 0;
   private final int _numberOfPrepoluatedValues;
 
-
   private static final Logger logger = LoggerFactory.getLogger(RandomDataCache.class);
 
-  public RandomDataCache(int numberOfPrePopuluatedValues, int amplitudesPrPackage, int pulseRate, String dataType) {
+  public RandomDataCache(
+    int numberOfPrePopuluatedValues,
+    int amplitudesPrPackage,
+    int pulseRate,
+    String dataType
+  ) {
     _amplitudesPrPackage = amplitudesPrPackage;
     _pulseRate = pulseRate;
     _numberOfPrepoluatedValues = numberOfPrePopuluatedValues;
@@ -89,6 +93,7 @@ public class RandomDataCache {
     logger.info("Done.");
     return toReturn;
   }
+
   private List<Float>[] prepareFloatEntries() {
     logger.info("Pre-populating {} float buffer values.", _numberOfPrepoluatedValues);
     @SuppressWarnings("unchecked")
@@ -106,8 +111,10 @@ public class RandomDataCache {
     long[] toReturn = new long[_amplitudesPrPackage];
     Random myRand = new Random();
     for (int currentTimeIndex = 0; currentTimeIndex < _amplitudesPrPackage; currentTimeIndex++) {
-      long val = (long) (Math.sin(myRand.nextLong() * 2 * Math.PI)*(_pulseRate+ timeIndex));
-        //(long) Math.sin( timeIndex / _pulseRate * myRand.nextLong() * 2 * Math.PI);
+      long val = (long) (
+        Math.sin(myRand.nextLong() * 2 * Math.PI) * (_pulseRate + timeIndex)
+      );
+      // (long) Math.sin(timeIndex / _pulseRate * myRand.nextLong() * 2 * Math.PI);
 
       toReturn[currentTimeIndex] = val;
     }
@@ -119,8 +126,9 @@ public class RandomDataCache {
     float[] toReturn = new float[_amplitudesPrPackage];
     Random myRand = new Random();
     for (int currentTimeIndex = 0; currentTimeIndex < _amplitudesPrPackage; currentTimeIndex++) {
-      double val =
-        Math.sin((double) timeIndex / _pulseRate * myRand.nextFloat() * 2 * Math.PI);
+      double val = Math.sin(
+        (double) timeIndex / _pulseRate * myRand.nextFloat() * 2 * Math.PI
+      );
 
       toReturn[currentTimeIndex] = (float) val;
     }

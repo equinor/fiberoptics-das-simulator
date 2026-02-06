@@ -17,6 +17,7 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
+
 package com.equinor.fiberoptics.das.remotecontrol.profile;
 
 import com.fasterxml.jackson.databind.JsonNode;

@@ -17,16 +17,17 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
+
 package com.equinor.fiberoptics.das.producer;
 
+import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import java.util.Map;
-
 /**
- * Configuration class for the DAS random adapter that creates pseudo-random amplitude values for the DAS simulator.
+ * Configuration class for the DAS random adapter that creates pseudo-random amplitude values
+ * for the DAS simulator.
  *
  * @author Espen Tjonneland, espen@tjonneland.no
  */
@@ -65,7 +66,8 @@ public class DasProducerConfiguration {
     private String apiKey;
 
     /**
-     * Directory containing remote-control profiles as JSON files named {@code <das-simulator-profile>.json}.
+     * Directory containing remote-control profiles as JSON files named
+     * {@code <das-simulator-profile>.json}.
      */
     private String profilesDirectory = "remote-control-profiles";
   }

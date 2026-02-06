@@ -17,32 +17,32 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
+
 package com.equinor.kafka;
+
+import static com.equinor.fiberoptics.das.producer.variants.util.Helpers.millisInNano;
 
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
 import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
+import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.InterruptException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.RejectedExecutionHandler;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static com.equinor.fiberoptics.das.producer.variants.util.Helpers.millisInNano;
 
 @Component
 public class KafkaRelay {
@@ -56,24 +56,29 @@ public class KafkaRelay {
   private final AtomicBoolean shuttingDown = new AtomicBoolean(false);
 
   KafkaRelay(
-    KafkaConfiguration kafkaConfig,
-    KafkaSender kafkaSendChannel,
-    DasProducerConfiguration dasProducerConfiguration) {
+      KafkaConfiguration kafkaConfig,
+      KafkaSender kafkaSendChannel,
+      DasProducerConfiguration dasProducerConfiguration) {
     this._kafkaConf = kafkaConfig;
     this._kafkaSendChannel = kafkaSendChannel;
     this._dasProducerConfig = dasProducerConfiguration;
   }
 
-  public void relayToKafka(PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> partitionEntry) {
+  public void relayToKafka(
+      PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> partitionEntry
+  ) {
     if (shuttingDown.get()) {
       return;
     }
-    int currentPartition = _dasProducerConfig.getPartitionAssignments().get(partitionEntry.value.getLocus()); //Use the one from stream initiator (Simulator mode)
-    ProducerRecord<DASMeasurementKey, DASMeasurement> data =
-      new ProducerRecord(_kafkaConf.getTopic(),
+    int currentPartition = _dasProducerConfig.getPartitionAssignments()
+        .get(partitionEntry.value.getLocus());
+    ProducerRecord<DASMeasurementKey, DASMeasurement> data = new ProducerRecord(
+        _kafkaConf.getTopic(),
         currentPartition,
         partitionEntry.value.getStartSnapshotTimeNano() / millisInNano,
-        partitionEntry.key, partitionEntry.value);
+        partitionEntry.key,
+        partitionEntry.value
+    );
     try {
       ExecutorService executor = executorForPartition(currentPartition);
       long enqueueStartNanos = System.nanoTime();
@@ -82,23 +87,39 @@ public class KafkaRelay {
           _kafkaSendChannel.send(data);
         } catch (InterruptException e) {
           if (!shuttingDown.get()) {
-            logger.warn("Interrupted while sending to partition {}: {}", currentPartition, e.getMessage());
+            logger.warn(
+                "Interrupted while sending to partition {}: {}",
+                currentPartition,
+                e.getMessage()
+            );
           }
           Thread.currentThread().interrupt();
         } catch (Exception e) {
           if (!shuttingDown.get()) {
-            logger.warn("Failed to send to partition {}: {}", currentPartition, e.getMessage());
+            logger.warn(
+                "Failed to send to partition {}: {}",
+                currentPartition,
+                e.getMessage()
+            );
           }
         }
       });
       maybeWarnOnBlockedEnqueue(currentPartition, executor, enqueueStartNanos);
     } catch (RejectedExecutionException e) {
       if (!shuttingDown.get()) {
-        logger.warn("Send rejected for partition {}: {}", currentPartition, e.getMessage());
+        logger.warn(
+            "Send rejected for partition {}: {}",
+            currentPartition,
+            e.getMessage()
+        );
       }
     }
-    logger.debug("Now: {}, sent fiber shot with content nano-timestamp: {}, and index timestamp: {}",
-      System.currentTimeMillis(), data.value().getStartSnapshotTimeNano(), data.timestamp());
+    logger.debug(
+        "Now: {}, sent fiber shot with content nano-timestamp: {}, and index timestamp: {}",
+        System.currentTimeMillis(),
+        data.value().getStartSnapshotTimeNano(),
+        data.timestamp()
+    );
   }
 
   public void teardown() {
@@ -137,35 +158,54 @@ public class KafkaRelay {
       return thread;
     };
 
-    RejectedExecutionHandler rejectionHandler = new BlockingEnqueuePolicy(shuttingDown, enqueueTimeoutMillis);
+    RejectedExecutionHandler rejectionHandler = new BlockingEnqueuePolicy(
+        shuttingDown,
+        enqueueTimeoutMillis
+    );
     ThreadPoolExecutor executor = new ThreadPoolExecutor(
-      1,
-      1,
-      0L,
-      TimeUnit.MILLISECONDS,
-      queue,
-      threadFactory,
-      rejectionHandler
+        1,
+        1,
+        0L,
+        TimeUnit.MILLISECONDS,
+        queue,
+        threadFactory,
+        rejectionHandler
     );
     return executor;
   }
 
-  private void maybeWarnOnBlockedEnqueue(int partition, ExecutorService executor, long enqueueStartNanos) {
+  private void maybeWarnOnBlockedEnqueue(
+      int partition,
+      ExecutorService executor,
+      long enqueueStartNanos) {
     long warnMillis = _kafkaConf.getRelayEnqueueWarnMillis();
     if (warnMillis <= 0) {
       return;
     }
-    long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - enqueueStartNanos);
+    long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(
+        System.nanoTime() - enqueueStartNanos
+    );
     if (elapsedMillis < warnMillis) {
       return;
     }
     if (executor instanceof ThreadPoolExecutor tpe) {
       int queueSize = tpe.getQueue().size();
       int queueCapacity = queueSize + tpe.getQueue().remainingCapacity();
-      logger.warn("Backpressure: blocked {}ms enqueueing send to partition {} (queue {}/{}, activeThreads={})",
-        elapsedMillis, partition, queueSize, queueCapacity, tpe.getActiveCount());
+      logger.warn(
+          "Backpressure: blocked {}ms enqueueing send to partition {} "
+            + "(queue {}/{}, activeThreads={})",
+          elapsedMillis,
+          partition,
+          queueSize,
+          queueCapacity,
+          tpe.getActiveCount()
+      );
     } else {
-      logger.warn("Backpressure: blocked {}ms enqueueing send to partition {}", elapsedMillis, partition);
+      logger.warn(
+          "Backpressure: blocked {}ms enqueueing send to partition {}",
+          elapsedMillis,
+          partition
+      );
     }
   }
 
@@ -188,9 +228,15 @@ public class KafkaRelay {
           executor.getQueue().put(r);
           return;
         }
-        boolean accepted = executor.getQueue().offer(r, enqueueTimeoutMillis, TimeUnit.MILLISECONDS);
+        boolean accepted = executor.getQueue().offer(
+            r,
+            enqueueTimeoutMillis,
+            TimeUnit.MILLISECONDS
+        );
         if (!accepted) {
-          throw new RejectedExecutionException("Timed out waiting for queue space (" + enqueueTimeoutMillis + "ms)");
+          throw new RejectedExecutionException(
+              "Timed out waiting for queue space (" + enqueueTimeoutMillis + "ms)"
+          );
         }
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();

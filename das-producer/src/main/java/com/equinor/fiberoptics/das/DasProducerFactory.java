@@ -17,6 +17,7 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
+
 package com.equinor.fiberoptics.das;
 
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
@@ -28,23 +29,24 @@ import com.google.gson.JsonParser;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
 import jakarta.annotation.PreDestroy;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.SpringApplication;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Bean;
-import org.springframework.stereotype.Component;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.stereotype.Component;
 
 @Component
 public class DasProducerFactory {
@@ -58,9 +60,12 @@ public class DasProducerFactory {
   private final ApplicationContext _applicationContext;
   private final AtomicReference<String> lastAcquisitionId = new AtomicReference<>();
 
-  DasProducerFactory(KafkaConfiguration kafkaConfig, HttpUtils http, DasProducerConfiguration dasProducerConfig,
-                     KafkaSender kafkaSender,
-                     ApplicationContext applicationContext) {
+  DasProducerFactory(
+      KafkaConfiguration kafkaConfig,
+      HttpUtils http,
+      DasProducerConfiguration dasProducerConfig,
+      KafkaSender kafkaSender,
+      ApplicationContext applicationContext) {
     _configuration = kafkaConfig;
     _httpUtils = http;
     _dasProducerConfig = dasProducerConfig;
@@ -76,22 +81,26 @@ public class DasProducerFactory {
 
   @Bean
   @ConditionalOnProperty(
-    prefix = "das.producer.remote-control",
-    name = "enabled",
-    havingValue = "false",
-    matchIfMissing = true)
+      prefix = "das.producer.remote-control",
+      name = "enabled",
+      havingValue = "false",
+      matchIfMissing = true)
   public KafkaProducer<DASMeasurementKey, DASMeasurement> producerFactory() {
     List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers =
-      createProducersFromAcquisitionJsonInternal(null, true);
+        createProducersFromAcquisitionJsonInternal(null, true);
     kafkaSender.setProducers(producers);
     return producers.get(0);
   }
 
-  public KafkaProducer<DASMeasurementKey, DASMeasurement> createProducerFromAcquisitionJson(String acquisitionJson) {
+  public KafkaProducer<DASMeasurementKey, DASMeasurement> createProducerFromAcquisitionJson(
+      String acquisitionJson
+  ) {
     return createProducerFromAcquisitionJsonInternal(acquisitionJson, false);
   }
 
-  public List<KafkaProducer<DASMeasurementKey, DASMeasurement>> createProducersFromAcquisitionJson(String acquisitionJson) {
+  public List<KafkaProducer<DASMeasurementKey, DASMeasurement>> createProducersFromAcquisitionJson(
+      String acquisitionJson
+  ) {
     return createProducersFromAcquisitionJsonInternal(acquisitionJson, false);
   }
 
@@ -106,24 +115,32 @@ public class DasProducerFactory {
     try {
       _httpUtils.stopAcquisition(acquisitionId);
     } catch (Exception e) {
-      logger.warn("Best-effort stop acquisition failed for {}: {}", acquisitionId, e.getMessage());
+      logger.warn(
+          "Best-effort stop acquisition failed for {}: {}",
+          acquisitionId,
+          e.getMessage()
+      );
     }
   }
 
-  private KafkaProducer<DASMeasurementKey, DASMeasurement> createProducerFromAcquisitionJsonInternal(
-    String acquisitionJson,
-    boolean exitOnInvalidPartitions) {
+  private KafkaProducer<DASMeasurementKey, DASMeasurement>
+        createProducerFromAcquisitionJsonInternal(
+      String acquisitionJson,
+      boolean exitOnInvalidPartitions) {
     List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers =
-      createProducersFromAcquisitionJsonInternal(acquisitionJson, exitOnInvalidPartitions);
+        createProducersFromAcquisitionJsonInternal(acquisitionJson, exitOnInvalidPartitions);
     return producers.get(0);
   }
 
-  private List<KafkaProducer<DASMeasurementKey, DASMeasurement>> createProducersFromAcquisitionJsonInternal(
-    String acquisitionJson,
-    boolean exitOnInvalidPartitions) {
+  private List<KafkaProducer<DASMeasurementKey, DASMeasurement>>
+        createProducersFromAcquisitionJsonInternal(
+      String acquisitionJson,
+      boolean exitOnInvalidPartitions) {
     String effectiveAcquisitionJson = acquisitionJson;
     if (effectiveAcquisitionJson == null || effectiveAcquisitionJson.isBlank()) {
-      HttpUtils.SchemaVersions version = HttpUtils.SchemaVersions.valueOf(_dasProducerConfig.getAcquisitionStartVersion());
+      HttpUtils.SchemaVersions version = HttpUtils.SchemaVersions.valueOf(
+          _dasProducerConfig.getAcquisitionStartVersion()
+      );
       effectiveAcquisitionJson = version == HttpUtils.SchemaVersions.V1
         ? _httpUtils.asV1Json()
         : _httpUtils.asV2Json();
@@ -131,53 +148,68 @@ public class DasProducerFactory {
     extractAcquisitionId(effectiveAcquisitionJson).ifPresent(lastAcquisitionId::set);
 
     AcquisitionStartDto acquisition = startAcquisitionWithPreflight(effectiveAcquisitionJson);
-    logger.info("Got TOPIC={}, BOOTSTRAP_SERVERS={}, SCHEMA_REGISTRY={}, NUMBER_OF_PARTITIONS={}",
-      acquisition.getTopic(), acquisition.getBootstrapServers(), acquisition.getSchemaRegistryUrl(),
-      acquisition.getNumberOfPartitions());
+    logger.info(
+        "Got TOPIC={}, BOOTSTRAP_SERVERS={}, SCHEMA_REGISTRY={}, NUMBER_OF_PARTITIONS={}",
+        acquisition.getTopic(),
+        acquisition.getBootstrapServers(),
+        acquisition.getSchemaRegistryUrl(),
+        acquisition.getNumberOfPartitions()
+    );
     if (acquisition.getNumberOfPartitions() <= 0) {
       if (exitOnInvalidPartitions) {
-        logger.error("We are unable to run when the destination topic has {} partitions. Exiting.",
-          acquisition.getNumberOfPartitions());
+        logger.error(
+            "We are unable to run when the destination topic has {} partitions. Exiting.",
+            acquisition.getNumberOfPartitions()
+        );
         logger.info("Stopping");
         int exitValue = SpringApplication.exit(_applicationContext);
         System.exit(exitValue);
       }
-      throw new IllegalStateException("Unable to run when the destination topic has " + acquisition.getNumberOfPartitions()
-        + " partitions.");
+      throw new IllegalStateException(
+        "Unable to run when the destination topic has "
+          + acquisition.getNumberOfPartitions()
+          + " partitions."
+      );
     }
 
     String actualSchemaRegistryServers;
     if (_dasProducerConfig.getOverrideSchemaRegistryWith() != null
-      && !_dasProducerConfig.getOverrideSchemaRegistryWith().isBlank()) {
+        && !_dasProducerConfig.getOverrideSchemaRegistryWith().isBlank()) {
       actualSchemaRegistryServers = _dasProducerConfig.getOverrideSchemaRegistryWith();
-      logger.info("Overriding incoming schema registry server {} with: {}", acquisition.getSchemaRegistryUrl(),
-        actualSchemaRegistryServers);
+      logger.info(
+          "Overriding incoming schema registry server {} with: {}",
+          acquisition.getSchemaRegistryUrl(),
+          actualSchemaRegistryServers
+      );
     } else {
       actualSchemaRegistryServers = acquisition.getSchemaRegistryUrl();
     }
     logger.info("Preflight checking if Schema registry is alive.");
-    while (!_httpUtils.checkIfServiceIsFine(actualSchemaRegistryServers)) {
-      //Just do it
-      logger.info("Trying to reach {} looking for a 200 OK.", actualSchemaRegistryServers);
-      try {
-        Thread.sleep(5000);
-      } catch (InterruptedException e) {
-        logger.warn("Unable to sleep");
-      }
-    }
+    waitForServiceOrTimeout(
+        actualSchemaRegistryServers,
+        () -> _httpUtils.checkIfServiceIsFine(actualSchemaRegistryServers),
+        "Schema registry",
+        "schema registry"
+    );
     _dasProducerConfig.setPartitionAssignments(acquisition.getPartitionAssignments());
     _configuration.setTopic(acquisition.getTopic());
     _configuration.setPartitions(acquisition.getNumberOfPartitions());
     String actualBootstrapServeras;
     if (_dasProducerConfig.getOverrideBootstrapServersWith() != null
-      && !_dasProducerConfig.getOverrideBootstrapServersWith().isBlank()) {
+        && !_dasProducerConfig.getOverrideBootstrapServersWith().isBlank()) {
       actualBootstrapServeras = _dasProducerConfig.getOverrideBootstrapServersWith();
-      logger.info("Overriding incoming bootstrap server {} with: {}", acquisition.getBootstrapServers(),
-        actualBootstrapServeras);
+      logger.info(
+          "Overriding incoming bootstrap server {} with: {}",
+          acquisition.getBootstrapServers(),
+          actualBootstrapServeras
+      );
     } else {
       actualBootstrapServeras = acquisition.getBootstrapServers();
     }
-    Map<String, Object> baseProps = _configuration.kafkaProperties(actualBootstrapServeras, actualSchemaRegistryServers);
+    Map<String, Object> baseProps = _configuration.kafkaProperties(
+        actualBootstrapServeras,
+        actualSchemaRegistryServers
+    );
     int configuredInstances = Math.max(1, _configuration.getProducerInstances());
     int partitionsInAssignment = 0;
     try {
@@ -188,8 +220,13 @@ public class DasProducerFactory {
     int effectivePartitionCount = Math.max(1, partitionsInAssignment);
     int instances = Math.min(configuredInstances, effectivePartitionCount);
     if (instances < configuredInstances) {
-      logger.info("Reducing Kafka producer instances from {} to {} (partition assignments cover {} partitions).",
-        configuredInstances, instances, effectivePartitionCount);
+      logger.info(
+          "Reducing Kafka producer instances from {} to {} "
+              + "(partition assignments cover {} partitions).",
+          configuredInstances,
+          instances,
+          effectivePartitionCount
+      );
     }
     List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers = new ArrayList<>(instances);
     for (int i = 0; i < instances; i++) {
@@ -207,18 +244,19 @@ public class DasProducerFactory {
 
   private AcquisitionStartDto startAcquisitionWithPreflight(String acquisitionJson) {
     logger.info("Preflight checking if initiator service is alive.");
-    while (true) {
-      String healthCheckSi = _dasProducerConfig.getInitiatorserviceUrl().trim() + "/actuator/health";
-      if (_httpUtils.checkIfServiceIsFine(healthCheckSi)) break;
-      logger.info("Trying to reach Stream initiator service on: {} looking for a 200 OK.", healthCheckSi);
-      try {
-        Thread.sleep(5000);
-      } catch (InterruptedException e) {
-        logger.warn("Unable to sleep");
-      }
-    }
+    String healthCheckSi = _dasProducerConfig.getInitiatorserviceUrl().trim()
+        + "/actuator/health";
+    waitForServiceOrTimeout(
+        healthCheckSi,
+        () -> _httpUtils.checkIfServiceIsFine(healthCheckSi),
+        "Stream initiator",
+        "initiator service"
+    );
 
-    logger.info("Calling start acquisition on URL {}", _dasProducerConfig.getInitiatorserviceUrl().trim());
+    logger.info(
+        "Calling start acquisition on URL {}",
+        _dasProducerConfig.getInitiatorserviceUrl().trim()
+    );
     return _httpUtils.startAcquisition(acquisitionJson);
   }
 
@@ -232,8 +270,40 @@ public class DasProducerFactory {
         return Optional.ofNullable(obj.get("acquisitionId")).map(e -> e.getAsString());
       }
     } catch (Exception e) {
-      logger.warn("Unable to extract AcquisitionId from acquisition JSON: {}", e.getMessage());
+      logger.warn(
+          "Unable to extract AcquisitionId from acquisition JSON: {}",
+          e.getMessage()
+      );
     }
     return Optional.empty();
+  }
+
+  private void waitForServiceOrTimeout(
+      String url,
+      BooleanSupplier isHealthy,
+      String serviceDisplayName,
+      String environmentComponentName) {
+    long deadlineNanos = System.nanoTime() + TimeUnit.MINUTES.toNanos(5);
+    while (!isHealthy.getAsBoolean()) {
+      if (System.nanoTime() > deadlineNanos) {
+        throw new IllegalStateException(
+            serviceDisplayName
+                + " did not become healthy within 5 minutes. "
+                + "This indicates an environment configuration error. "
+                + "Last attempted URL: "
+                + url
+        );
+      }
+      logger.info(
+          "Trying to reach {} at {} looking for a 200 OK.",
+          environmentComponentName,
+          url
+      );
+      try {
+        Thread.sleep(5000);
+      } catch (InterruptedException e) {
+        logger.warn("Unable to sleep");
+      }
+    }
   }
 }

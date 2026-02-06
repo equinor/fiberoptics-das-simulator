@@ -17,17 +17,17 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
+
 package com.equinor.fiberoptics.das.remotecontrol.profile;
 
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
 import com.equinor.fiberoptics.das.remotecontrol.RemoteControlService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.stereotype.Component;
-
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.springframework.stereotype.Component;
 
 @Component
 public class DasSimulatorProfileResolver implements AcquisitionProfileResolver {
@@ -35,7 +35,9 @@ public class DasSimulatorProfileResolver implements AcquisitionProfileResolver {
   private final DasProducerConfiguration dasProducerConfiguration;
   private final ObjectMapper objectMapper;
 
-  public DasSimulatorProfileResolver(DasProducerConfiguration dasProducerConfiguration, ObjectMapper objectMapper) {
+  public DasSimulatorProfileResolver(
+      DasProducerConfiguration dasProducerConfiguration,
+      ObjectMapper objectMapper) {
     this.dasProducerConfiguration = dasProducerConfiguration;
     this.objectMapper = objectMapper;
   }
@@ -43,12 +45,16 @@ public class DasSimulatorProfileResolver implements AcquisitionProfileResolver {
   @Override
   public String resolveAcquisitionJson(JsonNode customNode) {
     if (customNode == null || customNode.isNull() || !customNode.isObject()) {
-      throw new RemoteControlService.BadRequestException("Custom must be an object and include das-simulator-profile.");
+      throw new RemoteControlService.BadRequestException(
+        "Custom must be an object and include das-simulator-profile."
+      );
     }
 
     JsonNode profileNode = customNode.get("das-simulator-profile");
     if (profileNode == null || !profileNode.isTextual() || profileNode.asText().isBlank()) {
-      throw new RemoteControlService.BadRequestException("Custom.das-simulator-profile is required.");
+      throw new RemoteControlService.BadRequestException(
+        "Custom.das-simulator-profile is required."
+      );
     }
 
     String profileId = profileNode.asText().trim();
@@ -56,9 +62,13 @@ public class DasSimulatorProfileResolver implements AcquisitionProfileResolver {
       throw new RemoteControlService.BadRequestException("Invalid das-simulator-profile value.");
     }
 
-    String profilesDirectory = dasProducerConfiguration.getRemoteControl() != null
-      ? dasProducerConfiguration.getRemoteControl().getProfilesDirectory()
-      : "remote-control-profiles";
+    String profilesDirectory;
+    if (dasProducerConfiguration.getRemoteControl() != null) {
+      profilesDirectory = dasProducerConfiguration.getRemoteControl()
+        .getProfilesDirectory();
+    } else {
+      profilesDirectory = "remote-control-profiles";
+    }
     if (profilesDirectory == null || profilesDirectory.isBlank()) {
       profilesDirectory = "remote-control-profiles";
     }
@@ -80,7 +90,10 @@ public class DasSimulatorProfileResolver implements AcquisitionProfileResolver {
     } catch (AcquisitionProfileNotFoundException e) {
       throw e;
     } catch (Exception e) {
-      throw new IllegalStateException("Profile file " + profileFile + " could not be read/parsed: " + e.getMessage(), e);
+      throw new IllegalStateException(
+        "Profile file " + profileFile + " could not be read/parsed: " + e.getMessage(),
+        e
+      );
     }
   }
 }

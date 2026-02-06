@@ -98,6 +98,7 @@
                 <root>src/test/java</root>
               </roots>
               <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
+              <emptyLineAfterHeader>true</emptyLineAfterHeader>
               <processStartTag>========================LICENSE_START=================================</processStartTag>
               <processEndTag>=========================LICENSE_END==================================</processEndTag>
             </configuration>

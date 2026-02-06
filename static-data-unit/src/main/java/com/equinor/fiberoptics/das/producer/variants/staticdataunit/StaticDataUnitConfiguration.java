@@ -17,13 +17,13 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
+
 package com.equinor.fiberoptics.das.producer.variants.staticdataunit;
 
+import java.time.Instant;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-
-import java.time.Instant;
 
 /**
  * Configuration class for the DAS box unit
@@ -49,9 +49,10 @@ public class StaticDataUnitConfiguration {
   private long timeLagDropMillis;
 
   public Instant getStartTimeInstant() {
-    return startTimeEpochSecond==0 ? Instant.now() : Instant.ofEpochSecond(startTimeEpochSecond);
+    return startTimeEpochSecond == 0
+      ? Instant.now()
+      : Instant.ofEpochSecond(startTimeEpochSecond);
   }
-
 
   public boolean isDisableThrottling() {
     return disableThrottling;

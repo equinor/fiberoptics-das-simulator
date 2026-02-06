@@ -17,11 +17,17 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
+
 package com.equinor.kafka;
 
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.nio.ByteBuffer;
+import java.time.Duration;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Headers;
@@ -30,16 +36,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.stereotype.Component;
 
-import java.nio.ByteBuffer;
-import java.time.Duration;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
-
 @Component
 public class KafkaSender {
 
-  private final AtomicReference<List<KafkaProducer<DASMeasurementKey, DASMeasurement>>> producersRef = new AtomicReference<>();
+  private final AtomicReference<
+      List<KafkaProducer<DASMeasurementKey, DASMeasurement>>> producersRef =
+        new AtomicReference<>();
   private final MeterRegistry meterRegistry;
 
   public boolean isRunning = true;
@@ -58,10 +60,12 @@ public class KafkaSender {
   }
 
   public void setProducers(List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers) {
-    if (producers == null || producers.isEmpty() || producers.stream().anyMatch(Objects::isNull)) {
+    if (producers == null || producers.isEmpty()
+        || producers.stream().anyMatch(Objects::isNull)) {
       return;
     }
-    List<KafkaProducer<DASMeasurementKey, DASMeasurement>> previous = producersRef.getAndSet(List.copyOf(producers));
+    List<KafkaProducer<DASMeasurementKey, DASMeasurement>> previous =
+        producersRef.getAndSet(List.copyOf(producers));
     closeProducers(previous);
     isRunning = true;
   }
@@ -75,10 +79,14 @@ public class KafkaSender {
     if (producers == null || producers.isEmpty()) {
       return;
     }
-    KafkaProducer<DASMeasurementKey, DASMeasurement> producer = producerForPartition(producers, data.partition());
+    KafkaProducer<DASMeasurementKey, DASMeasurement> producer =
+        producerForPartition(producers, data.partition());
 
     Headers headers = data.headers();
-    headers.add(KafkaHeaders.TIMESTAMP, longToBytes(data.value().getStartSnapshotTimeNano() / 1000000));
+    headers.add(
+        KafkaHeaders.TIMESTAMP,
+        longToBytes(data.value().getStartSnapshotTimeNano() / 1000000)
+    );
     producer.send(data, null);
     meterRegistry.counter("ngrmdf_messages",
       "destinationTopic", data.topic()
@@ -100,8 +108,8 @@ public class KafkaSender {
   }
 
   private KafkaProducer<DASMeasurementKey, DASMeasurement> producerForPartition(
-    List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers,
-    Integer partition) {
+      List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers,
+      Integer partition) {
     if (producers.size() == 1) {
       return producers.get(0);
     }
@@ -110,7 +118,8 @@ public class KafkaSender {
     return producers.get(idx);
   }
 
-  private void closeProducers(List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers) {
+  private void closeProducers(
+      List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers) {
     if (producers == null || producers.isEmpty()) {
       return;
     }

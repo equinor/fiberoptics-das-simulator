@@ -17,19 +17,20 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
+
 package com.equinor.kafka;
 
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
- * Configuration for the Kafka Producer. The config elements that directly relates to Kafka can also be found here
- * <a href="http://kafka.apache.org/documentation.html#producerconfigs">Kafka documentation</a>
+ * Configuration for the Kafka Producer. The config elements that directly relates to Kafka can
+ * also be found here <a href="http://kafka.apache.org/documentation.html#producerconfigs">Kafka
+ * documentation</a>
  *
  * @author Espen Tjønneland - espen@tjonneland.no
  */
@@ -41,22 +42,23 @@ public class KafkaConfiguration {
   private int partitions;
   /**
    * Number of KafkaProducer instances to use in this process.
-   * <p>
-   * Each producer has its own buffer and background IO, which can improve throughput in high-volume scenarios.
-   * Partitions are deterministically mapped to a producer to preserve per-partition ordering.
+   *
+   * <p>Each producer has its own buffer and background IO, which can improve throughput in
+   * high-volume scenarios. Partitions are deterministically mapped to a producer to preserve
+   * per-partition ordering.
    */
   private int producerInstances = 2;
   /**
    * Max number of pending send tasks per Kafka partition in {@link KafkaRelay}.
-   * <p>
-   * This is an application-level backpressure safeguard. When the queue is full, producers will block (or time out)
-   * instead of allowing unbounded memory growth.
+   *
+   * <p>This is an application-level backpressure safeguard. When the queue is full, producers
+   * will block (or time out) instead of allowing unbounded memory growth.
    */
   private int relayQueueCapacity = 100;
 
   /**
-   * How long {@link KafkaRelay} should block waiting for space in the per-partition queue when full.
-   * A value {@code <= 0} blocks indefinitely.
+   * How long {@link KafkaRelay} should block waiting for space in the per-partition queue when
+   * full. A value {@code <= 0} blocks indefinitely.
    */
   private long relayEnqueueTimeoutMillis = 0;
 
@@ -64,8 +66,8 @@ public class KafkaConfiguration {
    * Emit a warning log when enqueueing a send task blocks for longer than this threshold.
    */
   private long relayEnqueueWarnMillis = 1000;
-  public Map<String, Object> kafkaProperties(String bootstrapServers, String schemaRegistry) {
 
+  public Map<String, Object> kafkaProperties(String bootstrapServers, String schemaRegistry) {
     Map<String, Object> props = new HashMap<>();
     props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
     mergeProps(props, config);

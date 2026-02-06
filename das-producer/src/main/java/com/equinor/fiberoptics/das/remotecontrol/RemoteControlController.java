@@ -17,25 +17,35 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
+
 package com.equinor.fiberoptics.das.remotecontrol;
 
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
+import java.util.Optional;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.Optional;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping(path = "/api/acquisition")
-@ConditionalOnProperty(prefix = "das.producer.remote-control", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(
+    prefix = "das.producer.remote-control",
+    name = "enabled",
+    havingValue = "true"
+)
 public class RemoteControlController {
 
   private final RemoteControlService remoteControlService;
   private final DasProducerConfiguration dasProducerConfiguration;
 
-  public RemoteControlController(RemoteControlService remoteControlService, DasProducerConfiguration dasProducerConfiguration) {
+  public RemoteControlController(
+      RemoteControlService remoteControlService,
+      DasProducerConfiguration dasProducerConfiguration) {
     this.remoteControlService = remoteControlService;
     this.dasProducerConfiguration = dasProducerConfiguration;
     ensureApiKeyConfigured();
@@ -43,8 +53,8 @@ public class RemoteControlController {
 
   @PostMapping(path = "/apply", consumes = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<?> apply(
-    @RequestHeader(value = "X-Api-Key", required = false) String apiKey,
-    @RequestBody String acquisitionJson) {
+      @RequestHeader(value = "X-Api-Key", required = false) String apiKey,
+      @RequestBody String acquisitionJson) {
     verifyApiKey(apiKey);
     remoteControlService.apply(acquisitionJson);
     return ResponseEntity.ok().build();
@@ -52,10 +62,12 @@ public class RemoteControlController {
 
   @PostMapping(path = "/stop", consumes = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<?> stop(
-    @RequestHeader(value = "X-Api-Key", required = false) String apiKey,
-    @RequestBody(required = false) String acquisitionJson) {
+      @RequestHeader(value = "X-Api-Key", required = false) String apiKey,
+      @RequestBody(required = false) String acquisitionJson) {
     verifyApiKey(apiKey);
-    RemoteControlService.StopResult result = remoteControlService.stop(Optional.ofNullable(acquisitionJson));
+    RemoteControlService.StopResult result = remoteControlService.stop(
+        Optional.ofNullable(acquisitionJson)
+    );
     return result == RemoteControlService.StopResult.NOT_FOUND
       ? ResponseEntity.notFound().build()
       : ResponseEntity.ok().build();
@@ -81,7 +93,8 @@ public class RemoteControlController {
     String configured = dasProducerConfiguration.getRemoteControl().getApiKey();
     if (configured == null || configured.isBlank()) {
       throw new IllegalStateException(
-        "Remote control is enabled but no API key is configured. Set REMOTE_CONTROL_API_KEY (das.producer.remote-control.api-key)."
+        "Remote control is enabled but no API key is configured. "
+          + "Set REMOTE_CONTROL_API_KEY (das.producer.remote-control.api-key)."
       );
     }
   }

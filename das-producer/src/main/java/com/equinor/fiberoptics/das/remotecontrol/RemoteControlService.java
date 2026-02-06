@@ -17,14 +17,15 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
+
 package com.equinor.fiberoptics.das.remotecontrol;
 
 import com.equinor.fiberoptics.das.DasProducerFactory;
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
-import com.equinor.fiberoptics.das.remotecontrol.profile.AcquisitionProfileResolver;
 import com.equinor.fiberoptics.das.producer.variants.GenericDasProducer;
 import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
 import com.equinor.fiberoptics.das.producer.variants.simulatorboxunit.SimulatorBoxUnitConfiguration;
+import com.equinor.fiberoptics.das.remotecontrol.profile.AcquisitionProfileResolver;
 import com.equinor.kafka.KafkaRelay;
 import com.equinor.kafka.KafkaSender;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -33,14 +34,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import reactor.core.Disposable;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
@@ -48,6 +41,13 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import reactor.core.Disposable;
 
 @Service
 public class RemoteControlService {
@@ -68,14 +68,14 @@ public class RemoteControlService {
   private final AtomicReference<String> lastAppliedAcquisitionId = new AtomicReference<>();
 
   public RemoteControlService(
-    BeanFactory beanFactory,
-    DasProducerConfiguration dasProducerConfiguration,
-    SimulatorBoxUnitConfiguration simulatorBoxUnitConfiguration,
-    DasProducerFactory dasProducerFactory,
-    KafkaRelay kafkaRelay,
-    KafkaSender kafkaSender,
-    ObjectMapper objectMapper,
-    AcquisitionProfileResolver acquisitionProfileResolver) {
+      BeanFactory beanFactory,
+      DasProducerConfiguration dasProducerConfiguration,
+      SimulatorBoxUnitConfiguration simulatorBoxUnitConfiguration,
+      DasProducerFactory dasProducerFactory,
+      KafkaRelay kafkaRelay,
+      KafkaSender kafkaSender,
+      ObjectMapper objectMapper,
+      AcquisitionProfileResolver acquisitionProfileResolver) {
     this.beanFactory = beanFactory;
     this.dasProducerConfiguration = dasProducerConfiguration;
     this.simulatorBoxUnitConfiguration = simulatorBoxUnitConfiguration;
@@ -94,7 +94,9 @@ public class RemoteControlService {
 
   public synchronized void apply(String acquisitionJson) {
     if (acquisitionJson == null || acquisitionJson.isBlank()) {
-      throw new BadRequestException("Request body must be a DASAcquisition JSON payload.");
+      throw new BadRequestException(
+        "Request body must be a DASAcquisition JSON payload."
+      );
     }
 
     JsonNode root;
@@ -114,7 +116,10 @@ public class RemoteControlService {
     try {
       profileRoot = objectMapper.readTree(profileJson);
     } catch (Exception e) {
-      throw new IllegalStateException("Resolved profile JSON could not be parsed: " + e.getMessage(), e);
+      throw new IllegalStateException(
+        "Resolved profile JSON could not be parsed: " + e.getMessage(),
+        e
+      );
     }
 
     String hash = profileHash(profileRoot);
@@ -130,7 +135,10 @@ public class RemoteControlService {
         try {
           dasProducerFactory.stopAcquisitionBestEffort(previousAcquisitionId);
         } catch (Exception e) {
-          logger.warn("Best-effort stop acquisition threw. Continuing with switch. {}", e.getMessage());
+          logger.warn(
+              "Best-effort stop acquisition threw. Continuing with switch. {}",
+              e.getMessage()
+          );
         }
       }
     }
@@ -140,7 +148,10 @@ public class RemoteControlService {
     try {
       profileJsonWithNewIdentity = objectMapper.writeValueAsString(updatedProfileRoot);
     } catch (Exception e) {
-      throw new IllegalStateException("Failed to serialize updated profile JSON: " + e.getMessage(), e);
+      throw new IllegalStateException(
+        "Failed to serialize updated profile JSON: " + e.getMessage(),
+        e
+      );
     }
 
     applyAcquisitionToSimulatorConfiguration(updatedProfileRoot);
@@ -150,24 +161,30 @@ public class RemoteControlService {
     optionalText(updatedProfileRoot, "AcquisitionId").ifPresent(lastAppliedAcquisitionId::set);
     optionalText(updatedProfileRoot, "acquisitionId").ifPresent(lastAppliedAcquisitionId::set);
 
-    kafkaSender.setProducers(dasProducerFactory.createProducersFromAcquisitionJson(profileJsonWithNewIdentity));
+    kafkaSender.setProducers(
+        dasProducerFactory.createProducersFromAcquisitionJson(profileJsonWithNewIdentity)
+    );
 
-    GenericDasProducer simulator = beanFactory.getBean(dasProducerConfiguration.getVariant(), GenericDasProducer.class);
+    GenericDasProducer simulator = beanFactory.getBean(
+        dasProducerConfiguration.getVariant(),
+        GenericDasProducer.class
+    );
     Disposable disposable = simulator.produce()
-      .subscribe(
-        batch -> {
-          for (PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> entry : batch) {
-            kafkaRelay.relayToKafka(entry);
-          }
-        },
-        ex -> {
-          logger.warn("Error emitted from producer: {}", ex.getMessage(), ex);
-          stopCurrentInternal();
-        },
-        () -> {
-          logger.info("Producer completed.");
-          stopCurrentInternal();
-        });
+        .subscribe(
+            batch -> {
+              for (PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> entry : batch) {
+                kafkaRelay.relayToKafka(entry);
+              }
+            },
+            ex -> {
+              logger.warn("Error emitted from producer: {}", ex.getMessage(), ex);
+              stopCurrentInternal();
+            },
+            () -> {
+              logger.info("Producer completed.");
+              stopCurrentInternal();
+            }
+        );
 
     runDisposable.set(disposable);
     currentConfigHash.set(hash);
@@ -177,12 +194,14 @@ public class RemoteControlService {
 
   public synchronized StopResult stop(Optional<String> acquisitionJson) {
     Optional<String> requestedAcquisitionId = acquisitionJson
-      .flatMap(json -> extractStringField(json, "AcquisitionId", "acquisitionId"));
+        .flatMap(json -> extractStringField(json, "AcquisitionId", "acquisitionId"));
 
     if (!isRunning()) {
       if (requestedAcquisitionId.isPresent()) {
         String last = lastAppliedAcquisitionId.get();
-        return requestedAcquisitionId.get().equals(last) ? StopResult.ALREADY_STOPPED : StopResult.NOT_FOUND;
+        return requestedAcquisitionId.get().equals(last)
+          ? StopResult.ALREADY_STOPPED
+          : StopResult.NOT_FOUND;
       }
       return StopResult.ALREADY_STOPPED;
     }
@@ -199,7 +218,11 @@ public class RemoteControlService {
       try {
         dasProducerFactory.stopAcquisitionBestEffort(stopAcquisitionId);
       } catch (Exception e) {
-        logger.warn("Best-effort stop acquisition failed for {}: {}", stopAcquisitionId, e.getMessage());
+        logger.warn(
+            "Best-effort stop acquisition failed for {}: {}",
+            stopAcquisitionId,
+            e.getMessage()
+        );
       }
     }
     stopCurrentInternal();
@@ -240,15 +263,25 @@ public class RemoteControlService {
     simulatorBoxUnitConfiguration.setNumberOfLoci(numberOfLoci);
     simulatorBoxUnitConfiguration.setStartLocusIndex(startLocusIndex);
 
-    optionalDouble(root, "PulseRate").ifPresent(v -> simulatorBoxUnitConfiguration.setPulseRate((int) Math.round(v)));
-    optionalDouble(root, "MaximumFrequency").ifPresent(v -> simulatorBoxUnitConfiguration.setMaxFreq((float) v.doubleValue()));
-    optionalDouble(root, "SpatialSamplingInterval").ifPresent(v -> simulatorBoxUnitConfiguration.setSpatialSamplingInterval((float) v.doubleValue()));
-    optionalDouble(root, "GaugeLength").ifPresent(v -> simulatorBoxUnitConfiguration.setGaugeLength((float) v.doubleValue()));
-    optionalDouble(root, "PulseWidth").ifPresent(v -> simulatorBoxUnitConfiguration.setPulseWidth((float) v.doubleValue()));
+    optionalDouble(root, "PulseRate")
+        .ifPresent(v -> simulatorBoxUnitConfiguration.setPulseRate((int) Math.round(v)));
+    optionalDouble(root, "MaximumFrequency")
+        .ifPresent(v -> simulatorBoxUnitConfiguration.setMaxFreq((float) v.doubleValue()));
+    optionalDouble(root, "SpatialSamplingInterval")
+        .ifPresent(
+            v -> simulatorBoxUnitConfiguration.setSpatialSamplingInterval((float) v.doubleValue())
+        );
+    optionalDouble(root, "GaugeLength")
+        .ifPresent(v -> simulatorBoxUnitConfiguration.setGaugeLength((float) v.doubleValue()));
+    optionalDouble(root, "PulseWidth")
+        .ifPresent(v -> simulatorBoxUnitConfiguration.setPulseWidth((float) v.doubleValue()));
 
-    optionalText(root, "OpticalPathUUID").ifPresent(simulatorBoxUnitConfiguration::setOpticalPathUUID);
-    optionalText(root, "DasInstrumentBoxUUID").ifPresent(simulatorBoxUnitConfiguration::setBoxUUID);
-    optionalText(root, "VendorCode").ifPresent(dasProducerConfiguration::setVendorCode);
+    optionalText(root, "OpticalPathUUID")
+        .ifPresent(simulatorBoxUnitConfiguration::setOpticalPathUUID);
+    optionalText(root, "DasInstrumentBoxUUID")
+        .ifPresent(simulatorBoxUnitConfiguration::setBoxUUID);
+    optionalText(root, "VendorCode")
+        .ifPresent(dasProducerConfiguration::setVendorCode);
   }
 
   private ObjectNode withNewAcquisitionIdentity(JsonNode root) {
@@ -259,11 +292,20 @@ public class RemoteControlService {
     String newAcquisitionId = UUID.randomUUID().toString();
     String newMeasurementStartTime = Instant.now().toString();
     replaceIdentityField(mutable, "AcquisitionId", "acquisitionId", newAcquisitionId);
-    replaceIdentityField(mutable, "MeasurementStartTime", "measurementStartTime", newMeasurementStartTime);
+    replaceIdentityField(
+        mutable,
+        "MeasurementStartTime",
+        "measurementStartTime",
+        newMeasurementStartTime
+    );
     return mutable;
   }
 
-  private void replaceIdentityField(ObjectNode node, String primary, String secondary, String value) {
+  private void replaceIdentityField(
+      ObjectNode node,
+      String primary,
+      String secondary,
+      String value) {
     if (node.has(primary)) {
       node.put(primary, value);
       return;
@@ -278,7 +320,9 @@ public class RemoteControlService {
   private Integer requiredInt(JsonNode root, String fieldName) {
     JsonNode node = root.get(fieldName);
     if (node == null || !node.canConvertToInt()) {
-      throw new BadRequestException(fieldName + " is required and must be an integer.");
+      throw new BadRequestException(
+        fieldName + " is required and must be an integer."
+      );
     }
     return node.asInt();
   }

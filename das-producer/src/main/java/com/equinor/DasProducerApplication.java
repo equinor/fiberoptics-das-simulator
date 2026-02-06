@@ -17,18 +17,23 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
+
 package com.equinor;
 
 import com.equinor.fiberoptics.das.DasProducerFactory;
-import com.equinor.kafka.KafkaRelay;
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
 import com.equinor.fiberoptics.das.producer.variants.GenericDasProducer;
 import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
 import com.equinor.fiberoptics.das.producer.variants.simulatorboxunit.SimulatorBoxUnitConfiguration;
 import com.equinor.fiberoptics.das.producer.variants.util.Helpers;
 import com.equinor.kafka.KafkaConfiguration;
+import com.equinor.kafka.KafkaRelay;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
@@ -40,11 +45,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.event.EventListener;
 import org.springframework.retry.annotation.EnableRetry;
 
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
-
 /**
  * This is the entry point of the application.
  * It uses component scanning to find beans and configuration
@@ -53,9 +53,11 @@ import java.util.function.Consumer;
  * @author Espen Tjonneland, espen@tjonneland.no
  */
 @SpringBootApplication
-@EnableConfigurationProperties(
-  {DasProducerConfiguration.class, SimulatorBoxUnitConfiguration.class, KafkaConfiguration.class}
-  )
+@EnableConfigurationProperties({
+  DasProducerConfiguration.class,
+  SimulatorBoxUnitConfiguration.class,
+  KafkaConfiguration.class
+})
 @EnableRetry
 public class DasProducerApplication {
 
@@ -68,10 +70,10 @@ public class DasProducerApplication {
 
   @Autowired
   public DasProducerApplication(
-    BeanFactory beanFactory,
-    DasProducerConfiguration dasProducerConfig,
-    KafkaRelay kafkaRelay,
-    DasProducerFactory dasProducerFactory) {
+      BeanFactory beanFactory,
+      DasProducerConfiguration dasProducerConfig,
+      KafkaRelay kafkaRelay,
+      DasProducerFactory dasProducerFactory) {
     this._beanFactory = beanFactory;
     this._dasProducerConfig = dasProducerConfig;
     this._kafkaRelay = kafkaRelay;
@@ -86,35 +88,48 @@ public class DasProducerApplication {
   public void onApplicationEvent(ApplicationReadyEvent event) {
     logger.info("ApplicationReadyEvent");
 
-    if (_dasProducerConfig.getRemoteControl() != null && _dasProducerConfig.getRemoteControl().isEnabled()) {
-      logger.info("Remote-control mode enabled. Waiting for POST /api/acquisition/apply to start producing.");
+    if (_dasProducerConfig.getRemoteControl() != null
+        && _dasProducerConfig.getRemoteControl().isEnabled()) {
+      logger.info(
+          "Remote-control mode enabled. Waiting for POST /api/acquisition/apply to start producing."
+      );
       return;
     }
 
-    GenericDasProducer simulatorBoxUnit = _beanFactory.getBean(_dasProducerConfig.getVariant(), GenericDasProducer.class);
+    GenericDasProducer simulatorBoxUnit = _beanFactory.getBean(
+        _dasProducerConfig.getVariant(),
+        GenericDasProducer.class
+    );
     registerShutdownHook();
     runNonRemoteProducer(simulatorBoxUnit, true);
   }
 
   void runNonRemoteProducer(GenericDasProducer simulatorBoxUnit, boolean exitWhenDone) {
-    Consumer<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> relayToKafka = value -> {
-      for (PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> entry: value) {
-        _kafkaRelay.relayToKafka(entry);
-      }
-    };
+    Consumer<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> relayToKafka =
+        value -> {
+          for (PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> entry : value) {
+            _kafkaRelay.relayToKafka(entry);
+          }
+        };
 
     CountDownLatch latch = new CountDownLatch(1);
     simulatorBoxUnit.produce()
-      .subscribe(relayToKafka,
-        (ex) -> {
-          logger.warn("Error emitted from producer: {}", ex.getMessage());
-          _dasProducerFactory.stopAcquisitionBestEffort(_dasProducerFactory.getLastAcquisitionId());
-          latch.countDown();
-        },
-        () -> {
-          _dasProducerFactory.stopAcquisitionBestEffort(_dasProducerFactory.getLastAcquisitionId());
-          latch.countDown();
-        });
+        .subscribe(
+            relayToKafka,
+            ex -> {
+              logger.warn("Error emitted from producer: {}", ex.getMessage());
+              _dasProducerFactory.stopAcquisitionBestEffort(
+                  _dasProducerFactory.getLastAcquisitionId()
+              );
+              latch.countDown();
+            },
+            () -> {
+              _dasProducerFactory.stopAcquisitionBestEffort(
+                  _dasProducerFactory.getLastAcquisitionId()
+              );
+              latch.countDown();
+            }
+        );
 
     Helpers.wait(latch);
     _kafkaRelay.teardown();
@@ -130,7 +145,9 @@ public class DasProducerApplication {
     }
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
       logger.info("Shutdown hook triggered. Sending stop signal.");
-      _dasProducerFactory.stopAcquisitionBestEffort(_dasProducerFactory.getLastAcquisitionId());
+      _dasProducerFactory.stopAcquisitionBestEffort(
+          _dasProducerFactory.getLastAcquisitionId()
+      );
       _kafkaRelay.teardown();
     }, "das-producer-shutdown"));
   }

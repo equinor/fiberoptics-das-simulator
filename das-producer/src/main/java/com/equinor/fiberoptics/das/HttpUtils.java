@@ -17,6 +17,7 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
+
 package com.equinor.fiberoptics.das;
 
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
@@ -24,17 +25,20 @@ import com.equinor.fiberoptics.das.producer.dto.AcquisitionStartDto;
 import com.equinor.fiberoptics.das.producer.variants.simulatorboxunit.SimulatorBoxUnitConfiguration;
 import com.google.gson.Gson;
 import fiberoptics.config.acquisition.v1.Vendors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.*;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-
 import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 @Service
 public class HttpUtils {
@@ -49,21 +53,26 @@ public class HttpUtils {
   private static final String API_ENDPOINT = "/%s/acquisition/start";
   private static final String API_STOP_ENDPOINT = "/api/v1/acquisition/stop/%s";
 
-
   HttpUtils(SimulatorBoxUnitConfiguration simUnitConfig, DasProducerConfiguration dasProdConfig) {
     _simBoxConfig = simUnitConfig;
     _dasProducerConfig = dasProdConfig;
   }
 
   public AcquisitionStartDto startAcquisition() {
-    SchemaVersions version = SchemaVersions.valueOf(_dasProducerConfig.getAcquisitionStartVersion());
+    SchemaVersions version = SchemaVersions.valueOf(
+        _dasProducerConfig.getAcquisitionStartVersion()
+    );
     String json = version == SchemaVersions.V1 ? asV1Json() : asV2Json();
     return startAcquisition(json);
   }
 
   public AcquisitionStartDto startAcquisition(String acquisitionJson) {
-    SchemaVersions version = SchemaVersions.valueOf(_dasProducerConfig.getAcquisitionStartVersion());
-    String apiEndpoint = version == SchemaVersions.V1 ? String.format(API_ENDPOINT, "api") : String.format(API_ENDPOINT, "api/v2");
+    SchemaVersions version = SchemaVersions.valueOf(
+        _dasProducerConfig.getAcquisitionStartVersion()
+    );
+    String apiEndpoint = version == SchemaVersions.V1
+        ? String.format(API_ENDPOINT, "api")
+        : String.format(API_ENDPOINT, "api/v2");
 
     RestTemplate restTemplate = new RestTemplate();
     HttpHeaders headers = new HttpHeaders();
@@ -73,10 +82,11 @@ public class HttpUtils {
 
     var request = new HttpEntity<>(acquisitionJson, headers);
     var response = restTemplate.exchange(
-      _dasProducerConfig.getInitiatorserviceUrl() + apiEndpoint,
-      HttpMethod.POST,
-      request,
-      AcquisitionStartDto.class);
+        _dasProducerConfig.getInitiatorserviceUrl() + apiEndpoint,
+        HttpMethod.POST,
+        request,
+        AcquisitionStartDto.class
+    );
 
     return response.getBody();
   }
@@ -95,20 +105,27 @@ public class HttpUtils {
     String endpoint = String.format(API_STOP_ENDPOINT, acquisitionId);
     var request = new HttpEntity<>(null, headers);
     restTemplate.exchange(
-      _dasProducerConfig.getInitiatorserviceUrl() + endpoint,
-      HttpMethod.POST,
-      request,
-      Void.class);
+        _dasProducerConfig.getInitiatorserviceUrl() + endpoint,
+        HttpMethod.POST,
+        request,
+        Void.class
+    );
   }
 
   public boolean checkIfServiceIsFine(String service) {
     RestTemplate rt = new RestTemplate();
     HttpStatusCode statusCode;
     try {
-      statusCode = rt.getRequestFactory().createRequest(new URI(service), HttpMethod.GET)
-        .execute().getStatusCode();
+      statusCode = rt.getRequestFactory()
+          .createRequest(new URI(service), HttpMethod.GET)
+          .execute()
+          .getStatusCode();
     } catch (Exception e) {
-      logger.info("Got an exception when querying {}. Got: {}", service, e.getMessage());
+      logger.info(
+          "Got an exception when querying {}. Got: {}",
+          service,
+          e.getMessage()
+      );
       return false;
     }
     logger.info("Got status code {}", statusCode);
@@ -128,16 +145,16 @@ public class HttpUtils {
       _simBoxConfig.getSpatialSamplingInterval(),
       _simBoxConfig.getNumberOfLoci(),
       _simBoxConfig.getStartLocusIndex(),
-
-      (float)_simBoxConfig.getPulseRate()/2,
-      (float)_simBoxConfig.getPulseRate(),
+      (float) _simBoxConfig.getPulseRate() / 2,
+      (float) _simBoxConfig.getPulseRate(),
       _simBoxConfig.getPulseWidth(),
       fiberoptics.config.acquisition.v1.Units.ns,
       Vendors.valueOf(_dasProducerConfig.getVendorCode()),
       custom,
       _simBoxConfig.getOpticalPathUUID(),
       _simBoxConfig.getBoxUUID(),
-      acquisitionId));
+      acquisitionId
+    ));
   }
 
   public String asV2Json() {
@@ -153,15 +170,16 @@ public class HttpUtils {
       _simBoxConfig.getSpatialSamplingInterval(),
       _simBoxConfig.getNumberOfLoci(),
       _simBoxConfig.getStartLocusIndex(),
-      (float)_simBoxConfig.getPulseRate()/2,
-      (float)_simBoxConfig.getPulseRate(),
+      (float) _simBoxConfig.getPulseRate() / 2,
+      (float) _simBoxConfig.getPulseRate(),
       _simBoxConfig.getPulseWidth(),
       fiberoptics.config.acquisition.v2.Units.ns,
       _dasProducerConfig.getVendorCode(),
       custom,
       _simBoxConfig.getOpticalPathUUID(),
       _simBoxConfig.getBoxUUID(),
-      acquisitionId));
+      acquisitionId
+    ));
   }
 
 }

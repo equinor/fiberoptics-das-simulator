@@ -17,12 +17,20 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
+
 package com.equinor;
 
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
 import com.equinor.fiberoptics.das.producer.variants.simulatorboxunit.SimulatorBoxUnitConfiguration;
 import com.equinor.fiberoptics.das.producer.variants.staticdataunit.StaticDataUnitConfiguration;
 import com.equinor.kafka.KafkaConfiguration;
+import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.StringJoiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -31,14 +39,6 @@ import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
-
-import java.time.Instant;
-import java.util.LinkedHashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.StringJoiner;
 
 @Component
 public class StartupInfoLogger {
@@ -53,12 +53,12 @@ public class StartupInfoLogger {
   private final ObjectProvider<KafkaConfiguration> kafkaConfigurationProvider;
 
   public StartupInfoLogger(
-    Environment environment,
-    ObjectProvider<BuildProperties> buildPropertiesProvider,
-    DasProducerConfiguration dasProducerConfiguration,
-    ObjectProvider<SimulatorBoxUnitConfiguration> simulatorBoxUnitConfigurationProvider,
-    ObjectProvider<StaticDataUnitConfiguration> staticDataUnitConfigurationProvider,
-    ObjectProvider<KafkaConfiguration> kafkaConfigurationProvider
+      Environment environment,
+      ObjectProvider<BuildProperties> buildPropertiesProvider,
+      DasProducerConfiguration dasProducerConfiguration,
+      ObjectProvider<SimulatorBoxUnitConfiguration> simulatorBoxUnitConfigurationProvider,
+      ObjectProvider<StaticDataUnitConfiguration> staticDataUnitConfigurationProvider,
+      ObjectProvider<KafkaConfiguration> kafkaConfigurationProvider
   ) {
     this.environment = environment;
     this.buildPropertiesProvider = buildPropertiesProvider;
@@ -89,26 +89,53 @@ public class StartupInfoLogger {
     });
 
     String implementationVersion = Optional.ofNullable(StartupInfoLogger.class.getPackage())
-      .map(Package::getImplementationVersion)
-      .orElse(null);
+        .map(Package::getImplementationVersion)
+        .orElse(null);
     if (implementationVersion != null && !implementationVersion.isBlank()) {
       lines.putIfAbsent("app.implementationVersion", implementationVersion);
     }
 
     lines.put("das.producer.variant", nullToEmpty(dasProducerConfiguration.getVariant()));
     lines.put("das.producer.vendorCode", nullToEmpty(dasProducerConfiguration.getVendorCode()));
-    lines.put("das.producer.amplitudesPrPackage", dasProducerConfiguration.getAmplitudesPrPackage());
-    lines.put("das.producer.initiatorserviceUrl", nullToEmpty(dasProducerConfiguration.getInitiatorserviceUrl()));
-    lines.put("das.producer.acquisitionStartVersion", nullToEmpty(dasProducerConfiguration.getAcquisitionStartVersion()));
-    lines.put("das.producer.overrideBootstrapServersWith", nullToEmpty(dasProducerConfiguration.getOverrideBootstrapServersWith()));
-    lines.put("das.producer.overrideSchemaRegistryWith", nullToEmpty(dasProducerConfiguration.getOverrideSchemaRegistryWith()));
+    lines.put(
+        "das.producer.amplitudesPrPackage",
+        dasProducerConfiguration.getAmplitudesPrPackage()
+    );
+    lines.put(
+        "das.producer.initiatorserviceUrl",
+        nullToEmpty(dasProducerConfiguration.getInitiatorserviceUrl())
+    );
+    lines.put(
+        "das.producer.acquisitionStartVersion",
+        nullToEmpty(dasProducerConfiguration.getAcquisitionStartVersion())
+    );
+    lines.put(
+        "das.producer.overrideBootstrapServersWith",
+        nullToEmpty(dasProducerConfiguration.getOverrideBootstrapServersWith())
+    );
+    lines.put(
+        "das.producer.overrideSchemaRegistryWith",
+        nullToEmpty(dasProducerConfiguration.getOverrideSchemaRegistryWith())
+    );
 
     if (dasProducerConfiguration.getRemoteControl() != null) {
-      lines.put("das.producer.remoteControl.enabled", dasProducerConfiguration.getRemoteControl().isEnabled());
-      lines.put("das.producer.remoteControl.profilesDirectory", nullToEmpty(dasProducerConfiguration.getRemoteControl().getProfilesDirectory()));
-      lines.put("das.producer.remoteControl.apiKey", masked("REMOTE_CONTROL_API_KEY", dasProducerConfiguration.getRemoteControl().getApiKey()));
+      lines.put(
+          "das.producer.remoteControl.enabled",
+          dasProducerConfiguration.getRemoteControl().isEnabled()
+      );
+      lines.put(
+          "das.producer.remoteControl.profilesDirectory",
+          nullToEmpty(dasProducerConfiguration.getRemoteControl().getProfilesDirectory())
+      );
+      lines.put(
+          "das.producer.remoteControl.apiKey",
+          masked("REMOTE_CONTROL_API_KEY", dasProducerConfiguration.getRemoteControl().getApiKey())
+      );
     }
-    lines.put("das.producer.initiatorserviceApiKey", masked("INITIATOR_API_KEY", dasProducerConfiguration.getInitiatorserviceApiKey()));
+    lines.put(
+        "das.producer.initiatorserviceApiKey",
+        masked("INITIATOR_API_KEY", dasProducerConfiguration.getInitiatorserviceApiKey())
+    );
 
     kafkaConfigurationProvider.ifAvailable(kafka -> {
       lines.put("das.producer.kafka.topic", nullToEmpty(kafka.getTopic()));
@@ -130,17 +157,30 @@ public class StartupInfoLogger {
     for (Map.Entry<String, Object> e : lines.entrySet()) {
       String key = e.getKey();
       Object value = e.getValue();
-      sb.append("  ").append(key).append(": ").append(renderValue(key, value)).append("\n");
+      sb.append("  ")
+          .append(key)
+          .append(": ")
+          .append(renderValue(key, value))
+          .append("\n");
     }
     appendSelectedEnvironmentVariables(sb);
     return sb.toString().trim();
   }
 
   private void putSimulatorBoxUnit(Map<String, Object> lines, SimulatorBoxUnitConfiguration cfg) {
-    lines.put("das.producer.box.simulator.boxUUID", nullToEmpty(cfg.getBoxUUID()));
-    lines.put("das.producer.box.simulator.opticalPathUUID", nullToEmpty(cfg.getOpticalPathUUID()));
+    lines.put(
+        "das.producer.box.simulator.boxUUID",
+        nullToEmpty(cfg.getBoxUUID())
+    );
+    lines.put(
+        "das.producer.box.simulator.opticalPathUUID",
+        nullToEmpty(cfg.getOpticalPathUUID())
+    );
     lines.put("das.producer.box.simulator.gaugeLength", cfg.getGaugeLength());
-    lines.put("das.producer.box.simulator.spatialSamplingInterval", cfg.getSpatialSamplingInterval());
+    lines.put(
+        "das.producer.box.simulator.spatialSamplingInterval",
+        cfg.getSpatialSamplingInterval()
+    );
     lines.put("das.producer.box.simulator.pulseWidth", cfg.getPulseWidth());
     lines.put("das.producer.box.simulator.startLocusIndex", cfg.getStartLocusIndex());
     lines.put("das.producer.box.simulator.pulseRate", cfg.getPulseRate());
@@ -149,14 +189,32 @@ public class StartupInfoLogger {
     lines.put("das.producer.box.simulator.numberOfLoci", cfg.getNumberOfLoci());
     lines.put("das.producer.box.simulator.disableThrottling", cfg.isDisableThrottling());
     lines.put("das.producer.box.simulator.amplitudesPrPackage", cfg.getAmplitudesPrPackage());
-    lines.put("das.producer.box.simulator.numberOfPrePopulatedValues", cfg.getNumberOfPrePopulatedValues());
+    lines.put(
+        "das.producer.box.simulator.numberOfPrePopulatedValues",
+        cfg.getNumberOfPrePopulatedValues()
+    );
     lines.put("das.producer.box.simulator.numberOfShots", cfg.getNumberOfShots());
     lines.put("das.producer.box.simulator.secondsToRun", cfg.getSecondsToRun());
-    lines.put("das.producer.box.simulator.startTimeEpochSecond", cfg.getStartTimeEpochSecond());
-    lines.put("das.producer.box.simulator.timePacingEnabled", cfg.isTimePacingEnabled());
-    lines.put("das.producer.box.simulator.timeLagWarnMillis", cfg.getTimeLagWarnMillis());
-    lines.put("das.producer.box.simulator.timeLagDropMillis", cfg.getTimeLagDropMillis());
-    lines.put("das.producer.box.simulator.amplitudeDataType", nullToEmpty(cfg.getAmplitudeDataType()));
+    lines.put(
+        "das.producer.box.simulator.startTimeEpochSecond",
+        cfg.getStartTimeEpochSecond()
+    );
+    lines.put(
+        "das.producer.box.simulator.timePacingEnabled",
+        cfg.isTimePacingEnabled()
+    );
+    lines.put(
+        "das.producer.box.simulator.timeLagWarnMillis",
+        cfg.getTimeLagWarnMillis()
+    );
+    lines.put(
+        "das.producer.box.simulator.timeLagDropMillis",
+        cfg.getTimeLagDropMillis()
+    );
+    lines.put(
+        "das.producer.box.simulator.amplitudeDataType",
+        nullToEmpty(cfg.getAmplitudeDataType())
+    );
   }
 
   private void putStaticDataUnit(Map<String, Object> lines, StaticDataUnitConfiguration cfg) {
@@ -168,11 +226,26 @@ public class StartupInfoLogger {
     lines.put("das.producer.box.static.numberOfShots", cfg.getNumberOfShots());
     lines.put("das.producer.box.static.maxFreq", cfg.getMaxFreq());
     lines.put("das.producer.box.static.secondsToRun", cfg.getSecondsToRun());
-    lines.put("das.producer.box.static.startTimeEpochSecond", cfg.getStartTimeEpochSecond());
-    lines.put("das.producer.box.static.timePacingEnabled", cfg.isTimePacingEnabled());
-    lines.put("das.producer.box.static.timeLagWarnMillis", cfg.getTimeLagWarnMillis());
-    lines.put("das.producer.box.static.timeLagDropMillis", cfg.getTimeLagDropMillis());
-    lines.put("das.producer.box.static.amplitudeDataType", nullToEmpty(cfg.getAmplitudeDataType()));
+    lines.put(
+        "das.producer.box.static.startTimeEpochSecond",
+        cfg.getStartTimeEpochSecond()
+    );
+    lines.put(
+        "das.producer.box.static.timePacingEnabled",
+        cfg.isTimePacingEnabled()
+    );
+    lines.put(
+        "das.producer.box.static.timeLagWarnMillis",
+        cfg.getTimeLagWarnMillis()
+    );
+    lines.put(
+        "das.producer.box.static.timeLagDropMillis",
+        cfg.getTimeLagDropMillis()
+    );
+    lines.put(
+        "das.producer.box.static.amplitudeDataType",
+        nullToEmpty(cfg.getAmplitudeDataType())
+    );
   }
 
   private void appendSelectedEnvironmentVariables(StringBuilder sb) {
