@@ -41,20 +41,6 @@ public class RemoteControlExceptionHandler {
     return build(status, ex.getErrorCode(), ex.getMessage(), request);
   }
 
-  @ExceptionHandler(IllegalStateException.class)
-  public ResponseEntity<ErrorResponse> handleIllegalState(
-      IllegalStateException ex,
-      HttpServletRequest request) {
-    return build(HttpStatus.INTERNAL_SERVER_ERROR, "RC-500", ex.getMessage(), request);
-  }
-
-  @ExceptionHandler(Exception.class)
-  public ResponseEntity<ErrorResponse> handleUnexpected(
-      Exception ex,
-      HttpServletRequest request) {
-    return build(HttpStatus.INTERNAL_SERVER_ERROR, "RC-500", ex.getMessage(), request);
-  }
-
   private ResponseEntity<ErrorResponse> build(
       HttpStatus status,
       String code,
