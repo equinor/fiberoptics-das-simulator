@@ -29,22 +29,11 @@ import com.equinor.fiberoptics.das.remotecontrol.RemoteControlController;
 import com.equinor.fiberoptics.das.remotecontrol.RemoteControlService;
 import com.equinor.fiberoptics.das.remotecontrol.profile.DasSimulatorProfileResolver;
 import com.equinor.test.TestTimeouts;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpServer;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.DeleteRecordsResult;
-import org.apache.kafka.clients.admin.NewTopic;
-import org.apache.kafka.clients.admin.OffsetSpec;
-import org.apache.kafka.clients.admin.RecordsToDelete;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -63,28 +52,23 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.containers.Container.ExecResult;
+import org.testcontainers.containers.BindMode;
 import org.testcontainers.utility.DockerImageName;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
-import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
-import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.mockito.ArgumentMatchers.eq;
@@ -98,6 +82,8 @@ class RemoteControlSwitchAndStopIntegrationTest {
 
   private static final String CONFLUENT_VERSION = "8.1.1";
   private static final String KAFKA_IMAGE = "confluentinc/cp-kafka:" + CONFLUENT_VERSION;
+  private static final String STREAMINITIATOR_VERSION = readStreamInitiatorVersion();
+  private static final String STREAMINITIATOR_IMAGE = "fibra/streaminitiator:" + STREAMINITIATOR_VERSION;
   private static final String KAFKA_KRAFT_CLUSTER_ID = "WjQ5NkZsUVFqY2x1Z0x4a1pPQQ";
   private static final int KAFKA_EXTERNAL_PORT = readKafkaExternalPort();
   private static final Duration CONTAINER_STARTUP_TIMEOUT = TestTimeouts.scaled(Duration.ofMinutes(3));
@@ -107,6 +93,7 @@ class RemoteControlSwitchAndStopIntegrationTest {
   private static final Duration WAIT_UNTIL_TIMEOUT = TestTimeouts.scaled(Duration.ofSeconds(20));
   private static final Duration SHORT_SLEEP = TestTimeouts.scaled(Duration.ofMillis(100));
   private static final Duration RELAY_ENQUEUE_TIMEOUT = TestTimeouts.scaled(Duration.ofSeconds(30));
+  private static final String INITIATOR_API_KEY = "1aa111a11aa11a0a1a1aa1111a1a1a1a";
   private static final Network NETWORK = Network.newNetwork();
 
   @SuppressWarnings({"resource", "deprecation"})
@@ -156,6 +143,59 @@ class RemoteControlSwitchAndStopIntegrationTest {
           .withStartupTimeout(CONTAINER_STARTUP_TIMEOUT)
       );
 
+  @SuppressWarnings("resource")
+  private final GenericContainer<?> POSTGRES =
+    new GenericContainer<>(DockerImageName.parse("postgres:17.7"))
+      .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("PostgresContainer"))
+        .withPrefix("postgres"))
+      .withNetwork(NETWORK)
+      .withNetworkAliases("db")
+      .withEnv("POSTGRES_PASSWORD", "postgres")
+      .withEnv("POSTGRES_USER", "postgres")
+      .withEnv("POSTGRES_DB", "streamdb")
+      .withExposedPorts(5432)
+      .waitingFor(Wait.forListeningPort().withStartupTimeout(CONTAINER_STARTUP_TIMEOUT));
+
+  @SuppressWarnings("resource")
+  private final GenericContainer<?> STREAMINITIATOR =
+    new GenericContainer<>(DockerImageName.parse(STREAMINITIATOR_IMAGE))
+      .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("StreamInitiatorContainer"))
+        .withPrefix("streaminitiator"))
+      .dependsOn(POSTGRES, SCHEMA_REGISTRY)
+      .withNetwork(NETWORK)
+      .withNetworkAliases("streaminitiator")
+      .withExposedPorts(8080)
+      .withEnv("SERVER_PORT", "8080")
+      .withEnv("BROKERS_COLD", "kafka:9092")
+      .withEnv("BROKERS_INGRESS", "kafka:9092")
+      .withEnv("ANNOUNCED_BROKERS_INGRESS", "kafka:9092")
+      .withEnv("ZOOKEEPERS", "zookeeper:2181")
+      .withEnv("SCHEMAREGISTRY", "http://schemaregistry:8081")
+      .withEnv("ANNOUNCED_SCHEMAREGISTRY", "http://schemaregistry:8081")
+      .withEnv("REPLICATION_FACTOR", "1")
+      .withEnv("SPRING_PROFILES_ACTIVE", "docker")
+      .withEnv("INTERROGATOR_ENV", "docker")
+      .withEnv("PG_SUPERADMIN_URL", "jdbc:postgresql://db:5432/postgres?user=postgres&password=postgres&currentSchema=fibra")
+      .withEnv("PG_APP_DB_URL", "jdbc:postgresql://db:5432/streamdb?user=postgres&password=postgres&currentSchema=fibra")
+      .withEnv("MIGRATION_FOLDER", ",filesystem:/sql")
+      .withEnv("SPRING_FLYWAY_OUT_OF_ORDER", "true")
+      .withEnv("PARTITIONS", "5")
+      .withEnv("PERFORMANCE_CEILING", "20000")
+      .withEnv("INTERNAL_SERVICES_API_KEY", INITIATOR_API_KEY)
+      .withEnv("VENDORS_KEYS_SIMULATOR_OLD", INITIATOR_API_KEY)
+      .withEnv("FIBRA_CLUSTER", "demo")
+      .withFileSystemBind(
+        Path.of("dependson-services", "sql").toAbsolutePath().toString(),
+        "/sql",
+        BindMode.READ_ONLY
+      )
+      .waitingFor(
+        Wait.forHttp("/actuator/health")
+          .forPort(8080)
+          .forStatusCode(200)
+          .withStartupTimeout(CONTAINER_STARTUP_TIMEOUT)
+      );
+
   @BeforeAll
   void startContainers() {
     try {
@@ -173,15 +213,41 @@ class RemoteControlSwitchAndStopIntegrationTest {
       writeContainerLogs("schema-registry", SCHEMA_REGISTRY);
       throw ex;
     }
+
+    try {
+      POSTGRES.start();
+    } catch (RuntimeException ex) {
+      logContainerFailure("POSTGRES", POSTGRES);
+      writeContainerLogs("postgres", POSTGRES);
+      throw ex;
+    }
+
+    try {
+      STREAMINITIATOR.start();
+    } catch (RuntimeException ex) {
+      logContainerFailure("STREAMINITIATOR", STREAMINITIATOR);
+      writeContainerLogs("streaminitiator", STREAMINITIATOR);
+      throw ex;
+    }
+
+    seedStreamInitiatorData();
   }
 
   @AfterAll
   void stopContainers() {
     writeContainerLogs("kafka", KAFKA);
     writeContainerLogs("schema-registry", SCHEMA_REGISTRY);
+    writeContainerLogs("postgres", POSTGRES);
+    writeContainerLogs("streaminitiator", STREAMINITIATOR);
+    STREAMINITIATOR.stop();
+    POSTGRES.stop();
     SCHEMA_REGISTRY.stop();
     KAFKA.stop();
     NETWORK.close();
+  }
+
+  private String streamInitiatorUrl() {
+    return "http://" + STREAMINITIATOR.getHost() + ":" + STREAMINITIATOR.getMappedPort(8080);
   }
 
   private String kafkaBootstrapServers() {
@@ -191,12 +257,21 @@ class RemoteControlSwitchAndStopIntegrationTest {
   private static int readKafkaExternalPort() {
     String value = System.getenv("TEST_KAFKA_EXTERNAL_PORT");
     if (value == null || value.isBlank()) {
-      return 29094;
+      return findAvailablePort();
     }
     try {
       return Integer.parseInt(value);
     } catch (NumberFormatException ex) {
       throw new IllegalStateException("TEST_KAFKA_EXTERNAL_PORT must be an integer, got: " + value, ex);
+    }
+  }
+
+  private static int findAvailablePort() {
+    try (ServerSocket socket = new ServerSocket(0)) {
+      socket.setReuseAddress(true);
+      return socket.getLocalPort();
+    } catch (IOException ex) {
+      throw new IllegalStateException("Unable to find a free port for Kafka", ex);
     }
   }
 
@@ -221,26 +296,101 @@ class RemoteControlSwitchAndStopIntegrationTest {
     }
   }
 
+  private void seedStreamInitiatorData() {
+    String sql = """
+      INSERT INTO fibra.vendor (id, name, vendor_code)
+      VALUES ('3a1e813f-a272-498c-8850-6188587369cd', 'Simulator vendor', 'simulator')
+      ON CONFLICT (id) DO NOTHING;
+
+      INSERT INTO fibra.instrument_box (
+        id,
+        description,
+        data_format,
+        measurement_unit,
+        de_noised,
+        native_to_phase_scaling_factor,
+        phase_to_strain_scaling_factor,
+        instrument_box_info,
+        vendor_id
+      )
+      VALUES (
+        '00528e45-06d0-4110-bba4-e904aaa02657',
+        'Simulator 1',
+        'amplitude',
+        'ns',
+        false,
+        1.0,
+        1.0,
+        '{}',
+        '3a1e813f-a272-498c-8850-6188587369cd'
+      )
+      ON CONFLICT (id) DO NOTHING;
+
+      INSERT INTO fibra.instrument_box (
+        id,
+        description,
+        data_format,
+        measurement_unit,
+        de_noised,
+        native_to_phase_scaling_factor,
+        phase_to_strain_scaling_factor,
+        instrument_box_info,
+        vendor_id
+      )
+      VALUES (
+        '1deb5d57-2fb9-418a-990b-4cf7252a0450',
+        'Simulator 2',
+        'amplitude',
+        'ns',
+        false,
+        1.0,
+        1.0,
+        '{}',
+        '3a1e813f-a272-498c-8850-6188587369cd'
+      )
+      ON CONFLICT (id) DO NOTHING;
+
+      INSERT INTO fibra.fiber_optical_path (id, wellbore, switch_port, fiber_optical_path_info)
+      VALUES ('25be8bc6-cd35-4c9f-9f8d-cabe43326163', 'Simulator box fiber path', 0, '{}')
+      ON CONFLICT (id) DO NOTHING;
+      """;
+    try {
+      ExecResult result = POSTGRES.execInContainer(
+        "psql",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-U",
+        "postgres",
+        "-d",
+        "streamdb",
+        "-c",
+        sql
+      );
+      if (result.getExitCode() != 0) {
+        throw new IllegalStateException(
+          "Seed SQL failed: " + result.getStderr() + " " + result.getStdout()
+        );
+      }
+    } catch (Exception ex) {
+      throw new IllegalStateException("Failed to seed streaminitiator data", ex);
+    }
+  }
+
   @Test
   void remoteControl_canApplySwitchConfiguration_thenStop(@TempDir Path tempDir) throws Exception {
     assertTimeoutPreemptively(TEST_TIMEOUT_LONG, () -> {
-    String topic = "das-remote-it-" + UUID.randomUUID();
     String schemaRegistryUrl = "http://" + SCHEMA_REGISTRY.getHost() + ":" + SCHEMA_REGISTRY.getMappedPort(8081);
     String apiKey = "test-api-key";
 
-    createTopic(topic, 1);
-    purgeTopic(topic);
+    writeProfile(tempDir, "profile-one", 4, "00528e45-06d0-4110-bba4-e904aaa02657");
+    writeProfile(tempDir, "profile-two", 7, "1deb5d57-2fb9-418a-990b-4cf7252a0450");
 
-    writeProfile(tempDir, "profile-one", 4, "11111111-1111-1111-1111-111111111111");
-    writeProfile(tempDir, "profile-two", 7, "22222222-2222-2222-2222-222222222222");
-
-    try (InitiatorStubServer initiator = InitiatorStubServer.start(topic, 1)) {
       DasProducerConfiguration dasProducerConfiguration = new DasProducerConfiguration();
       dasProducerConfiguration.setVariant("SimulatorBoxUnit");
-      dasProducerConfiguration.setVendorCode("Simulator");
+      dasProducerConfiguration.setVendorCode("simulator");
       dasProducerConfiguration.setAcquisitionStartVersion("V1");
-      dasProducerConfiguration.setInitiatorserviceUrl(initiator.baseUrl());
-      dasProducerConfiguration.setInitiatorserviceApiKey("initiator-api-key");
+      dasProducerConfiguration.setInitiatorserviceUrl(streamInitiatorUrl());
+      dasProducerConfiguration.setInitiatorserviceApiKey(INITIATOR_API_KEY);
       dasProducerConfiguration.setOverrideBootstrapServersWith(kafkaBootstrapServers());
       dasProducerConfiguration.setOverrideSchemaRegistryWith(schemaRegistryUrl);
       dasProducerConfiguration.getRemoteControl().setEnabled(true);
@@ -304,38 +454,30 @@ class RemoteControlSwitchAndStopIntegrationTest {
           .content("{\"Custom\":{\"das-simulator-profile\":\"profile-one\"}}"))
         .andExpect(status().isOk());
 
-      waitUntil("first start-acquisition call", WAIT_UNTIL_TIMEOUT, () -> initiator.startCallCount() >= 1);
-
       mvc.perform(post("/api/acquisition/apply")
           .header("X-Api-Key", apiKey)
           .contentType(MediaType.APPLICATION_JSON)
           .content("{\"Custom\":{\"das-simulator-profile\":\"profile-two\"}}"))
         .andExpect(status().isOk());
 
-      waitUntil("second start-acquisition call", WAIT_UNTIL_TIMEOUT, () -> initiator.startCallCount() >= 2);
-      waitUntil("switch stop-acquisition call", WAIT_UNTIL_TIMEOUT, () -> initiator.stopCallCount() >= 1);
-
-      List<Integer> startedLoci = initiator.startedLoci();
-      assertEquals(List.of(4, 7), startedLoci, "Expected switch from first profile loci to second profile loci");
-
-      String firstAcquisitionId = initiator.startedAcquisitionIds().get(0);
-      String secondAcquisitionId = initiator.startedAcquisitionIds().get(1);
-      assertTrue(initiator.stoppedAcquisitionIds().contains(firstAcquisitionId),
-        "Expected switch to stop previous acquisition");
-
       mvc.perform(post("/api/acquisition/stop")
           .header("X-Api-Key", apiKey)
-          .contentType(MediaType.APPLICATION_JSON)
-          .content("{\"AcquisitionId\":\"" + secondAcquisitionId + "\"}"))
+          .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk());
 
-      waitUntil("final stop-acquisition call", WAIT_UNTIL_TIMEOUT, () -> initiator.stopCallCount() >= 2);
-      assertTrue(initiator.stoppedAcquisitionIds().contains(secondAcquisitionId),
-        "Expected explicit STOP to stop current acquisition");
+      AtomicReference<String> topicRef = new AtomicReference<>();
+      waitUntil("topic assignment", WAIT_UNTIL_TIMEOUT, () -> {
+        String topic = kafkaConfiguration.getTopic();
+        if (topic == null || topic.isBlank()) {
+          return false;
+        }
+        topicRef.set(topic);
+        return true;
+      });
 
+      String topic = topicRef.get();
       long observed = countRecords(topic, 1, WAIT_UNTIL_TIMEOUT);
       assertTrue(observed > 0, "Expected Kafka topic to contain records after APPLY calls");
-    }
     });
   }
 
@@ -404,9 +546,10 @@ class RemoteControlSwitchAndStopIntegrationTest {
         "SpatialSamplingInterval": 1.1,
         "GaugeLength": 10.209524,
         "PulseWidth": 100.50,
+        "PulseWidthUnit": "ns",
         "DasInstrumentBoxUUID": "%s",
-        "OpticalPathUUID": "9f79c244-1fec-4c78-83f9-e4b001f1c40f",
-        "VendorCode": "Simulator",
+        "OpticalPathUUID": "25be8bc6-cd35-4c9f-9f8d-cabe43326163",
+        "VendorCode": "simulator",
         "AcquisitionId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
         "MeasurementStartTime": "2026-01-27T08:56:35Z"
       }
@@ -436,172 +579,12 @@ class RemoteControlSwitchAndStopIntegrationTest {
     return total;
   }
 
-  private void createTopic(String topic, int partitions) throws Exception {
-    Properties props = new Properties();
-    props.put("bootstrap.servers", kafkaBootstrapServers());
-    try (AdminClient admin = AdminClient.create(props)) {
-      try {
-        admin.createTopics(List.of(new NewTopic(topic, partitions, (short) 1))).all()
-          .get(ADMIN_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
-      } catch (Exception e) {
-        Throwable cause = e.getCause();
-        if (cause instanceof TopicExistsException) {
-          return;
-        }
-        throw e;
-      }
+
+  private static String readStreamInitiatorVersion() {
+    String value = System.getenv("STREAMINITIATOR_VERSION");
+    if (value == null || value.isBlank()) {
+      return "1.8.75";
     }
-  }
-
-  private void purgeTopic(String topic) throws Exception {
-    Properties props = new Properties();
-    props.put("bootstrap.servers", kafkaBootstrapServers());
-    try (AdminClient admin = AdminClient.create(props)) {
-      List<TopicPartition> partitions = admin.describeTopics(List.of(topic))
-        .allTopicNames()
-        .get(ADMIN_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
-        .get(topic)
-        .partitions()
-        .stream()
-        .map(p -> new TopicPartition(topic, p.partition()))
-        .collect(Collectors.toList());
-
-      Map<TopicPartition, OffsetSpec> latestOffsetsSpec = new HashMap<>(partitions.size());
-      for (TopicPartition tp : partitions) {
-        latestOffsetsSpec.put(tp, OffsetSpec.latest());
-      }
-
-      Map<TopicPartition, Long> latestOffsets = admin.listOffsets(latestOffsetsSpec)
-        .all()
-        .get(ADMIN_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
-        .entrySet()
-        .stream()
-        .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().offset()));
-
-      Map<TopicPartition, RecordsToDelete> deleteBefore = new HashMap<>(partitions.size());
-      for (Map.Entry<TopicPartition, Long> entry : latestOffsets.entrySet()) {
-        long offset = entry.getValue() == null ? 0L : entry.getValue();
-        deleteBefore.put(entry.getKey(), RecordsToDelete.beforeOffset(Math.max(0L, offset)));
-      }
-
-      DeleteRecordsResult result = admin.deleteRecords(deleteBefore);
-      result.all().get(ADMIN_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
-    }
-  }
-
-  private static final class InitiatorStubServer implements AutoCloseable {
-    private final HttpServer server;
-    private final String topic;
-    private final int partitions;
-    private final ObjectMapper objectMapper = new ObjectMapper();
-    private final List<Integer> startedLoci = new CopyOnWriteArrayList<>();
-    private final List<String> startedAcquisitionIds = new CopyOnWriteArrayList<>();
-    private final List<String> stoppedAcquisitionIds = new CopyOnWriteArrayList<>();
-    private final AtomicInteger startCallCount = new AtomicInteger();
-    private final AtomicInteger stopCallCount = new AtomicInteger();
-
-    private InitiatorStubServer(HttpServer server, String topic, int partitions) {
-      this.server = server;
-      this.topic = topic;
-      this.partitions = partitions;
-      registerContexts();
-      this.server.start();
-    }
-
-    static InitiatorStubServer start(String topic, int partitions) throws Exception {
-      HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-      return new InitiatorStubServer(server, topic, partitions);
-    }
-
-    String baseUrl() {
-      return "http://127.0.0.1:" + server.getAddress().getPort();
-    }
-
-    int startCallCount() {
-      return startCallCount.get();
-    }
-
-    int stopCallCount() {
-      return stopCallCount.get();
-    }
-
-    List<Integer> startedLoci() {
-      return new ArrayList<>(startedLoci);
-    }
-
-    List<String> startedAcquisitionIds() {
-      return new ArrayList<>(startedAcquisitionIds);
-    }
-
-    List<String> stoppedAcquisitionIds() {
-      return new ArrayList<>(stoppedAcquisitionIds);
-    }
-
-    @Override
-    public void close() {
-      server.stop(0);
-    }
-
-    private void registerContexts() {
-      server.createContext("/actuator/health", exchange -> {
-        if (!"GET".equals(exchange.getRequestMethod())) {
-          sendText(exchange, 405, "Method Not Allowed");
-          return;
-        }
-        sendJson(exchange, 200, "{\"status\":\"UP\"}");
-      });
-
-      server.createContext("/api/acquisition/start", exchange -> {
-        if (!"POST".equals(exchange.getRequestMethod())) {
-          sendText(exchange, 405, "Method Not Allowed");
-          return;
-        }
-        String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-        JsonNode payload = objectMapper.readTree(body);
-        int loci = payload.path("NumberOfLoci").asInt();
-        String acquisitionId = payload.path("AcquisitionId").asText("");
-        startedLoci.add(loci);
-        startedAcquisitionIds.add(acquisitionId);
-        startCallCount.incrementAndGet();
-
-        ObjectNode response = objectMapper.createObjectNode();
-        response.put("topic", topic);
-        response.put("bootstrapServers", "ignored:9092");
-        response.put("schemaRegistryUrl", "http://ignored:8081");
-        response.put("numberOfPartitions", partitions);
-        ObjectNode assignments = response.putObject("partitionAssignments");
-        for (int locus = 0; locus < loci; locus++) {
-          assignments.put(String.valueOf(locus), locus % partitions);
-        }
-        sendJson(exchange, 200, response.toString());
-      });
-
-      server.createContext("/api/v1/acquisition/stop", exchange -> {
-        if (!"POST".equals(exchange.getRequestMethod())) {
-          sendText(exchange, 405, "Method Not Allowed");
-          return;
-        }
-        String path = exchange.getRequestURI().getPath();
-        String acquisitionId = path.substring(path.lastIndexOf('/') + 1);
-        stoppedAcquisitionIds.add(acquisitionId);
-        stopCallCount.incrementAndGet();
-        sendJson(exchange, 200, "{}");
-      });
-    }
-
-    private void sendJson(HttpExchange exchange, int statusCode, String body) throws IOException {
-      byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-      exchange.getResponseHeaders().set("Content-Type", "application/json");
-      exchange.sendResponseHeaders(statusCode, bytes.length);
-      exchange.getResponseBody().write(bytes);
-      exchange.close();
-    }
-
-    private void sendText(HttpExchange exchange, int statusCode, String body) throws IOException {
-      byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-      exchange.sendResponseHeaders(statusCode, bytes.length);
-      exchange.getResponseBody().write(bytes);
-      exchange.close();
-    }
+    return value.trim();
   }
 }

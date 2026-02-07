@@ -31,7 +31,7 @@ das:
     vendorCode: ${VENDOR_CODE:Simulator}
     amplitudesPrPackage: ${PACKAGE_SIZE:8192}
     initiatorserviceUrl: ${INITIATOR_URL:http://localhost:8080}
-    acquisitionStartVersion: ${ACQUISITION_START_VERSION:V1}
+    acquisitionStartVersion: ${ACQUISITION_START_VERSION:V2}
     initiatorserviceApiKey: ${INITIATOR_API_KEY}
     overrideBootstrapServersWith: ${KAFKA_SERVER_OVERRIDE:}
     overrideSchemaRegistryWith: ${SCHEMA_REGISTRY_URL_OVERRIDE:}

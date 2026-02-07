@@ -56,6 +56,8 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
+import java.io.IOException;
+import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -177,12 +179,20 @@ class DasProducerKafkaIntegrationTest {
   private static int readKafkaExternalPort() {
     String value = System.getenv("TEST_KAFKA_EXTERNAL_PORT");
     if (value == null || value.isBlank()) {
-      return 29094;
+      return findAvailablePort(29094);
     }
     try {
       return Integer.parseInt(value);
     } catch (NumberFormatException ex) {
       throw new IllegalStateException("TEST_KAFKA_EXTERNAL_PORT must be an integer, got: " + value, ex);
+    }
+  }
+
+  private static int findAvailablePort(int fallback) {
+    try (ServerSocket socket = new ServerSocket(0)) {
+      return socket.getLocalPort();
+    } catch (IOException ex) {
+      return fallback;
     }
   }
 

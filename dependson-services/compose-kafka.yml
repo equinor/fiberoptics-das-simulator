@@ -94,7 +94,7 @@ services:
       - local-network
 
   db:
-    image: postgres:13.10
+    image: postgres:17.7
     hostname: db
     ports:
       - "5432:5432"

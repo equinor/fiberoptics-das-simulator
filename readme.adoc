@@ -24,7 +24,7 @@ A successful DAS acquisition is made by initially contacting the Stream initiato
 ----
 {
   "SchemaVersion": "2.0",
-  "AcquisitionId": "86287b85-7176-4bde-864f-62e55c5996d7",
+  "AcquisitionId": "c7f312d1-6b56-4b6d-9b25-8db20dfc71ec",
   "OpticalPathUUID": "00528e45-06d0-4110-bba4-e904afe02657",
   "PulseWidth": 100.50,
   "PulseWidthUnit": "ns",
@@ -32,7 +32,7 @@ A successful DAS acquisition is made by initially contacting the Stream initiato
   "DasInstrumentBoxUUID": "00528e45-06d0-4110-bba4-e904aaa02657",
   "SpatialSamplingInterval": 1.1,
   "GaugeLength": 10.209524,
-  "NumberOfLoci": 4096,
+  "NumberOfLoci": 4086,
   "PulseRate": 10000.0,
   "Custom": {
     "AnyCustomStuffHere": "XYZ",
@@ -50,9 +50,9 @@ A successful DAS acquisition is made by initially contacting the Stream initiato
 Here is a curl command that can be run for testing the back-end handshake (contained in the depends-on folder):
 [source,bash]
 ----
-curl -X POST http://localhost:8080/api/acquisition/start \
+curl -X POST http://localhost:8080/api/v2/acquisition/start \
   -H 'Content-Type: application/json' -H 'X-Api-Key: 1aa111a11aa11a0a1a1aa1111a1a1a1a' \
-  -d '{"SchemaVersion": "2.0", "AcquisitionId": "86287b85-7176-4bde-864f-62e55c5996d7", "OpticalPathUUID": "00528e45-06d0-4110-bba4-e904afe02657", "PulseWidth": 100.50, "PulseWidthUnit": "ns", "MaximumFrequency": 5000.0, "DasInstrumentBoxUUID": "00528e45-06d0-4110-bba4-e904aaa02657", "SpatialSamplingInterval": 1.1, "GaugeLength": 10.209524, "NumberOfLoci": 4096, "PulseRate": 10000.0, "Custom": {"AnyCustomStuffHere": "XYZ","SuchAsFirmwareId": "1.7.2-Rev5","OrSoftwareVersion": "0.1-Beta"}, "MeasurementStartTime": "2023-08-18T09:45:42.512505674Z", "VendorCode": "Simulator", "StartLocusIndex": 0}'
+  -d '{"SchemaVersion": "2.0", "AcquisitionId": "c7f312d1-6b56-4b6d-9b25-8db20dfc71ec", "OpticalPathUUID": "00528e45-06d0-4110-bba4-e904afe02657", "PulseWidth": 100.50, "PulseWidthUnit": "ns", "MaximumFrequency": 5000.0, "DasInstrumentBoxUUID": "00528e45-06d0-4110-bba4-e904aaa02657", "SpatialSamplingInterval": 1.1, "GaugeLength": 10.209524, "NumberOfLoci": 4086, "PulseRate": 10000.0, "Custom": {"AnyCustomStuffHere": "XYZ","SuchAsFirmwareId": "1.7.2-Rev5","OrSoftwareVersion": "0.1-Beta"}, "MeasurementStartTime": "2023-08-18T09:45:42.512505674Z", "VendorCode": "Simulator", "StartLocusIndex": 0}'
 ----
 
 
@@ -89,7 +89,7 @@ Control of the parameters of the process in this example is done via environment
 
 |VARIANT_PLUGIN|SimulatorBoxUnit|The implementation producing data for simulation. Possible values are SimulatorBoxUnit and StaticDataUnit. The bean need to be available on classpath as it is loaded at runtime
 |VENDOR_CODE| Simulator| The vendor code identifying the vendor
-|ACQUISITION_START_VERSION| V1| The schema version used. Can be one of V1,V2
+|ACQUISITION_START_VERSION| V2| The schema version used. Can be one of V1,V2
 |INITIATOR_URL| http://localhost:8080| The API endpoint base URL for the stream initiation service.
 |INITIATOR_API_KEY| No value| An API key that needs to be set in the service behind the initiator url e.g. 1aa111a11aa11a0a1a1aa1111a1a1a1a
 |KAFKA_SERVER_OVERRIDE| No value| If the Kafka server is on a network that has a specific naming that has no meaning on the calling end (e.g. inside a docker container where you would use localhost:9092) you might get a service name. Here you can override the name with an IP address.
