@@ -85,9 +85,10 @@ public class RemoteControlController {
     RemoteControlService.StopResult result = _remoteControlService.stop(
         Optional.ofNullable(acquisitionJson)
     );
-    return result == RemoteControlService.StopResult.NOT_FOUND
-      ? ResponseEntity.notFound().build()
-      : ResponseEntity.ok().build();
+    if (result == RemoteControlService.StopResult.NOT_FOUND) {
+      throw new RemoteControlService.NotFoundException("Acquisition not found.");
+    }
+    return ResponseEntity.ok().build();
   }
 
   private void verifyApiKey(String apiKey) {

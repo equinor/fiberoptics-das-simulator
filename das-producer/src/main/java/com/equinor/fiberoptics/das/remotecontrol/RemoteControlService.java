@@ -444,4 +444,14 @@ public class RemoteControlService {
   @ResponseStatus(HttpStatus.UNAUTHORIZED)
   public static class UnauthorizedException extends RuntimeException {
   }
+
+  /**
+   * Thrown when a requested acquisition does not exist.
+   */
+  @ResponseStatus(HttpStatus.NOT_FOUND)
+  public static class NotFoundException extends RuntimeException {
+    public NotFoundException(String message) {
+      super(message);
+    }
+  }
 }

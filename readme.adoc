@@ -193,6 +193,20 @@ Note: You can also send the full profile JSON in the APPLY request body (for con
 as long as Custom.das-simulator-profile is present; the simulator will still load the profile
 from disk and ignore other fields in the request.
 
+=== Remote-control error responses
+
+Remote-control endpoints return structured error responses when requests are invalid or unauthorized.
+
+.Error codes
+|===
+|Error code |HTTP status |When it happens
+
+|RC-400|400|Invalid request payload (missing/invalid JSON or required fields).
+|RC-401|401|Missing or invalid X-Api-Key.
+|RC-404|404|Requested acquisition id not found when stopping.
+|RC-500|500|Unexpected internal error during remote-control handling.
+|===
+
 Details for ProdML can be found here: http://w3.energistics.org/energyML/data/prodml/v2.0/doc/prodml_schema_overview.html
 
 == Building and running
