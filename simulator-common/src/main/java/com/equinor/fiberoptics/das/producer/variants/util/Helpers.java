@@ -49,8 +49,9 @@ public class Helpers {
     try {
       Thread.sleep(millis);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       _logger.error("Interrupted Thread");
-      throw new RuntimeException("Interrupted thread");
+      throw new RuntimeException("Interrupted thread", e);
     }
   }
 
@@ -66,8 +67,9 @@ public class Helpers {
     try {
       Thread.sleep(millis, nanosPart);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       _logger.error("Interrupted Thread");
-      throw new RuntimeException("Interrupted thread");
+      throw new RuntimeException("Interrupted thread", e);
     }
   }
 
@@ -78,8 +80,9 @@ public class Helpers {
     try {
       waitOn.await();
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       _logger.error("Interrupted waiting on CountDownLatch");
-      throw new RuntimeException("Interrupted thread");
+      throw new RuntimeException("Interrupted thread", e);
     }
   }
 

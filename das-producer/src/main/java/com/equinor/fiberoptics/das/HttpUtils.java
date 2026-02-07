@@ -26,12 +26,14 @@ import com.equinor.fiberoptics.das.producer.variants.simulatorboxunit.SimulatorB
 import com.google.gson.Gson;
 import fiberoptics.config.acquisition.v1.Vendors;
 import java.net.URI;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -46,8 +48,11 @@ import org.springframework.web.client.RestTemplate;
 @Service
 public class HttpUtils {
   private static final Logger _logger = LoggerFactory.getLogger(HttpUtils.class);
+  private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
+  private static final Duration READ_TIMEOUT = Duration.ofSeconds(10);
   private final SimulatorBoxUnitConfiguration _simBoxConfig;
   private final DasProducerConfiguration _dasProducerConfig;
+  private final RestTemplate _restTemplate;
 
   enum SchemaVersions {
     V1, V2
@@ -56,9 +61,16 @@ public class HttpUtils {
   private static final String API_ENDPOINT = "/%s/acquisition/start";
   private static final String API_STOP_ENDPOINT = "/api/v1/acquisition/stop/%s";
 
-  HttpUtils(SimulatorBoxUnitConfiguration simUnitConfig, DasProducerConfiguration dasProdConfig) {
+  HttpUtils(
+      SimulatorBoxUnitConfiguration simUnitConfig,
+      DasProducerConfiguration dasProdConfig,
+      RestTemplateBuilder restTemplateBuilder) {
     _simBoxConfig = simUnitConfig;
     _dasProducerConfig = dasProdConfig;
+    _restTemplate = restTemplateBuilder
+        .setConnectTimeout(CONNECT_TIMEOUT)
+        .setReadTimeout(READ_TIMEOUT)
+        .build();
   }
 
   /**
@@ -87,11 +99,10 @@ public class HttpUtils {
     HttpHeaders headers = new HttpHeaders();
     headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
     headers.setContentType(MediaType.APPLICATION_JSON);
-    headers.set("X-Api-Key", _dasProducerConfig.getInitiatorserviceApiKey().trim());
+    headers.set("X-Api-Key", requiredInitiatorApiKey());
 
     var request = new HttpEntity<>(acquisitionJson, headers);
-    RestTemplate restTemplate = new RestTemplate();
-    var response = restTemplate.exchange(
+    var response = _restTemplate.exchange(
         _dasProducerConfig.getInitiatorserviceUrl() + apiEndpoint,
         HttpMethod.POST,
         request,
@@ -113,12 +124,11 @@ public class HttpUtils {
     HttpHeaders headers = new HttpHeaders();
     headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
     headers.setContentType(MediaType.APPLICATION_JSON);
-    headers.set("X-Api-Key", _dasProducerConfig.getInitiatorserviceApiKey().trim());
+    headers.set("X-Api-Key", requiredInitiatorApiKey());
 
     String endpoint = String.format(API_STOP_ENDPOINT, acquisitionId);
     var request = new HttpEntity<>(null, headers);
-    RestTemplate restTemplate = new RestTemplate();
-    restTemplate.exchange(
+    _restTemplate.exchange(
         _dasProducerConfig.getInitiatorserviceUrl() + endpoint,
         HttpMethod.POST,
         request,
@@ -131,10 +141,9 @@ public class HttpUtils {
    */
   @SuppressWarnings("null")
   public boolean checkIfServiceIsFine(String service) {
-    RestTemplate rt = new RestTemplate();
     HttpStatusCode statusCode;
     try {
-      statusCode = rt.getRequestFactory()
+      statusCode = _restTemplate.getRequestFactory()
           .createRequest(new URI(service), HttpMethod.GET)
           .execute()
           .getStatusCode();
@@ -148,6 +157,16 @@ public class HttpUtils {
     }
     _logger.info("Got status code {}", statusCode);
     return statusCode.is2xxSuccessful();
+  }
+
+  private String requiredInitiatorApiKey() {
+    String apiKey = _dasProducerConfig.getInitiatorserviceApiKey();
+    if (apiKey == null || apiKey.isBlank()) {
+      throw new IllegalStateException(
+          "INITIATOR_API_KEY (das.producer.initiatorservice-api-key) must be set."
+      );
+    }
+    return apiKey.trim();
   }
 
   /**

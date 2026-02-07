@@ -28,6 +28,7 @@ import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -47,7 +48,7 @@ public class KafkaSender {
       _producersRef = new AtomicReference<>();
   private final MeterRegistry _meterRegistry;
 
-  private boolean _isRunning = true;
+  private final AtomicBoolean _isRunning = new AtomicBoolean(true);
 
   private static final Logger _logger = LoggerFactory.getLogger(KafkaSender.class);
 
@@ -83,14 +84,14 @@ public class KafkaSender {
     List<KafkaProducer<DASMeasurementKey, DASMeasurement>> previous =
         _producersRef.getAndSet(List.copyOf(producers));
     closeProducers(previous);
-    _isRunning = true;
+    _isRunning.set(true);
   }
 
   /**
    * Sends a record to Kafka.
    */
   public void send(ProducerRecord<DASMeasurementKey, DASMeasurement> data) {
-    if (!_isRunning) {
+    if (!_isRunning.get()) {
       // logger.info("Producer not running");
       return;
     }
@@ -127,11 +128,11 @@ public class KafkaSender {
     List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers =
         _producersRef.getAndSet(null);
     closeProducers(producers);
-    _isRunning = false;
+    _isRunning.set(false);
   }
 
   public boolean isRunning() {
-    return _isRunning;
+    return _isRunning.get();
   }
 
   private KafkaProducer<DASMeasurementKey, DASMeasurement> producerForPartition(

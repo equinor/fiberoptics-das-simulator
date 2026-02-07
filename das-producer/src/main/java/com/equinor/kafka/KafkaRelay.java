@@ -75,8 +75,21 @@ public class KafkaRelay {
     if (_shuttingDown.get()) {
       return;
     }
-    int currentPartition = _dasProducerConfig.getPartitionAssignments()
-      .get(partitionEntry.getValue().getLocus());
+    Map<Integer, Integer> assignments = _dasProducerConfig.getPartitionAssignments();
+    if (assignments == null || assignments.isEmpty()) {
+      throw new IllegalStateException(
+          "Partition assignments are missing. Cannot send measurement to Kafka."
+      );
+    }
+    Integer currentPartition = assignments.get(partitionEntry.getValue().getLocus());
+    if (currentPartition == null) {
+      throw new IllegalStateException(
+          "No partition assignment for locus "
+              + partitionEntry.getValue().getLocus()
+              + ". Available assignments: "
+              + assignments.size()
+      );
+    }
     ProducerRecord<DASMeasurementKey, DASMeasurement> data = new ProducerRecord<>(
         _kafkaConf.getTopic(),
         currentPartition,

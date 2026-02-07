@@ -53,6 +53,7 @@ import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -335,9 +336,14 @@ class RemoteControlSwitchAndStopIntegrationTest {
     try {
       Constructor<HttpUtils> constructor = HttpUtils.class.getDeclaredConstructor(
         SimulatorBoxUnitConfiguration.class,
-        DasProducerConfiguration.class);
+        DasProducerConfiguration.class,
+        RestTemplateBuilder.class);
       constructor.setAccessible(true);
-      return constructor.newInstance(simulatorConfiguration, dasProducerConfiguration);
+      return constructor.newInstance(
+          simulatorConfiguration,
+          dasProducerConfiguration,
+          new RestTemplateBuilder()
+      );
     } catch (Exception e) {
       throw new IllegalStateException("Unable to create HttpUtils for integration test", e);
     }

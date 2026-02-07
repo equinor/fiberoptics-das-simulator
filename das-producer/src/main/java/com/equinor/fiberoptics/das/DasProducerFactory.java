@@ -327,7 +327,11 @@ public class DasProducerFactory {
       try {
         Thread.sleep(5000);
       } catch (InterruptedException e) {
-        _logger.warn("Unable to sleep");
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException(
+            "Interrupted while waiting for " + serviceDisplayName + " to become healthy.",
+            e
+        );
       }
     }
   }
