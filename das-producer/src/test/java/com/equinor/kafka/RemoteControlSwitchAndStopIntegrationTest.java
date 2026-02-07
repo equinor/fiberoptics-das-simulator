@@ -33,8 +33,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
-import fiberoptics.time.message.v1.DASMeasurement;
-import fiberoptics.time.message.v1.DASMeasurementKey;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.DeleteRecordsResult;
@@ -44,24 +42,26 @@ import org.apache.kafka.clients.admin.RecordsToDelete;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.testcontainers.containers.FixedHostPortGenericContainer;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import java.io.IOException;
@@ -91,28 +91,126 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@Testcontainers(disabledWithoutDocker = true)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class RemoteControlSwitchAndStopIntegrationTest {
 
-  private static final String CONFLUENT_VERSION = "7.7.1";
+  private static final String CONFLUENT_VERSION = "8.1.1";
+  private static final String KAFKA_IMAGE = "confluentinc/cp-kafka:" + CONFLUENT_VERSION;
+  private static final String KAFKA_KRAFT_CLUSTER_ID = "WjQ5NkZsUVFqY2x1Z0x4a1pPQQ";
+  private static final int KAFKA_EXTERNAL_PORT = readKafkaExternalPort();
   private static final Network NETWORK = Network.newNetwork();
 
-  @Container
-  private static final KafkaContainer KAFKA =
-    new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:" + CONFLUENT_VERSION))
+  @SuppressWarnings("resource")
+  private final FixedHostPortGenericContainer<?> KAFKA =
+    new FixedHostPortGenericContainer<>(KAFKA_IMAGE)
+      .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("KafkaContainer"))
+        .withPrefix("kafka"))
       .withNetwork(NETWORK)
-      .withNetworkAliases("kafka");
+      .withNetworkAliases("kafka")
+      .withCommand("/etc/confluent/docker/run")
+      .withExposedPorts(9092)
+      .withFixedExposedPort(KAFKA_EXTERNAL_PORT, 29094)
+      .withEnv("KAFKA_NODE_ID", "1")
+      .withEnv("KAFKA_PROCESS_ROLES", "broker,controller")
+      .withEnv("KAFKA_LISTENERS", "INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:29094,CONTROLLER://0.0.0.0:9093")
+      .withEnv("KAFKA_ADVERTISED_LISTENERS", "INTERNAL://kafka:9092,EXTERNAL://localhost:" + KAFKA_EXTERNAL_PORT)
+      .withEnv("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT")
+      .withEnv("KAFKA_CONTROLLER_QUORUM_VOTERS", "1@kafka:9093")
+      .withEnv("KAFKA_CONTROLLER_LISTENER_NAMES", "CONTROLLER")
+      .withEnv("KAFKA_INTER_BROKER_LISTENER_NAME", "INTERNAL")
+      .withEnv("KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR", "1")
+      .withEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1")
+      .withEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1")
+      .withEnv("KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS", "0")
+      .withEnv("KAFKA_KRAFT_CLUSTER_ID", KAFKA_KRAFT_CLUSTER_ID)
+      .withEnv("KAFKA_CLUSTER_ID", KAFKA_KRAFT_CLUSTER_ID)
+      .withEnv("CLUSTER_ID", KAFKA_KRAFT_CLUSTER_ID)
+      .waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofMinutes(3)));
 
-  @Container
-  private static final GenericContainer<?> SCHEMA_REGISTRY =
+  @SuppressWarnings("resource")
+  private final GenericContainer<?> SCHEMA_REGISTRY =
     new GenericContainer<>(DockerImageName.parse("confluentinc/cp-schema-registry:" + CONFLUENT_VERSION))
+      .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("SchemaRegistryContainer"))
+        .withPrefix("schema-registry"))
+      .dependsOn(KAFKA)
       .withNetwork(NETWORK)
       .withNetworkAliases("schemaregistry")
       .withExposedPorts(8081)
       .withEnv("SCHEMA_REGISTRY_HOST_NAME", "schemaregistry")
       .withEnv("SCHEMA_REGISTRY_LISTENERS", "http://0.0.0.0:8081")
       .withEnv("SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS", "PLAINTEXT://kafka:9092")
-      .waitingFor(Wait.forHttp("/subjects").forPort(8081).forStatusCode(200));
+      .withEnv("SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL", "PLAINTEXT")
+      .waitingFor(
+        Wait.forHttp("/subjects")
+          .forPort(8081)
+          .forStatusCode(200)
+          .withStartupTimeout(Duration.ofMinutes(3))
+      );
+
+  @BeforeAll
+  void startContainers() {
+    try {
+      KAFKA.start();
+    } catch (RuntimeException ex) {
+      logContainerFailure("KAFKA", KAFKA);
+      writeContainerLogs("kafka", KAFKA);
+      throw ex;
+    }
+
+    try {
+      SCHEMA_REGISTRY.start();
+    } catch (RuntimeException ex) {
+      logContainerFailure("SCHEMA_REGISTRY", SCHEMA_REGISTRY);
+      writeContainerLogs("schema-registry", SCHEMA_REGISTRY);
+      throw ex;
+    }
+  }
+
+  @AfterAll
+  void stopContainers() {
+    writeContainerLogs("kafka", KAFKA);
+    writeContainerLogs("schema-registry", SCHEMA_REGISTRY);
+    SCHEMA_REGISTRY.stop();
+    KAFKA.stop();
+    NETWORK.close();
+  }
+
+  private String kafkaBootstrapServers() {
+    return KAFKA.getHost() + ":" + KAFKA_EXTERNAL_PORT;
+  }
+
+  private static int readKafkaExternalPort() {
+    String value = System.getenv("TEST_KAFKA_EXTERNAL_PORT");
+    if (value == null || value.isBlank()) {
+      return 29094;
+    }
+    try {
+      return Integer.parseInt(value);
+    } catch (NumberFormatException ex) {
+      throw new IllegalStateException("TEST_KAFKA_EXTERNAL_PORT must be an integer, got: " + value, ex);
+    }
+  }
+
+  private void logContainerFailure(String name, GenericContainer<?> container) {
+    try {
+      String containerId = container.getContainerId();
+      System.err.println("Container " + name + " failed to start. id=" + containerId);
+      System.err.println(container.getLogs());
+    } catch (RuntimeException logEx) {
+      System.err.println("Container " + name + " failed to start, and logs could not be read: " + logEx.getMessage());
+    }
+  }
+
+  private void writeContainerLogs(String name, GenericContainer<?> container) {
+    try {
+      Path logPath = Path.of("target", "testcontainers", name + ".log");
+      Files.createDirectories(logPath.getParent());
+      Files.writeString(logPath, container.getLogs(), StandardCharsets.UTF_8);
+      System.err.println("Wrote " + name + " logs to " + logPath);
+    } catch (RuntimeException | IOException logEx) {
+      System.err.println("Failed to write " + name + " logs: " + logEx.getMessage());
+    }
+  }
 
   @Test
   @Timeout(value = 3, unit = TimeUnit.MINUTES)
@@ -134,7 +232,7 @@ class RemoteControlSwitchAndStopIntegrationTest {
       dasProducerConfiguration.setAcquisitionStartVersion("V1");
       dasProducerConfiguration.setInitiatorserviceUrl(initiator.baseUrl());
       dasProducerConfiguration.setInitiatorserviceApiKey("initiator-api-key");
-      dasProducerConfiguration.setOverrideBootstrapServersWith(KAFKA.getBootstrapServers());
+      dasProducerConfiguration.setOverrideBootstrapServersWith(kafkaBootstrapServers());
       dasProducerConfiguration.setOverrideSchemaRegistryWith(schemaRegistryUrl);
       dasProducerConfiguration.getRemoteControl().setEnabled(true);
       dasProducerConfiguration.getRemoteControl().setApiKey(apiKey);
@@ -301,9 +399,9 @@ class RemoteControlSwitchAndStopIntegrationTest {
     Files.writeString(profilesDir.resolve(profileId + ".json"), json, StandardCharsets.UTF_8);
   }
 
-  private static long countRecords(String topic, long expected, Duration timeout) {
+  private long countRecords(String topic, long expected, Duration timeout) {
     Properties props = new Properties();
-    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers());
+    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers());
     props.put(ConsumerConfig.GROUP_ID_CONFIG, "das-remote-it-consumer-" + UUID.randomUUID());
     props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
     props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
@@ -323,9 +421,9 @@ class RemoteControlSwitchAndStopIntegrationTest {
     return total;
   }
 
-  private static void createTopic(String topic, int partitions) throws Exception {
+  private void createTopic(String topic, int partitions) throws Exception {
     Properties props = new Properties();
-    props.put("bootstrap.servers", KAFKA.getBootstrapServers());
+    props.put("bootstrap.servers", kafkaBootstrapServers());
     try (AdminClient admin = AdminClient.create(props)) {
       try {
         admin.createTopics(List.of(new NewTopic(topic, partitions, (short) 1))).all().get(30, TimeUnit.SECONDS);
@@ -339,9 +437,9 @@ class RemoteControlSwitchAndStopIntegrationTest {
     }
   }
 
-  private static void purgeTopic(String topic) throws Exception {
+  private void purgeTopic(String topic) throws Exception {
     Properties props = new Properties();
-    props.put("bootstrap.servers", KAFKA.getBootstrapServers());
+    props.put("bootstrap.servers", kafkaBootstrapServers());
     try (AdminClient admin = AdminClient.create(props)) {
       List<TopicPartition> partitions = admin.describeTopics(List.of(topic))
         .allTopicNames()

@@ -23,6 +23,7 @@ package com.equinor.kafka;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
 import io.micrometer.core.instrument.MeterRegistry;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.List;
@@ -46,13 +47,17 @@ public class KafkaSender {
       _producersRef = new AtomicReference<>();
   private final MeterRegistry _meterRegistry;
 
-  public boolean isRunning = true;
+  private boolean _isRunning = true;
 
   private static final Logger _logger = LoggerFactory.getLogger(KafkaSender.class);
 
   /**
    * Creates a sender that reports metrics to the provided registry.
    */
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP2",
+      justification = "MeterRegistry is managed by Spring and shared."
+  )
   public KafkaSender(MeterRegistry meterRegistry) {
     _meterRegistry = meterRegistry;
   }
@@ -78,14 +83,14 @@ public class KafkaSender {
     List<KafkaProducer<DASMeasurementKey, DASMeasurement>> previous =
         _producersRef.getAndSet(List.copyOf(producers));
     closeProducers(previous);
-    isRunning = true;
+    _isRunning = true;
   }
 
   /**
    * Sends a record to Kafka.
    */
   public void send(ProducerRecord<DASMeasurementKey, DASMeasurement> data) {
-    if (!isRunning) {
+    if (!_isRunning) {
       // logger.info("Producer not running");
       return;
     }
@@ -122,7 +127,11 @@ public class KafkaSender {
     List<KafkaProducer<DASMeasurementKey, DASMeasurement>> producers =
         _producersRef.getAndSet(null);
     closeProducers(producers);
-    isRunning = false;
+    _isRunning = false;
+  }
+
+  public boolean isRunning() {
+    return _isRunning;
   }
 
   private KafkaProducer<DASMeasurementKey, DASMeasurement> producerForPartition(

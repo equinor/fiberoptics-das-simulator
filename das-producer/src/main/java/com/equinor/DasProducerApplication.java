@@ -28,9 +28,11 @@ import com.equinor.fiberoptics.das.producer.variants.simulatorboxunit.SimulatorB
 import com.equinor.fiberoptics.das.producer.variants.util.Helpers;
 import com.equinor.kafka.KafkaConfiguration;
 import com.equinor.kafka.KafkaRelay;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -72,6 +74,10 @@ public class DasProducerApplication {
    * Creates the application with required dependencies.
    */
   @Autowired
+    @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP2",
+      justification = "Spring-managed configuration bean is shared intentionally."
+    )
   public DasProducerApplication(
       BeanFactory beanFactory,
       DasProducerConfiguration dasProducerConfig,
@@ -105,14 +111,19 @@ public class DasProducerApplication {
       return;
     }
 
+    String variant = Objects.requireNonNull(_dasProducerConfig.getVariant(), "variant");
     GenericDasProducer simulatorBoxUnit = _beanFactory.getBean(
-        _dasProducerConfig.getVariant(),
-        GenericDasProducer.class
+      variant,
+      GenericDasProducer.class
     );
     registerShutdownHook();
     runNonRemoteProducer(simulatorBoxUnit, true);
   }
 
+  @SuppressFBWarnings(
+      value = "DM_EXIT",
+      justification = "Legacy CLI behavior exits the JVM when production finishes."
+  )
   void runNonRemoteProducer(GenericDasProducer simulatorBoxUnit, boolean exitWhenDone) {
     Consumer<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> relayToKafka =
         value -> {

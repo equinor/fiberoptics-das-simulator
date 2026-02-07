@@ -20,8 +20,8 @@
 
 package com.equinor.fiberoptics.das.producer.dto;
 
+import java.util.HashMap;
 import java.util.Map;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -29,11 +29,38 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class AcquisitionStartDto {
   private String topic;
   private String bootstrapServers;
   private String schemaRegistryUrl;
   private int numberOfPartitions;
   private Map<Integer, Integer> partitionAssignments;
+
+  public AcquisitionStartDto(
+      String topic,
+      String bootstrapServers,
+      String schemaRegistryUrl,
+      int numberOfPartitions,
+      Map<Integer, Integer> partitionAssignments) {
+    this.topic = topic;
+    this.bootstrapServers = bootstrapServers;
+    this.schemaRegistryUrl = schemaRegistryUrl;
+    this.numberOfPartitions = numberOfPartitions;
+    setPartitionAssignments(partitionAssignments);
+  }
+
+  public Map<Integer, Integer> getPartitionAssignments() {
+    if (partitionAssignments == null) {
+      return null;
+    }
+    return Map.copyOf(partitionAssignments);
+  }
+
+  public void setPartitionAssignments(Map<Integer, Integer> partitionAssignments) {
+    if (partitionAssignments == null) {
+      this.partitionAssignments = null;
+    } else {
+      this.partitionAssignments = new HashMap<>(partitionAssignments);
+    }
+  }
 }

@@ -69,7 +69,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
    * Creates a new simulator box unit.
    */
   public SimulatorBoxUnit(SimulatorBoxUnitConfiguration configuration) {
-    _configuration = configuration;
+    _configuration = copyConfiguration(configuration);
     _stepCalculator = new PackageStepCalculator(
         _configuration.getStartTimeInstant(),
         _configuration.getMaxFreq(),
@@ -103,7 +103,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
       double packagesPerSecond = _configuration.getSecondsToRun()
           / (delay.toNanos() / 1_000_000_000.0);
       take = delay.isZero()
-          ? _configuration.getSecondsToRun() * 1000
+          ? _configuration.getSecondsToRun() * 1000L
           : (long) packagesPerSecond;
       _logger.info(
           "Starting to produce data now for {} seconds",
@@ -399,27 +399,28 @@ public class SimulatorBoxUnit implements GenericDasProducer {
 
   private void logTimingSummary(TimingStats timingStats) {
     TimingStats.Summary summary = timingStats.snapshotAndReset();
-    if (summary.totalPackages == 0) {
+    if (summary.getTotalPackages() == 0) {
       return;
     }
-    double avgLagMs = summary.lagCount == 0
+    double avgLagMs = summary.getLagCount() == 0
         ? 0
-        : (summary.totalLagNanos / 1_000_000.0) / summary.lagCount;
-    double avgLeadMs = summary.leadCount == 0
+      : (summary.getTotalLagNanos() / 1_000_000.0) / summary.getLagCount();
+    double avgLeadMs = summary.getLeadCount() == 0
         ? 0
-        : (summary.totalLeadNanos / 1_000_000.0) / summary.leadCount;
-    double avgSleepMs = summary.sleepCount == 0
+      : (summary.getTotalLeadNanos() / 1_000_000.0) / summary.getLeadCount();
+    double avgSleepMs = summary.getSleepCount() == 0
         ? 0
-        : (summary.totalSleepNanos / 1_000_000.0) / summary.sleepCount;
-    double avgPreSleepLeadMs = summary.preSleepLeadCount == 0
+      : (summary.getTotalSleepNanos() / 1_000_000.0) / summary.getSleepCount();
+    double avgPreSleepLeadMs = summary.getPreSleepLeadCount() == 0
         ? 0
-        : (summary.totalPreSleepLeadNanos / 1_000_000.0) / summary.preSleepLeadCount;
-    double avgDeltaMs = summary.totalPackages == 0
+      : (summary.getTotalPreSleepLeadNanos() / 1_000_000.0)
+        / summary.getPreSleepLeadCount();
+    double avgDeltaMs = summary.getTotalPackages() == 0
         ? 0
-        : (summary.totalDeltaNanos / 1_000_000.0) / summary.totalPackages;
-    double lastDeltaMs = summary.lastDeltaNanos / 1_000_000.0;
+      : (summary.getTotalDeltaNanos() / 1_000_000.0) / summary.getTotalPackages();
+    double lastDeltaMs = summary.getLastDeltaNanos() / 1_000_000.0;
     long intervalSeconds = Math.max(1, _TIMING_LOG_INTERVAL.getSeconds());
-    double packagesPerSecond = summary.totalPackages / (double) intervalSeconds;
+    double packagesPerSecond = summary.getTotalPackages() / (double) intervalSeconds;
     String avgDeltaDir = avgDeltaMs < 0 ? "behind" : "ahead";
     String lastDeltaDir = lastDeltaMs < 0 ? "behind" : "ahead";
     boolean pacingConfigured = _configuration.isTimePacingEnabled();
@@ -430,9 +431,9 @@ public class SimulatorBoxUnit implements GenericDasProducer {
         .append(intervalSeconds)
         .append("s)\n")
         .append("  Fiber shots: ")
-        .append(summary.totalPackages)
+        .append(summary.getTotalPackages())
         .append(" (drops: ")
-        .append(summary.dropCount)
+        .append(summary.getDropCount())
         .append(")\n")
         .append("  Packages per second: ")
         .append(String.format("%.1f", packagesPerSecond))
@@ -447,18 +448,18 @@ public class SimulatorBoxUnit implements GenericDasProducer {
         .append(lastDeltaDir)
         .append("\n")
         .append("  Lagging fiber shots: ")
-        .append(summary.lagCount)
+        .append(summary.getLagCount())
         .append(" (avg ")
         .append(String.format("%.1f", avgLagMs))
         .append(" ms, max ")
-        .append(summary.maxLagNanos / Helpers.millisInNano)
+        .append(summary.getMaxLagNanos() / Helpers.millisInNano)
         .append(" ms)\n")
         .append("  Leading fiber shots: ")
-        .append(summary.leadCount)
+        .append(summary.getLeadCount())
         .append(" (avg ")
         .append(String.format("%.1f", avgLeadMs))
         .append(" ms, max ")
-        .append(summary.maxLeadNanos / Helpers.millisInNano)
+        .append(summary.getMaxLeadNanos() / Helpers.millisInNano)
         .append(" ms)\n")
         .append("  Pacing: configured=")
         .append(pacingConfigured)
@@ -468,7 +469,7 @@ public class SimulatorBoxUnit implements GenericDasProducer {
         .append(_configuration.isDisableThrottling())
         .append(")")
         .append(" (sleeps ")
-        .append(summary.sleepCount)
+        .append(summary.getSleepCount())
         .append(", avg ")
         .append(String.format("%.1f", avgSleepMs))
         .append(" ms")
@@ -501,5 +502,32 @@ public class SimulatorBoxUnit implements GenericDasProducer {
             .setAmplitudesLong(longData)
             .build(),
         currentLocus);
+  }
+
+  private static SimulatorBoxUnitConfiguration copyConfiguration(
+      SimulatorBoxUnitConfiguration source) {
+    SimulatorBoxUnitConfiguration copy = new SimulatorBoxUnitConfiguration();
+    copy.setBoxUUID(source.getBoxUUID());
+    copy.setOpticalPathUUID(source.getOpticalPathUUID());
+    copy.setGaugeLength(source.getGaugeLength());
+    copy.setSpatialSamplingInterval(source.getSpatialSamplingInterval());
+    copy.setPulseWidth(source.getPulseWidth());
+    copy.setStartLocusIndex(source.getStartLocusIndex());
+    copy.setPulseRate(source.getPulseRate());
+    copy.setMaxFreq(source.getMaxFreq());
+    copy.setMinFreq(source.getMinFreq());
+    copy.setNumberOfLoci(source.getNumberOfLoci());
+    copy.setConversionConstant(source.getConversionConstant());
+    copy.setDisableThrottling(source.isDisableThrottling());
+    copy.setAmplitudesPrPackage(source.getAmplitudesPrPackage());
+    copy.setNumberOfPrePopulatedValues(source.getNumberOfPrePopulatedValues());
+    copy.setNumberOfShots(source.getNumberOfShots());
+    copy.setSecondsToRun(source.getSecondsToRun());
+    copy.setStartTimeEpochSecond(source.getStartTimeEpochSecond());
+    copy.setAmplitudeDataType(source.getAmplitudeDataType());
+    copy.setTimePacingEnabled(source.isTimePacingEnabled());
+    copy.setTimeLagWarnMillis(source.getTimeLagWarnMillis());
+    copy.setTimeLagDropMillis(source.getTimeLagDropMillis());
+    return copy;
   }
 }

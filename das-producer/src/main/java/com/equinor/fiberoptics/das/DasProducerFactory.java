@@ -26,6 +26,7 @@ import com.equinor.kafka.KafkaConfiguration;
 import com.equinor.kafka.KafkaSender;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
 import jakarta.annotation.PreDestroy;
@@ -153,7 +154,11 @@ public class DasProducerFactory {
     return producers.get(0);
   }
 
-  private List<KafkaProducer<DASMeasurementKey, DASMeasurement>>
+    @SuppressFBWarnings(
+      value = "DM_EXIT",
+      justification = "Legacy CLI behavior exits on invalid partitions in non-remote mode."
+    )
+    private List<KafkaProducer<DASMeasurementKey, DASMeasurement>>
       createProducersFromAcquisitionJsonInternal(
           String acquisitionJson,
           boolean exitOnInvalidPartitions) {
@@ -233,10 +238,9 @@ public class DasProducerFactory {
     );
     int configuredInstances = Math.max(1, _configuration.getProducerInstances());
     int partitionsInAssignment = 0;
-    try {
-      partitionsInAssignment = new HashSet<>(acquisition.getPartitionAssignments().values()).size();
-    } catch (Exception ignored) {
-      // best-effort
+    Map<Integer, Integer> assignments = acquisition.getPartitionAssignments();
+    if (assignments != null && !assignments.isEmpty()) {
+      partitionsInAssignment = new HashSet<>(assignments.values()).size();
     }
     int effectivePartitionCount = Math.max(1, partitionsInAssignment);
     int instances = Math.min(configuredInstances, effectivePartitionCount);

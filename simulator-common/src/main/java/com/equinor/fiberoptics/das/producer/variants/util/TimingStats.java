@@ -92,23 +92,38 @@ public class TimingStats {
    * Returns a summary snapshot and resets internal counters.
    */
   public Summary snapshotAndReset() {
-    Summary summary = new Summary();
-    summary.totalPackages = _totalPackages.getAndSet(0);
-    summary.lagCount = _lagCount.getAndSet(0);
-    summary.leadCount = _leadCount.getAndSet(0);
-    summary.totalLagNanos = _totalLagNanos.getAndSet(0);
-    summary.totalLeadNanos = _totalLeadNanos.getAndSet(0);
-    summary.maxLagNanos = _maxLagNanos.getAndSet(0);
-    summary.maxLeadNanos = _maxLeadNanos.getAndSet(0);
-    summary.totalDeltaNanos = _totalDeltaNanos.getAndSet(0);
-    summary.lastDeltaNanos = _lastDeltaNanos.get();
-    summary.totalPreSleepLeadNanos = _totalPreSleepLeadNanos.getAndSet(0);
-    summary.preSleepLeadCount = _preSleepLeadCount.getAndSet(0);
-    summary.sleepCount = _sleepCount.getAndSet(0);
-    summary.totalSleepNanos = _totalSleepNanos.getAndSet(0);
-    summary.dropCount = _dropCount.getAndSet(0);
-    summary.warnLagCount = _warnLagCount.getAndSet(0);
-    return summary;
+    long totalPackages = _totalPackages.getAndSet(0);
+    long lagCount = _lagCount.getAndSet(0);
+    long leadCount = _leadCount.getAndSet(0);
+    long totalLagNanos = _totalLagNanos.getAndSet(0);
+    long totalLeadNanos = _totalLeadNanos.getAndSet(0);
+    long maxLagNanos = _maxLagNanos.getAndSet(0);
+    long maxLeadNanos = _maxLeadNanos.getAndSet(0);
+    long totalDeltaNanos = _totalDeltaNanos.getAndSet(0);
+    long lastDeltaNanos = _lastDeltaNanos.get();
+    long totalPreSleepLeadNanos = _totalPreSleepLeadNanos.getAndSet(0);
+    long preSleepLeadCount = _preSleepLeadCount.getAndSet(0);
+    long sleepCount = _sleepCount.getAndSet(0);
+    long totalSleepNanos = _totalSleepNanos.getAndSet(0);
+    long dropCount = _dropCount.getAndSet(0);
+    long warnLagCount = _warnLagCount.getAndSet(0);
+    return new Summary(
+        totalPackages,
+        lagCount,
+        leadCount,
+        totalLagNanos,
+        totalLeadNanos,
+        maxLagNanos,
+        maxLeadNanos,
+        totalDeltaNanos,
+        lastDeltaNanos,
+        totalPreSleepLeadNanos,
+        preSleepLeadCount,
+        sleepCount,
+        totalSleepNanos,
+        dropCount,
+        warnLagCount
+    );
   }
 
   private static void updateMax(AtomicLong max, long candidate) {
@@ -125,20 +140,114 @@ public class TimingStats {
    * Summary counters for a snapshot interval.
    */
   public static class Summary {
-    public long totalPackages;
-    public long lagCount;
-    public long leadCount;
-    public long totalLagNanos;
-    public long totalLeadNanos;
-    public long maxLagNanos;
-    public long maxLeadNanos;
-    public long totalDeltaNanos;
-    public long lastDeltaNanos;
-    public long totalPreSleepLeadNanos;
-    public long preSleepLeadCount;
-    public long sleepCount;
-    public long totalSleepNanos;
-    public long dropCount;
-    public long warnLagCount;
+    private final long _totalPackages;
+    private final long _lagCount;
+    private final long _leadCount;
+    private final long _totalLagNanos;
+    private final long _totalLeadNanos;
+    private final long _maxLagNanos;
+    private final long _maxLeadNanos;
+    private final long _totalDeltaNanos;
+    private final long _lastDeltaNanos;
+    private final long _totalPreSleepLeadNanos;
+    private final long _preSleepLeadCount;
+    private final long _sleepCount;
+    private final long _totalSleepNanos;
+    private final long _dropCount;
+    private final long _warnLagCount;
+
+    public Summary(
+        long totalPackages,
+        long lagCount,
+        long leadCount,
+        long totalLagNanos,
+        long totalLeadNanos,
+        long maxLagNanos,
+        long maxLeadNanos,
+        long totalDeltaNanos,
+        long lastDeltaNanos,
+        long totalPreSleepLeadNanos,
+        long preSleepLeadCount,
+        long sleepCount,
+        long totalSleepNanos,
+        long dropCount,
+        long warnLagCount
+    ) {
+      _totalPackages = totalPackages;
+      _lagCount = lagCount;
+      _leadCount = leadCount;
+      _totalLagNanos = totalLagNanos;
+      _totalLeadNanos = totalLeadNanos;
+      _maxLagNanos = maxLagNanos;
+      _maxLeadNanos = maxLeadNanos;
+      _totalDeltaNanos = totalDeltaNanos;
+      _lastDeltaNanos = lastDeltaNanos;
+      _totalPreSleepLeadNanos = totalPreSleepLeadNanos;
+      _preSleepLeadCount = preSleepLeadCount;
+      _sleepCount = sleepCount;
+      _totalSleepNanos = totalSleepNanos;
+      _dropCount = dropCount;
+      _warnLagCount = warnLagCount;
+    }
+
+    public long getTotalPackages() {
+      return _totalPackages;
+    }
+
+    public long getLagCount() {
+      return _lagCount;
+    }
+
+    public long getLeadCount() {
+      return _leadCount;
+    }
+
+    public long getTotalLagNanos() {
+      return _totalLagNanos;
+    }
+
+    public long getTotalLeadNanos() {
+      return _totalLeadNanos;
+    }
+
+    public long getMaxLagNanos() {
+      return _maxLagNanos;
+    }
+
+    public long getMaxLeadNanos() {
+      return _maxLeadNanos;
+    }
+
+    public long getTotalDeltaNanos() {
+      return _totalDeltaNanos;
+    }
+
+    public long getLastDeltaNanos() {
+      return _lastDeltaNanos;
+    }
+
+    public long getTotalPreSleepLeadNanos() {
+      return _totalPreSleepLeadNanos;
+    }
+
+    public long getPreSleepLeadCount() {
+      return _preSleepLeadCount;
+    }
+
+    public long getSleepCount() {
+      return _sleepCount;
+    }
+
+    public long getTotalSleepNanos() {
+      return _totalSleepNanos;
+    }
+
+    public long getDropCount() {
+      return _dropCount;
+    }
+
+    public long getWarnLagCount() {
+      return _warnLagCount;
+    }
   }
 }

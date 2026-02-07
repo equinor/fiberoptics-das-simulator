@@ -29,6 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Optional;
 import java.util.StringJoiner;
 import org.slf4j.Logger;
@@ -60,7 +61,11 @@ public class StartupInfoLogger {
   /**
    * Creates a startup logger with configuration providers.
    */
-  public StartupInfoLogger(
+    @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP2",
+      justification = "Spring-managed configuration beans are shared intentionally."
+    )
+    public StartupInfoLogger(
       Environment environment,
       ObjectProvider<BuildProperties> buildPropertiesProvider,
       DasProducerConfiguration dasProducerConfiguration,

@@ -83,7 +83,11 @@ public class KafkaConfiguration {
   }
 
   public void setConfig(Map<String, String> config) {
-    this.config = config;
+    if (config == null) {
+      this.config = new HashMap<>();
+    } else {
+      this.config = new HashMap<>(config);
+    }
   }
 
   public String getTopic() {

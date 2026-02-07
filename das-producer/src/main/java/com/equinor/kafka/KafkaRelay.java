@@ -31,7 +31,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadFactory;
@@ -77,13 +76,13 @@ public class KafkaRelay {
       return;
     }
     int currentPartition = _dasProducerConfig.getPartitionAssignments()
-        .get(partitionEntry.value.getLocus());
-    ProducerRecord<DASMeasurementKey, DASMeasurement> data = new ProducerRecord(
+      .get(partitionEntry.getValue().getLocus());
+    ProducerRecord<DASMeasurementKey, DASMeasurement> data = new ProducerRecord<>(
         _kafkaConf.getTopic(),
         currentPartition,
-        partitionEntry.value.getStartSnapshotTimeNano() / millisInNano,
-        partitionEntry.key,
-        partitionEntry.value
+      partitionEntry.getValue().getStartSnapshotTimeNano() / millisInNano,
+      partitionEntry.getKey(),
+      partitionEntry.getValue()
     );
     try {
       ExecutorService executor = executorForPartition(currentPartition);
@@ -156,7 +155,7 @@ public class KafkaRelay {
     return _partitionExecutors.computeIfAbsent(partition, this::createPartitionExecutor);
   }
 
-  private ExecutorService createPartitionExecutor(int partition) {
+  private ExecutorService createPartitionExecutor(Integer partition) {
     int queueCapacity = Math.max(1, _kafkaConf.getRelayQueueCapacity());
     long enqueueTimeoutMillis = _kafkaConf.getRelayEnqueueTimeoutMillis();
     BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(queueCapacity);

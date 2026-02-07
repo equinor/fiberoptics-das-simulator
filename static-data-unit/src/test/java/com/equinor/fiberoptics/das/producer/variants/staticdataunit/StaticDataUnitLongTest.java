@@ -63,7 +63,7 @@ public class StaticDataUnitLongTest {
 
     Consumer<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> logOutput = value -> {
       for (PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> entry: value) {
-        DASMeasurement measurement = entry.value;
+        DASMeasurement measurement = entry.getValue();
         LocalDateTime ldt = Instant.ofEpochMilli(measurement.getStartSnapshotTimeNano() / millisInNano).atZone(ZoneId.systemDefault()).toLocalDateTime();
 
         logger.info("Locus {} with {} has {} amplitudes", measurement.getLocus(), ldt, measurement.getAmplitudesLong().size());

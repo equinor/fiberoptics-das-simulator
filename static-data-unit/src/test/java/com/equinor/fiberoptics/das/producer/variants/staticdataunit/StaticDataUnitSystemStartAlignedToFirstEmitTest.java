@@ -56,7 +56,7 @@ class StaticDataUnitSystemStartAlignedToFirstEmitTest {
       producer.produce().collectList().block(Duration.ofSeconds(5));
 
     assertNotNull(batches);
-    long firstTimestamp = batches.get(0).get(0).value.getStartSnapshotTimeNano();
+    long firstTimestamp = batches.get(0).get(0).getValue().getStartSnapshotTimeNano();
     assertTrue(firstTimestamp >= (beforeSubscribeNanos - (20 * Helpers.millisInNano)),
       "First package timestamp should be aligned to when production starts (not bean construction time)");
   }

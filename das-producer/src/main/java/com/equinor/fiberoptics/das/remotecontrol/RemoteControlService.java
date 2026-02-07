@@ -28,16 +28,20 @@ import com.equinor.fiberoptics.das.producer.variants.simulatorboxunit.SimulatorB
 import com.equinor.fiberoptics.das.remotecontrol.profile.AcquisitionProfileResolver;
 import com.equinor.kafka.KafkaRelay;
 import com.equinor.kafka.KafkaSender;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
@@ -73,6 +77,10 @@ public class RemoteControlService {
   /**
    * Creates the remote-control service with required dependencies.
    */
+    @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP2",
+      justification = "Spring-managed dependencies are intentionally shared."
+    )
   public RemoteControlService(
       BeanFactory beanFactory,
       DasProducerConfiguration dasProducerConfiguration,
@@ -114,7 +122,7 @@ public class RemoteControlService {
     JsonNode root;
     try {
       root = _objectMapper.readTree(acquisitionJson);
-    } catch (Exception e) {
+    } catch (JsonProcessingException e) {
       throw new BadRequestException("Invalid JSON payload.");
     }
 
@@ -127,7 +135,7 @@ public class RemoteControlService {
     JsonNode profileRoot;
     try {
       profileRoot = _objectMapper.readTree(profileJson);
-    } catch (Exception e) {
+    } catch (JsonProcessingException e) {
       throw new IllegalStateException(
         "Resolved profile JSON could not be parsed: " + e.getMessage(),
         e
@@ -177,9 +185,10 @@ public class RemoteControlService {
         _dasProducerFactory.createProducersFromAcquisitionJson(profileJsonWithNewIdentity)
     );
 
+    String variant = Objects.requireNonNull(_dasProducerConfiguration.getVariant(), "variant");
     GenericDasProducer simulator = _beanFactory.getBean(
-        _dasProducerConfiguration.getVariant(),
-        GenericDasProducer.class
+      variant,
+      GenericDasProducer.class
     );
     Disposable disposable = simulator.produce()
         .subscribe(
@@ -368,22 +377,7 @@ public class RemoteControlService {
         }
       }
       return Optional.empty();
-    } catch (Exception e) {
-      return Optional.empty();
-    }
-  }
-
-  private Optional<Integer> extractIntField(String json, String... candidateFieldNames) {
-    try {
-      JsonNode root = _objectMapper.readTree(json);
-      for (String name : candidateFieldNames) {
-        JsonNode node = root.get(name);
-        if (node != null && node.canConvertToInt()) {
-          return Optional.of(node.asInt());
-        }
-      }
-      return Optional.empty();
-    } catch (Exception e) {
+    } catch (JsonProcessingException e) {
       return Optional.empty();
     }
   }
@@ -397,7 +391,7 @@ public class RemoteControlService {
         sb.append(String.format("%02x", b));
       }
       return sb.toString();
-    } catch (Exception e) {
+    } catch (NoSuchAlgorithmException e) {
       return Integer.toString(s.hashCode());
     }
   }
@@ -415,7 +409,7 @@ public class RemoteControlService {
           .with(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
           .writeValueAsBytes(copy);
       return sha256Bytes(canonical);
-    } catch (Exception e) {
+    } catch (JsonProcessingException e) {
       return sha256(root.toString());
     }
   }
@@ -429,7 +423,7 @@ public class RemoteControlService {
         sb.append(String.format("%02x", b));
       }
       return sb.toString();
-    } catch (Exception e) {
+    } catch (NoSuchAlgorithmException e) {
       return Integer.toString(Arrays.hashCode(bytes));
     }
   }

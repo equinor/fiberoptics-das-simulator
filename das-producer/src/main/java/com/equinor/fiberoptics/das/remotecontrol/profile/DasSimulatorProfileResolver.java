@@ -24,6 +24,7 @@ import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
 import com.equinor.fiberoptics.das.remotecontrol.RemoteControlService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -38,6 +39,10 @@ public class DasSimulatorProfileResolver implements AcquisitionProfileResolver {
   private final DasProducerConfiguration _dasProducerConfiguration;
   private final ObjectMapper _objectMapper;
 
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP2",
+      justification = "Spring-managed dependencies are intentionally shared."
+  )
   public DasSimulatorProfileResolver(
       DasProducerConfiguration dasProducerConfiguration,
       ObjectMapper objectMapper) {

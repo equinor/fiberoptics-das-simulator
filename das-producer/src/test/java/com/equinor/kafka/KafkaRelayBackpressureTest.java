@@ -59,7 +59,7 @@ class KafkaRelayBackpressureTest {
       firstSendStarted.countDown();
       allowSendToProceed.await(5, TimeUnit.SECONDS);
       return null;
-    }).when(kafkaSender).send(any(ProducerRecord.class));
+    }).when(kafkaSender).send(any());
 
     KafkaRelay relay = new KafkaRelay(kafkaConfiguration, kafkaSender, producerConfiguration);
     PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> entry = entry(0);
@@ -97,7 +97,7 @@ class KafkaRelayBackpressureTest {
       firstSendStarted.countDown();
       allowSendToProceed.await(5, TimeUnit.SECONDS);
       return null;
-    }).when(kafkaSender).send(any(ProducerRecord.class));
+    }).when(kafkaSender).send(any());
 
     KafkaRelay relay = new KafkaRelay(kafkaConfiguration, kafkaSender, producerConfiguration);
     PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> entry = entry(0);
@@ -140,7 +140,7 @@ class KafkaRelayBackpressureTest {
         allowPartition0Send.await(5, TimeUnit.SECONDS);
       }
       return null;
-    }).when(kafkaSender).send(any(ProducerRecord.class));
+    }).when(kafkaSender).send(any());
 
     KafkaRelay relay = new KafkaRelay(kafkaConfiguration, kafkaSender, producerConfiguration);
 

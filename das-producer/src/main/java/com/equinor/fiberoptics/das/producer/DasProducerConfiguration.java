@@ -20,6 +20,8 @@
 
 package com.equinor.fiberoptics.das.producer;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.HashMap;
 import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
@@ -49,6 +51,37 @@ public class DasProducerConfiguration {
   private Map<Integer, Integer> partitionAssignments;
 
   private RemoteControl remoteControl = new RemoteControl();
+
+  public Map<Integer, Integer> getPartitionAssignments() {
+    if (partitionAssignments == null) {
+      return null;
+    }
+    return Map.copyOf(partitionAssignments);
+  }
+
+  public void setPartitionAssignments(Map<Integer, Integer> partitionAssignments) {
+    if (partitionAssignments == null) {
+      this.partitionAssignments = null;
+    } else {
+      this.partitionAssignments = new HashMap<>(partitionAssignments);
+    }
+  }
+
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "Remote-control config is mutated by Spring and tests."
+  )
+  public RemoteControl getRemoteControl() {
+    return remoteControl;
+  }
+
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP2",
+      justification = "Remote-control config is mutated by Spring and tests."
+  )
+  public void setRemoteControl(RemoteControl remoteControl) {
+    this.remoteControl = remoteControl;
+  }
 
   @Getter
   @Setter

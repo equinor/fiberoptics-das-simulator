@@ -21,6 +21,7 @@
 package com.equinor.fiberoptics.das.remotecontrol;
 
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Optional;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
@@ -49,6 +50,10 @@ public class RemoteControlController {
   /**
    * Creates a controller for remote-control endpoints.
    */
+    @SuppressFBWarnings(
+      value = {"CT_CONSTRUCTOR_THROW", "EI_EXPOSE_REP2"},
+      justification = "Validation happens in constructor; dependencies are managed by Spring."
+    )
   public RemoteControlController(
       RemoteControlService remoteControlService,
       DasProducerConfiguration dasProducerConfiguration) {

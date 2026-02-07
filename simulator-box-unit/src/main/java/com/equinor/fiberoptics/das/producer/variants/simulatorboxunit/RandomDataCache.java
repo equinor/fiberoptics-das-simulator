@@ -40,6 +40,7 @@ public class RandomDataCache {
   private final int _pulseRate;
   private int _currentIndex = 0;
   private final int _numberOfPrepoluatedValues;
+  private final Random _random = new Random();
 
   private static final Logger _logger = LoggerFactory.getLogger(RandomDataCache.class);
 
@@ -117,10 +118,9 @@ public class RandomDataCache {
 
   private long[] getAmplitudesLong(long timeIndex) {
     long[] toReturn = new long[_amplitudesPrPackage];
-    Random myRand = new Random();
     for (int currentTimeIndex = 0; currentTimeIndex < _amplitudesPrPackage; currentTimeIndex++) {
       long val = (long) (
-          Math.sin(myRand.nextLong() * 2 * Math.PI) * (_pulseRate + timeIndex)
+          Math.sin(_random.nextLong() * 2 * Math.PI) * (_pulseRate + timeIndex)
       );
       // (long) Math.sin(timeIndex / _pulseRate * myRand.nextLong() * 2 * Math.PI);
 
@@ -131,10 +131,9 @@ public class RandomDataCache {
 
   private float[] getAmplitudesFloat(long timeIndex) {
     float[] toReturn = new float[_amplitudesPrPackage];
-    Random myRand = new Random();
     for (int currentTimeIndex = 0; currentTimeIndex < _amplitudesPrPackage; currentTimeIndex++) {
       double val = Math.sin(
-          (double) timeIndex / _pulseRate * myRand.nextFloat() * 2 * Math.PI
+          (double) timeIndex / _pulseRate * _random.nextFloat() * 2 * Math.PI
       );
 
       toReturn[currentTimeIndex] = (float) val;

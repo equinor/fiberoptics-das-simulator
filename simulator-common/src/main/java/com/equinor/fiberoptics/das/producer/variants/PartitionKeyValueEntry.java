@@ -25,16 +25,28 @@ package com.equinor.fiberoptics.das.producer.variants;
  */
 public class PartitionKeyValueEntry<K, V> {
 
-  public final K key;
-  public final V value;
-  public final Integer partition;
+  private final K _key;
+  private final V _value;
+  private final Integer _partition;
 
   /**
    * Creates a new entry.
    */
   public PartitionKeyValueEntry(K key, V value, Integer partition) {
-    this.key = key;
-    this.value = value;
-    this.partition = partition;
+    _key = key;
+    _value = value;
+    _partition = partition;
+  }
+
+  public K getKey() {
+    return _key;
+  }
+
+  public V getValue() {
+    return _value;
+  }
+
+  public Integer getPartition() {
+    return _partition;
   }
 }

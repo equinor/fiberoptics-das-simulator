@@ -56,7 +56,7 @@ public class SimulatorBoxUnitTest {
 
     Consumer<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> logOutput = value -> {
       for (PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> entry : value) {
-        DASMeasurement measurement = entry.value;
+        DASMeasurement measurement = entry.getValue();
         LocalDateTime ldt = Instant.ofEpochMilli(measurement.getStartSnapshotTimeNano() / millisInNano).atZone(ZoneId.systemDefault()).toLocalDateTime();
 
         if (measurement.getAmplitudesFloat() != null) {

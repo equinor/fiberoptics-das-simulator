@@ -75,6 +75,7 @@ public class HttpUtils {
   /**
    * Starts an acquisition using the provided JSON payload.
    */
+  @SuppressWarnings("null")
   public AcquisitionStartDto startAcquisition(String acquisitionJson) {
     SchemaVersions version = SchemaVersions.valueOf(
         _dasProducerConfig.getAcquisitionStartVersion()
@@ -103,6 +104,7 @@ public class HttpUtils {
   /**
    * Sends a stop request for the given acquisition id.
    */
+  @SuppressWarnings("null")
   public void stopAcquisition(String acquisitionId) {
     if (acquisitionId == null || acquisitionId.isBlank()) {
       return;
@@ -127,6 +129,7 @@ public class HttpUtils {
   /**
    * Checks whether the given service responds with a 2xx status.
    */
+  @SuppressWarnings("null")
   public boolean checkIfServiceIsFine(String service) {
     RestTemplate rt = new RestTemplate();
     HttpStatusCode statusCode;

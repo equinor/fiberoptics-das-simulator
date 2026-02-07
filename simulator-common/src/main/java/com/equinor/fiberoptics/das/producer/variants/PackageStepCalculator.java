@@ -23,6 +23,7 @@ package com.equinor.fiberoptics.das.producer.variants;
 import static com.equinor.fiberoptics.das.producer.variants.util.Helpers.millisInNano;
 import static com.equinor.fiberoptics.das.producer.variants.util.Helpers.nanosInSecond;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.time.Instant;
 import org.slf4j.Logger;
@@ -50,6 +51,10 @@ public class PackageStepCalculator {
    * @param amplitudesPrPackage  the number of amplitudes per package
    * @param loci                 the number of loci
    */
+    @SuppressFBWarnings(
+      value = "CT_CONSTRUCTOR_THROW",
+      justification = "Validation guards against invalid amplitudes-per-package values."
+    )
   public PackageStepCalculator(
       long startTimeEpochNano,
       float maximumFrequency,
@@ -87,6 +92,10 @@ public class PackageStepCalculator {
    * @param amplitudesPrPackage  the number of amplitudes per package
    * @param loci                 the number of loci
    */
+    @SuppressFBWarnings(
+      value = "CT_CONSTRUCTOR_THROW",
+      justification = "Validation guards against invalid amplitudes-per-package values."
+    )
   public PackageStepCalculator(
       Instant startTime,
       float maximumFrequency,
