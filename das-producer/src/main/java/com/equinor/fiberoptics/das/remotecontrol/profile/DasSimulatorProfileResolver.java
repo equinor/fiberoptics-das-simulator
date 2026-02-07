@@ -20,6 +20,7 @@
 
 package com.equinor.fiberoptics.das.remotecontrol.profile;
 
+import com.equinor.fiberoptics.das.error.ErrorCodeException;
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
 import com.equinor.fiberoptics.das.remotecontrol.RemoteControlService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -28,6 +29,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 /**
@@ -98,7 +100,9 @@ public class DasSimulatorProfileResolver implements AcquisitionProfileResolver {
     } catch (AcquisitionProfileNotFoundException e) {
       throw e;
     } catch (Exception e) {
-      throw new IllegalStateException(
+      throw new ErrorCodeException(
+        "RC-500",
+        HttpStatus.INTERNAL_SERVER_ERROR,
         "Profile file " + profileFile + " could not be read/parsed: " + e.getMessage(),
         e
       );

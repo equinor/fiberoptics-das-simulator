@@ -22,6 +22,7 @@ package com.equinor.kafka;
 
 import static com.equinor.fiberoptics.das.producer.variants.util.Helpers.millisInNano;
 
+import com.equinor.fiberoptics.das.error.ErrorCodeException;
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
 import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
 import fiberoptics.time.message.v1.DASMeasurement;
@@ -41,6 +42,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.InterruptException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 /**
@@ -77,13 +79,17 @@ public class KafkaRelay {
     }
     Map<Integer, Integer> assignments = _dasProducerConfig.getPartitionAssignments();
     if (assignments == null || assignments.isEmpty()) {
-      throw new IllegalStateException(
+      throw new ErrorCodeException(
+          "KAFKA-001",
+          HttpStatus.INTERNAL_SERVER_ERROR,
           "Partition assignments are missing. Cannot send measurement to Kafka."
       );
     }
     Integer currentPartition = assignments.get(partitionEntry.getValue().getLocus());
     if (currentPartition == null) {
-      throw new IllegalStateException(
+      throw new ErrorCodeException(
+          "KAFKA-002",
+          HttpStatus.INTERNAL_SERVER_ERROR,
           "No partition assignment for locus "
               + partitionEntry.getValue().getLocus()
               + ". Available assignments: "
@@ -151,7 +157,11 @@ public class KafkaRelay {
     }
     for (ExecutorService executor : _partitionExecutors.values()) {
       try {
-        if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
+        long timeoutMillis = 10_000L;
+        if (_kafkaConf.getRelayShutdownTimeout() != null) {
+          timeoutMillis = Math.max(1L, _kafkaConf.getRelayShutdownTimeout().toMillis());
+        }
+        if (!executor.awaitTermination(timeoutMillis, TimeUnit.MILLISECONDS)) {
           executor.shutdownNow();
         }
       } catch (InterruptedException e) {

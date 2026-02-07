@@ -28,6 +28,7 @@ import com.equinor.fiberoptics.das.producer.variants.simulatorboxunit.SimulatorB
 import com.equinor.fiberoptics.das.remotecontrol.RemoteControlController;
 import com.equinor.fiberoptics.das.remotecontrol.RemoteControlService;
 import com.equinor.fiberoptics.das.remotecontrol.profile.DasSimulatorProfileResolver;
+import com.equinor.test.TestTimeouts;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -49,7 +50,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
@@ -86,6 +86,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -99,9 +100,16 @@ class RemoteControlSwitchAndStopIntegrationTest {
   private static final String KAFKA_IMAGE = "confluentinc/cp-kafka:" + CONFLUENT_VERSION;
   private static final String KAFKA_KRAFT_CLUSTER_ID = "WjQ5NkZsUVFqY2x1Z0x4a1pPQQ";
   private static final int KAFKA_EXTERNAL_PORT = readKafkaExternalPort();
+  private static final Duration CONTAINER_STARTUP_TIMEOUT = TestTimeouts.scaled(Duration.ofMinutes(3));
+  private static final Duration TEST_TIMEOUT_LONG = TestTimeouts.scaled(Duration.ofMinutes(3));
+  private static final Duration ADMIN_TIMEOUT = TestTimeouts.scaled(Duration.ofSeconds(30));
+  private static final Duration CONSUMER_POLL_TIMEOUT = TestTimeouts.scaled(Duration.ofMillis(500));
+  private static final Duration WAIT_UNTIL_TIMEOUT = TestTimeouts.scaled(Duration.ofSeconds(20));
+  private static final Duration SHORT_SLEEP = TestTimeouts.scaled(Duration.ofMillis(100));
+  private static final Duration RELAY_ENQUEUE_TIMEOUT = TestTimeouts.scaled(Duration.ofSeconds(30));
   private static final Network NETWORK = Network.newNetwork();
 
-  @SuppressWarnings("resource")
+  @SuppressWarnings({"resource", "deprecation"})
   private final FixedHostPortGenericContainer<?> KAFKA =
     new FixedHostPortGenericContainer<>(KAFKA_IMAGE)
       .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("KafkaContainer"))
@@ -126,7 +134,7 @@ class RemoteControlSwitchAndStopIntegrationTest {
       .withEnv("KAFKA_KRAFT_CLUSTER_ID", KAFKA_KRAFT_CLUSTER_ID)
       .withEnv("KAFKA_CLUSTER_ID", KAFKA_KRAFT_CLUSTER_ID)
       .withEnv("CLUSTER_ID", KAFKA_KRAFT_CLUSTER_ID)
-      .waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofMinutes(3)));
+      .waitingFor(Wait.forListeningPort().withStartupTimeout(CONTAINER_STARTUP_TIMEOUT));
 
   @SuppressWarnings("resource")
   private final GenericContainer<?> SCHEMA_REGISTRY =
@@ -145,7 +153,7 @@ class RemoteControlSwitchAndStopIntegrationTest {
         Wait.forHttp("/subjects")
           .forPort(8081)
           .forStatusCode(200)
-          .withStartupTimeout(Duration.ofMinutes(3))
+          .withStartupTimeout(CONTAINER_STARTUP_TIMEOUT)
       );
 
   @BeforeAll
@@ -214,8 +222,8 @@ class RemoteControlSwitchAndStopIntegrationTest {
   }
 
   @Test
-  @Timeout(value = 3, unit = TimeUnit.MINUTES)
   void remoteControl_canApplySwitchConfiguration_thenStop(@TempDir Path tempDir) throws Exception {
+    assertTimeoutPreemptively(TEST_TIMEOUT_LONG, () -> {
     String topic = "das-remote-it-" + UUID.randomUUID();
     String schemaRegistryUrl = "http://" + SCHEMA_REGISTRY.getHost() + ":" + SCHEMA_REGISTRY.getMappedPort(8081);
     String apiKey = "test-api-key";
@@ -242,7 +250,7 @@ class RemoteControlSwitchAndStopIntegrationTest {
       KafkaConfiguration kafkaConfiguration = new KafkaConfiguration();
       kafkaConfiguration.setProducerInstances(1);
       kafkaConfiguration.setRelayQueueCapacity(5_000);
-      kafkaConfiguration.setRelayEnqueueTimeoutMillis(30_000);
+      kafkaConfiguration.setRelayEnqueueTimeoutMillis(RELAY_ENQUEUE_TIMEOUT.toMillis());
       kafkaConfiguration.setRelayEnqueueWarnMillis(0);
 
       SimulatorBoxUnitConfiguration simulatorConfiguration = new SimulatorBoxUnitConfiguration();
@@ -269,7 +277,7 @@ class RemoteControlSwitchAndStopIntegrationTest {
         .thenAnswer(invocation -> new SimulatorBoxUnit(simulatorConfiguration));
 
       ApplicationContext applicationContext = mock(ApplicationContext.class);
-      KafkaSender kafkaSender = new KafkaSender(new SimpleMeterRegistry());
+      KafkaSender kafkaSender = new KafkaSender(new SimpleMeterRegistry(), kafkaConfiguration);
       KafkaRelay kafkaRelay = new KafkaRelay(kafkaConfiguration, kafkaSender, dasProducerConfiguration);
 
       HttpUtils httpUtils = newHttpUtils(simulatorConfiguration, dasProducerConfiguration);
@@ -296,7 +304,7 @@ class RemoteControlSwitchAndStopIntegrationTest {
           .content("{\"Custom\":{\"das-simulator-profile\":\"profile-one\"}}"))
         .andExpect(status().isOk());
 
-      waitUntil("first start-acquisition call", Duration.ofSeconds(20), () -> initiator.startCallCount() >= 1);
+      waitUntil("first start-acquisition call", WAIT_UNTIL_TIMEOUT, () -> initiator.startCallCount() >= 1);
 
       mvc.perform(post("/api/acquisition/apply")
           .header("X-Api-Key", apiKey)
@@ -304,8 +312,8 @@ class RemoteControlSwitchAndStopIntegrationTest {
           .content("{\"Custom\":{\"das-simulator-profile\":\"profile-two\"}}"))
         .andExpect(status().isOk());
 
-      waitUntil("second start-acquisition call", Duration.ofSeconds(20), () -> initiator.startCallCount() >= 2);
-      waitUntil("switch stop-acquisition call", Duration.ofSeconds(20), () -> initiator.stopCallCount() >= 1);
+      waitUntil("second start-acquisition call", WAIT_UNTIL_TIMEOUT, () -> initiator.startCallCount() >= 2);
+      waitUntil("switch stop-acquisition call", WAIT_UNTIL_TIMEOUT, () -> initiator.stopCallCount() >= 1);
 
       List<Integer> startedLoci = initiator.startedLoci();
       assertEquals(List.of(4, 7), startedLoci, "Expected switch from first profile loci to second profile loci");
@@ -321,13 +329,14 @@ class RemoteControlSwitchAndStopIntegrationTest {
           .content("{\"AcquisitionId\":\"" + secondAcquisitionId + "\"}"))
         .andExpect(status().isOk());
 
-      waitUntil("final stop-acquisition call", Duration.ofSeconds(20), () -> initiator.stopCallCount() >= 2);
+      waitUntil("final stop-acquisition call", WAIT_UNTIL_TIMEOUT, () -> initiator.stopCallCount() >= 2);
       assertTrue(initiator.stoppedAcquisitionIds().contains(secondAcquisitionId),
         "Expected explicit STOP to stop current acquisition");
 
-      long observed = countRecords(topic, 1, Duration.ofSeconds(20));
+      long observed = countRecords(topic, 1, WAIT_UNTIL_TIMEOUT);
       assertTrue(observed > 0, "Expected Kafka topic to contain records after APPLY calls");
     }
+    });
   }
 
   private static HttpUtils newHttpUtils(
@@ -380,7 +389,7 @@ class RemoteControlSwitchAndStopIntegrationTest {
       if (condition.getAsBoolean()) {
         return;
       }
-      Thread.sleep(100);
+      Thread.sleep(Math.max(1L, SHORT_SLEEP.toMillis()));
     }
     throw new AssertionError("Timed out waiting for: " + description);
   }
@@ -420,7 +429,7 @@ class RemoteControlSwitchAndStopIntegrationTest {
     try (KafkaConsumer<byte[], byte[]> consumer = new KafkaConsumer<>(props)) {
       consumer.subscribe(List.of(topic));
       while (total < expected && System.nanoTime() < deadlineNanos) {
-        ConsumerRecords<byte[], byte[]> records = consumer.poll(Duration.ofMillis(500));
+        ConsumerRecords<byte[], byte[]> records = consumer.poll(CONSUMER_POLL_TIMEOUT);
         total += records.count();
       }
     }
@@ -432,7 +441,8 @@ class RemoteControlSwitchAndStopIntegrationTest {
     props.put("bootstrap.servers", kafkaBootstrapServers());
     try (AdminClient admin = AdminClient.create(props)) {
       try {
-        admin.createTopics(List.of(new NewTopic(topic, partitions, (short) 1))).all().get(30, TimeUnit.SECONDS);
+        admin.createTopics(List.of(new NewTopic(topic, partitions, (short) 1))).all()
+          .get(ADMIN_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
       } catch (Exception e) {
         Throwable cause = e.getCause();
         if (cause instanceof TopicExistsException) {
@@ -449,7 +459,7 @@ class RemoteControlSwitchAndStopIntegrationTest {
     try (AdminClient admin = AdminClient.create(props)) {
       List<TopicPartition> partitions = admin.describeTopics(List.of(topic))
         .allTopicNames()
-        .get(30, TimeUnit.SECONDS)
+        .get(ADMIN_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
         .get(topic)
         .partitions()
         .stream()
@@ -463,7 +473,7 @@ class RemoteControlSwitchAndStopIntegrationTest {
 
       Map<TopicPartition, Long> latestOffsets = admin.listOffsets(latestOffsetsSpec)
         .all()
-        .get(30, TimeUnit.SECONDS)
+        .get(ADMIN_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
         .entrySet()
         .stream()
         .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().offset()));
@@ -475,7 +485,7 @@ class RemoteControlSwitchAndStopIntegrationTest {
       }
 
       DeleteRecordsResult result = admin.deleteRecords(deleteBefore);
-      result.all().get(30, TimeUnit.SECONDS);
+      result.all().get(ADMIN_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
     }
   }
 

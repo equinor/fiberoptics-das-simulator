@@ -22,6 +22,7 @@ package com.equinor.fiberoptics.das;
 
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
 import com.equinor.fiberoptics.das.producer.dto.AcquisitionStartDto;
+import com.equinor.fiberoptics.das.error.ErrorCodeException;
 import com.equinor.kafka.KafkaConfiguration;
 import com.equinor.kafka.KafkaSender;
 import com.google.gson.JsonObject;
@@ -30,19 +31,20 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
 import jakarta.annotation.PreDestroy;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationContext;
@@ -83,7 +85,8 @@ public class DasProducerFactory {
   @PreDestroy
   public void onDestroy() throws Exception {
     _logger.info("Spring Container is destroyed!");
-    Thread.sleep(1000);
+    Duration sleep = defaultIfNull(_dasProducerConfig.getShutdownSleep(), Duration.ofSeconds(1));
+    Thread.sleep(Math.max(1L, sleep.toMillis()));
   }
 
   /**
@@ -191,11 +194,13 @@ public class DasProducerFactory {
         int exitValue = SpringApplication.exit(_applicationContext);
         System.exit(exitValue);
       }
-      throw new IllegalStateException(
+        throw new ErrorCodeException(
+          "APP-004",
+          HttpStatus.INTERNAL_SERVER_ERROR,
           "Unable to run when the destination topic has "
-              + acquisition.getNumberOfPartitions()
-              + " partitions."
-      );
+            + acquisition.getNumberOfPartitions()
+            + " partitions."
+        );
     }
 
     String actualSchemaRegistryServers;
@@ -308,16 +313,26 @@ public class DasProducerFactory {
       BooleanSupplier isHealthy,
       String serviceDisplayName,
       String environmentComponentName) {
-    long deadlineNanos = System.nanoTime() + TimeUnit.MINUTES.toNanos(5);
+    Duration timeout = defaultIfNull(
+      _dasProducerConfig.getHealthCheckTimeout(),
+      Duration.ofMinutes(5)
+    );
+    long deadlineNanos = System.nanoTime() + timeout.toNanos();
+    Duration interval = defaultIfNull(
+      _dasProducerConfig.getHealthCheckInterval(),
+      Duration.ofSeconds(5)
+    );
     while (!isHealthy.getAsBoolean()) {
       if (System.nanoTime() > deadlineNanos) {
-        throw new IllegalStateException(
-            serviceDisplayName
-                + " did not become healthy within 5 minutes. "
-                + "This indicates an environment configuration error. "
-                + "Last attempted URL: "
-                + url
-        );
+      throw new ErrorCodeException(
+        "APP-002",
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        serviceDisplayName
+          + " did not become healthy within " + timeout + ". "
+          + "This indicates an environment configuration error. "
+          + "Last attempted URL: "
+          + url
+      );
       }
       _logger.info(
           "Trying to reach {} at {} looking for a 200 OK.",
@@ -325,14 +340,20 @@ public class DasProducerFactory {
           url
       );
       try {
-        Thread.sleep(5000);
+        Thread.sleep(Math.max(1L, interval.toMillis()));
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        throw new IllegalStateException(
+        throw new ErrorCodeException(
+            "APP-003",
+            HttpStatus.INTERNAL_SERVER_ERROR,
             "Interrupted while waiting for " + serviceDisplayName + " to become healthy.",
             e
         );
       }
     }
+  }
+
+  private static Duration defaultIfNull(Duration value, Duration fallback) {
+    return value == null ? fallback : value;
   }
 }

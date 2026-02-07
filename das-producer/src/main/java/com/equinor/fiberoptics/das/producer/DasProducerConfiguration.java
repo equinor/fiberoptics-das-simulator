@@ -21,6 +21,7 @@
 package com.equinor.fiberoptics.das.producer;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.Getter;
@@ -47,6 +48,12 @@ public class DasProducerConfiguration {
   private String overrideBootstrapServersWith;
   private String overrideSchemaRegistryWith;
   private String variant;
+
+  private Duration httpConnectTimeout;
+  private Duration httpReadTimeout;
+  private Duration healthCheckTimeout;
+  private Duration healthCheckInterval;
+  private Duration shutdownSleep;
 
   private Map<Integer, Integer> partitionAssignments;
 

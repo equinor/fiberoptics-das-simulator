@@ -60,7 +60,6 @@ import reactor.core.scheduler.Schedulers;
 @EnableConfigurationProperties({SimulatorBoxUnitConfiguration.class})
 public class SimulatorBoxUnit implements GenericDasProducer {
   private static final Logger _logger = LoggerFactory.getLogger(SimulatorBoxUnit.class);
-  private static final Duration _TIMING_LOG_INTERVAL = Duration.ofSeconds(30);
 
   private final SimulatorBoxUnitConfiguration _configuration;
   private final PackageStepCalculator _stepCalculator;
@@ -114,7 +113,11 @@ public class SimulatorBoxUnit implements GenericDasProducer {
     return Flux.defer(() -> {
       TimingStats timingStats = new TimingStats();
       Scheduler timingScheduler = Schedulers.newSingle("simulatorbox-timing-logger");
-      Disposable timingDisposable = Flux.interval(_TIMING_LOG_INTERVAL, timingScheduler)
+      Duration logInterval = _configuration.getTimingLogInterval();
+      if (logInterval == null || logInterval.isZero() || logInterval.isNegative()) {
+        logInterval = Duration.ofSeconds(30);
+      }
+      Disposable timingDisposable = Flux.interval(logInterval, timingScheduler)
           .doOnNext(tick -> logTimingSummary(timingStats))
           .subscribe();
       Scheduler producerScheduler = Schedulers.newSingle("simulatorbox-producer");
@@ -419,7 +422,11 @@ public class SimulatorBoxUnit implements GenericDasProducer {
         ? 0
       : (summary.getTotalDeltaNanos() / 1_000_000.0) / summary.getTotalPackages();
     double lastDeltaMs = summary.getLastDeltaNanos() / 1_000_000.0;
-    long intervalSeconds = Math.max(1, _TIMING_LOG_INTERVAL.getSeconds());
+    Duration logInterval = _configuration.getTimingLogInterval();
+    if (logInterval == null || logInterval.isZero() || logInterval.isNegative()) {
+      logInterval = Duration.ofSeconds(30);
+    }
+    long intervalSeconds = Math.max(1, logInterval.getSeconds());
     double packagesPerSecond = summary.getTotalPackages() / (double) intervalSeconds;
     String avgDeltaDir = avgDeltaMs < 0 ? "behind" : "ahead";
     String lastDeltaDir = lastDeltaMs < 0 ? "behind" : "ahead";

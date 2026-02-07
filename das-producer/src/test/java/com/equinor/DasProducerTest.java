@@ -21,6 +21,7 @@ package com.equinor;
 
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
 import com.equinor.fiberoptics.das.remotecontrol.RemoteControlController;
+import com.equinor.fiberoptics.das.remotecontrol.RemoteControlExceptionHandler;
 import com.equinor.fiberoptics.das.remotecontrol.RemoteControlService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -65,7 +66,9 @@ public class DasProducerTest {
     cfg.getRemoteControl().setEnabled(true);
     cfg.getRemoteControl().setApiKey(API_KEY);
     RemoteControlController controller = new RemoteControlController(remoteControlService, cfg);
-    mvc = MockMvcBuilders.standaloneSetup(controller).build();
+    mvc = MockMvcBuilders.standaloneSetup(controller)
+      .setControllerAdvice(new RemoteControlExceptionHandler())
+      .build();
   }
 
   @Test

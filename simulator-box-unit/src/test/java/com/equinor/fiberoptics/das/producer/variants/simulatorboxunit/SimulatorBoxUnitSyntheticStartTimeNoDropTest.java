@@ -20,6 +20,7 @@
 package com.equinor.fiberoptics.das.producer.variants.simulatorboxunit;
 
 import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
+import com.equinor.test.TestTimeouts;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
 import org.junit.jupiter.api.Test;
@@ -31,6 +32,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class SimulatorBoxUnitSyntheticStartTimeNoDropTest {
+
+  private static final Duration BLOCK_TIMEOUT = TestTimeouts.scaled(Duration.ofSeconds(5));
 
   @Test
   void doesNotDropPackagesWhenSyntheticStartTimeIsConfigured() {
@@ -56,7 +59,7 @@ class SimulatorBoxUnitSyntheticStartTimeNoDropTest {
     SimulatorBoxUnit producer = new SimulatorBoxUnit(configuration);
 
     List<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> batches =
-      producer.produce().collectList().block(Duration.ofSeconds(5));
+      producer.produce().collectList().block(BLOCK_TIMEOUT);
 
     assertNotNull(batches);
     assertEquals(1, batches.size());

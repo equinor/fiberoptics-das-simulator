@@ -20,6 +20,7 @@
 package com.equinor.kafka;
 
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
+import com.equinor.test.TestTimeouts;
 import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
@@ -29,6 +30,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -72,6 +74,9 @@ import static org.mockito.Mockito.mock;
  */
 class KafkaRelayPartitionOrderingTest {
 
+  private static final Duration TIMEOUT_MEDIUM = TestTimeouts.scaled(Duration.ofSeconds(5));
+  private static final Duration RELAY_ENQUEUE_TIMEOUT = TestTimeouts.scaled(Duration.ofSeconds(5));
+
   @ParameterizedTest
   @ValueSource(ints = {1, 3})
   void locusAlwaysMapsToSamePartition_andOrderingWithinPartitionIsPreserved_evenWithMultipleKafkaProducers(int producerInstances)
@@ -80,7 +85,7 @@ class KafkaRelayPartitionOrderingTest {
     kafkaConfiguration.setTopic("topic");
     kafkaConfiguration.setPartitions(4);
     kafkaConfiguration.setRelayQueueCapacity(1000);
-    kafkaConfiguration.setRelayEnqueueTimeoutMillis(5_000);
+    kafkaConfiguration.setRelayEnqueueTimeoutMillis(RELAY_ENQUEUE_TIMEOUT.toMillis());
 
     DasProducerConfiguration producerConfiguration = new DasProducerConfiguration();
     Map<Integer, Integer> locusToPartition = Map.of(
@@ -92,7 +97,7 @@ class KafkaRelayPartitionOrderingTest {
     producerConfiguration.setPartitionAssignments(locusToPartition);
 
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
-    KafkaSender kafkaSender = new KafkaSender(meterRegistry);
+    KafkaSender kafkaSender = new KafkaSender(meterRegistry, kafkaConfiguration);
 
     Map<Integer, Set<Integer>> partitionsObservedByLocus = new ConcurrentHashMap<>();
     Map<Integer, ConcurrentLinkedQueue<Long>> timestampsByPartition = new ConcurrentHashMap<>();
@@ -135,7 +140,10 @@ class KafkaRelayPartitionOrderingTest {
       expectedTimestampsByPartition.computeIfAbsent(expectedPartition, p -> new ArrayList<>()).add(expectedTimestamp);
     }
 
-    assertTrue(sent.await(5, TimeUnit.SECONDS), "Timed out waiting for records to be sent");
+    assertTrue(
+      sent.await(TIMEOUT_MEDIUM.toSeconds(), TimeUnit.SECONDS),
+      "Timed out waiting for records to be sent"
+    );
     relay.teardown();
 
     for (Map.Entry<Integer, Integer> mapping : locusToPartition.entrySet()) {

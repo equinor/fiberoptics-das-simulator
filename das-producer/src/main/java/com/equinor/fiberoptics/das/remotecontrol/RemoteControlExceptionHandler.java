@@ -20,6 +20,7 @@
 
 package com.equinor.fiberoptics.das.remotecontrol;
 
+import com.equinor.fiberoptics.das.error.ErrorCodeException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,30 +33,24 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice(basePackages = "com.equinor.fiberoptics.das.remotecontrol")
 public class RemoteControlExceptionHandler {
 
-  @ExceptionHandler(RemoteControlService.BadRequestException.class)
-  public ResponseEntity<ErrorResponse> handleBadRequest(
-      RemoteControlService.BadRequestException ex,
+  @ExceptionHandler(ErrorCodeException.class)
+  public ResponseEntity<ErrorResponse> handleErrorCodeException(
+      ErrorCodeException ex,
       HttpServletRequest request) {
-    return build(HttpStatus.BAD_REQUEST, "RC-400", ex.getMessage(), request);
-  }
-
-  @ExceptionHandler(RemoteControlService.UnauthorizedException.class)
-  public ResponseEntity<ErrorResponse> handleUnauthorized(
-      RemoteControlService.UnauthorizedException ex,
-      HttpServletRequest request) {
-    return build(HttpStatus.UNAUTHORIZED, "RC-401", "Unauthorized", request);
-  }
-
-  @ExceptionHandler(RemoteControlService.NotFoundException.class)
-  public ResponseEntity<ErrorResponse> handleNotFound(
-      RemoteControlService.NotFoundException ex,
-      HttpServletRequest request) {
-    return build(HttpStatus.NOT_FOUND, "RC-404", ex.getMessage(), request);
+    HttpStatus status = ex.getHttpStatus() == null ? HttpStatus.INTERNAL_SERVER_ERROR : ex.getHttpStatus();
+    return build(status, ex.getErrorCode(), ex.getMessage(), request);
   }
 
   @ExceptionHandler(IllegalStateException.class)
   public ResponseEntity<ErrorResponse> handleIllegalState(
       IllegalStateException ex,
+      HttpServletRequest request) {
+    return build(HttpStatus.INTERNAL_SERVER_ERROR, "RC-500", ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<ErrorResponse> handleUnexpected(
+      Exception ex,
       HttpServletRequest request) {
     return build(HttpStatus.INTERNAL_SERVER_ERROR, "RC-500", ex.getMessage(), request);
   }

@@ -21,6 +21,7 @@ package com.equinor.fiberoptics.das.producer.variants.simulatorboxunit;
 
 import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
 import com.equinor.fiberoptics.das.producer.variants.util.Helpers;
+import com.equinor.test.TestTimeouts;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
 import org.junit.jupiter.api.Test;
@@ -32,6 +33,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SimulatorBoxUnitSystemStartAlignedToFirstEmitTest {
+
+  private static final Duration BLOCK_TIMEOUT = TestTimeouts.scaled(Duration.ofSeconds(5));
+  private static final Duration PREP_SLEEP = TestTimeouts.scaled(Duration.ofMillis(200));
 
   @Test
   void alignsSystemStartTimeToFirstEmission() throws Exception {
@@ -55,11 +59,11 @@ class SimulatorBoxUnitSystemStartAlignedToFirstEmitTest {
 
     SimulatorBoxUnit producer = new SimulatorBoxUnit(configuration);
 
-    Thread.sleep(200);
+    Thread.sleep(Math.max(1L, PREP_SLEEP.toMillis()));
     long beforeSubscribeNanos = Helpers.currentEpochNanos();
 
     List<List<PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement>>> batches =
-      producer.produce().collectList().block(Duration.ofSeconds(5));
+      producer.produce().collectList().block(BLOCK_TIMEOUT);
 
     assertNotNull(batches);
     long firstTimestamp = batches.get(0).get(0).getValue().getStartSnapshotTimeNano();

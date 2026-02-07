@@ -21,6 +21,7 @@
 package com.equinor.fiberoptics.das.remotecontrol;
 
 import com.equinor.fiberoptics.das.DasProducerFactory;
+import com.equinor.fiberoptics.das.error.ErrorCodeException;
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
 import com.equinor.fiberoptics.das.producer.variants.GenericDasProducer;
 import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
@@ -48,9 +49,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.http.HttpStatus;
 import reactor.core.Disposable;
 
 /**
@@ -136,7 +136,9 @@ public class RemoteControlService {
     try {
       profileRoot = _objectMapper.readTree(profileJson);
     } catch (JsonProcessingException e) {
-      throw new IllegalStateException(
+      throw new ErrorCodeException(
+        "RC-500",
+        HttpStatus.INTERNAL_SERVER_ERROR,
         "Resolved profile JSON could not be parsed: " + e.getMessage(),
         e
       );
@@ -168,7 +170,9 @@ public class RemoteControlService {
     try {
       profileJsonWithNewIdentity = _objectMapper.writeValueAsString(updatedProfileRoot);
     } catch (Exception e) {
-      throw new IllegalStateException(
+      throw new ErrorCodeException(
+        "RC-500",
+        HttpStatus.INTERNAL_SERVER_ERROR,
         "Failed to serialize updated profile JSON: " + e.getMessage(),
         e
       );
@@ -431,27 +435,27 @@ public class RemoteControlService {
   /**
    * Thrown when a request payload is invalid.
    */
-  @ResponseStatus(HttpStatus.BAD_REQUEST)
-  public static class BadRequestException extends RuntimeException {
+  public static class BadRequestException extends ErrorCodeException {
     public BadRequestException(String message) {
-      super(message);
+      super("RC-400", HttpStatus.BAD_REQUEST, message);
     }
   }
 
   /**
    * Thrown when remote-control credentials are invalid.
    */
-  @ResponseStatus(HttpStatus.UNAUTHORIZED)
-  public static class UnauthorizedException extends RuntimeException {
+  public static class UnauthorizedException extends ErrorCodeException {
+    public UnauthorizedException() {
+      super("RC-401", HttpStatus.UNAUTHORIZED, "Unauthorized");
+    }
   }
 
   /**
    * Thrown when a requested acquisition does not exist.
    */
-  @ResponseStatus(HttpStatus.NOT_FOUND)
-  public static class NotFoundException extends RuntimeException {
+  public static class NotFoundException extends ErrorCodeException {
     public NotFoundException(String message) {
-      super(message);
+      super("RC-404", HttpStatus.NOT_FOUND, message);
     }
   }
 }

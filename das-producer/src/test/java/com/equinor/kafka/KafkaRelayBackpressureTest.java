@@ -20,12 +20,14 @@
 package com.equinor.kafka;
 
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
+import com.equinor.test.TestTimeouts;
 import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
 import fiberoptics.time.message.v1.DASMeasurement;
 import fiberoptics.time.message.v1.DASMeasurementKey;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -40,6 +42,12 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 
 class KafkaRelayBackpressureTest {
+
+  private static final Duration TIMEOUT_SHORT = TestTimeouts.scaled(Duration.ofSeconds(2));
+  private static final Duration TIMEOUT_MEDIUM = TestTimeouts.scaled(Duration.ofSeconds(5));
+  private static final Duration TIMEOUT_POLL = TestTimeouts.scaled(Duration.ofMillis(500));
+  private static final Duration TIMEOUT_SLEEP = TestTimeouts.scaled(Duration.ofMillis(200));
+  private static final Duration ENQUEUE_TIMEOUT = TestTimeouts.scaled(Duration.ofMillis(100));
 
   @Test
   void blocksWhenPerPartitionQueueIsFull() throws Exception {
@@ -57,7 +65,7 @@ class KafkaRelayBackpressureTest {
     CountDownLatch allowSendToProceed = new CountDownLatch(1);
     doAnswer(invocation -> {
       firstSendStarted.countDown();
-      allowSendToProceed.await(5, TimeUnit.SECONDS);
+      allowSendToProceed.await(TIMEOUT_MEDIUM.toSeconds(), TimeUnit.SECONDS);
       return null;
     }).when(kafkaSender).send(any());
 
@@ -65,16 +73,16 @@ class KafkaRelayBackpressureTest {
     PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> entry = entry(0);
 
     relay.relayToKafka(entry);
-    assertTrue(firstSendStarted.await(2, TimeUnit.SECONDS), "Expected first send to start");
+    assertTrue(firstSendStarted.await(TIMEOUT_SHORT.toSeconds(), TimeUnit.SECONDS), "Expected first send to start");
 
     relay.relayToKafka(entry); // fills queue (capacity=1)
 
     CompletableFuture<Void> blocked = CompletableFuture.runAsync(() -> relay.relayToKafka(entry));
-    Thread.sleep(200);
+    Thread.sleep(Math.max(1L, TIMEOUT_SLEEP.toMillis()));
     assertFalse(blocked.isDone(), "Expected relayToKafka() to block when queue is full");
 
     allowSendToProceed.countDown();
-    blocked.get(2, TimeUnit.SECONDS);
+    blocked.get(TIMEOUT_SHORT.toSeconds(), TimeUnit.SECONDS);
 
     relay.teardown();
   }
@@ -85,7 +93,7 @@ class KafkaRelayBackpressureTest {
     kafkaConfiguration.setTopic("topic");
     kafkaConfiguration.setPartitions(1);
     kafkaConfiguration.setRelayQueueCapacity(1);
-    kafkaConfiguration.setRelayEnqueueTimeoutMillis(100);
+    kafkaConfiguration.setRelayEnqueueTimeoutMillis(ENQUEUE_TIMEOUT.toMillis());
 
     DasProducerConfiguration producerConfiguration = new DasProducerConfiguration();
     producerConfiguration.setPartitionAssignments(Map.of(0, 0));
@@ -95,7 +103,7 @@ class KafkaRelayBackpressureTest {
     CountDownLatch allowSendToProceed = new CountDownLatch(1);
     doAnswer(invocation -> {
       firstSendStarted.countDown();
-      allowSendToProceed.await(5, TimeUnit.SECONDS);
+      allowSendToProceed.await(TIMEOUT_MEDIUM.toSeconds(), TimeUnit.SECONDS);
       return null;
     }).when(kafkaSender).send(any());
 
@@ -103,7 +111,7 @@ class KafkaRelayBackpressureTest {
     PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> entry = entry(0);
 
     relay.relayToKafka(entry);
-    assertTrue(firstSendStarted.await(2, TimeUnit.SECONDS), "Expected first send to start");
+    assertTrue(firstSendStarted.await(TIMEOUT_SHORT.toSeconds(), TimeUnit.SECONDS), "Expected first send to start");
     relay.relayToKafka(entry); // fills queue (capacity=1)
 
     long startNanos = System.nanoTime();
@@ -137,7 +145,7 @@ class KafkaRelayBackpressureTest {
       Integer partition = record.partition();
       if (partition != null && partition == 0) {
         partition0SendStarted.countDown();
-        allowPartition0Send.await(5, TimeUnit.SECONDS);
+        allowPartition0Send.await(TIMEOUT_MEDIUM.toSeconds(), TimeUnit.SECONDS);
       }
       return null;
     }).when(kafkaSender).send(any());
@@ -148,18 +156,21 @@ class KafkaRelayBackpressureTest {
     PartitionKeyValueEntry<DASMeasurementKey, DASMeasurement> entryPartition1 = entry(1);
 
     relay.relayToKafka(entryPartition0);
-    assertTrue(partition0SendStarted.await(2, TimeUnit.SECONDS), "Expected partition 0 send to start");
+    assertTrue(partition0SendStarted.await(TIMEOUT_SHORT.toSeconds(), TimeUnit.SECONDS), "Expected partition 0 send to start");
     relay.relayToKafka(entryPartition0); // fills partition 0 queue
 
     CompletableFuture<Void> partition1 = CompletableFuture.runAsync(() -> relay.relayToKafka(entryPartition1));
-    assertDoesNotThrow(() -> partition1.get(500, TimeUnit.MILLISECONDS), "Partition 1 should not be blocked by partition 0");
+    assertDoesNotThrow(
+      () -> partition1.get(TIMEOUT_POLL.toMillis(), TimeUnit.MILLISECONDS),
+      "Partition 1 should not be blocked by partition 0"
+    );
 
     CompletableFuture<Void> blockedPartition0 = CompletableFuture.runAsync(() -> relay.relayToKafka(entryPartition0));
-    Thread.sleep(200);
+    Thread.sleep(Math.max(1L, TIMEOUT_SLEEP.toMillis()));
     assertFalse(blockedPartition0.isDone(), "Expected only partition 0 to be backpressured");
 
     allowPartition0Send.countDown();
-    assertDoesNotThrow(() -> blockedPartition0.get(2, TimeUnit.SECONDS));
+    assertDoesNotThrow(() -> blockedPartition0.get(TIMEOUT_SHORT.toSeconds(), TimeUnit.SECONDS));
 
     relay.teardown();
   }

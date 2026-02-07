@@ -18,17 +18,35 @@
  * =========================LICENSE_END==================================
  */
 
-package com.equinor.fiberoptics.das.remotecontrol.profile;
+package com.equinor.fiberoptics.das.error;
 
-import com.equinor.fiberoptics.das.error.ErrorCodeException;
 import org.springframework.http.HttpStatus;
 
 /**
- * Indicates that the requested acquisition profile file could not be found.
+ * Exception that carries a structured error code and HTTP status.
  */
-public class AcquisitionProfileNotFoundException extends ErrorCodeException {
-  public AcquisitionProfileNotFoundException(String message) {
-    super("RC-404", HttpStatus.NOT_FOUND, message);
+public class ErrorCodeException extends RuntimeException {
+
+  private final String _errorCode;
+  private final HttpStatus _httpStatus;
+
+  public ErrorCodeException(String errorCode, HttpStatus httpStatus, String message) {
+    super(message);
+    _errorCode = errorCode;
+    _httpStatus = httpStatus;
+  }
+
+  public ErrorCodeException(String errorCode, HttpStatus httpStatus, String message, Throwable cause) {
+    super(message, cause);
+    _errorCode = errorCode;
+    _httpStatus = httpStatus;
+  }
+
+  public String getErrorCode() {
+    return _errorCode;
+  }
+
+  public HttpStatus getHttpStatus() {
+    return _httpStatus;
   }
 }
-

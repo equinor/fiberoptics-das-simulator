@@ -22,6 +22,7 @@ package com.equinor.kafka;
 
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -66,6 +67,16 @@ public class KafkaConfiguration {
    * Emit a warning log when enqueueing a send task blocks for longer than this threshold.
    */
   private long relayEnqueueWarnMillis = 1000;
+
+  /**
+   * Max time to wait for Kafka producers to close.
+   */
+  private Duration senderCloseTimeout = Duration.ofMillis(1000);
+
+  /**
+   * Max time to wait for relay executors to shutdown cleanly.
+   */
+  private Duration relayShutdownTimeout = Duration.ofSeconds(10);
 
   public Map<String, Object> kafkaProperties(String bootstrapServers, String schemaRegistry) {
     Map<String, Object> props = new HashMap<>();
@@ -136,5 +147,21 @@ public class KafkaConfiguration {
 
   public void setRelayEnqueueWarnMillis(long relayEnqueueWarnMillis) {
     this.relayEnqueueWarnMillis = relayEnqueueWarnMillis;
+  }
+
+  public Duration getSenderCloseTimeout() {
+    return senderCloseTimeout;
+  }
+
+  public void setSenderCloseTimeout(Duration senderCloseTimeout) {
+    this.senderCloseTimeout = senderCloseTimeout;
+  }
+
+  public Duration getRelayShutdownTimeout() {
+    return relayShutdownTimeout;
+  }
+
+  public void setRelayShutdownTimeout(Duration relayShutdownTimeout) {
+    this.relayShutdownTimeout = relayShutdownTimeout;
   }
 }

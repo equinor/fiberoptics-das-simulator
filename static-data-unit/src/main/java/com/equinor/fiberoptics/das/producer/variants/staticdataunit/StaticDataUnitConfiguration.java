@@ -20,6 +20,7 @@
 
 package com.equinor.fiberoptics.das.producer.variants.staticdataunit;
 
+import java.time.Duration;
 import java.time.Instant;
 import lombok.Getter;
 import lombok.Setter;
@@ -47,6 +48,7 @@ public class StaticDataUnitConfiguration {
   private boolean timePacingEnabled;
   private long timeLagWarnMillis;
   private long timeLagDropMillis;
+  private Duration timingLogInterval = Duration.ofSeconds(30);
 
   public Instant getStartTimeInstant() {
     return startTimeEpochSecond == 0

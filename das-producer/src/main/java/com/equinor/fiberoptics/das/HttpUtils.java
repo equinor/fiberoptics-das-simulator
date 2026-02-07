@@ -20,6 +20,7 @@
 
 package com.equinor.fiberoptics.das;
 
+import com.equinor.fiberoptics.das.error.ErrorCodeException;
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
 import com.equinor.fiberoptics.das.producer.dto.AcquisitionStartDto;
 import com.equinor.fiberoptics.das.producer.variants.simulatorboxunit.SimulatorBoxUnitConfiguration;
@@ -38,8 +39,10 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
 /**
@@ -67,9 +70,13 @@ public class HttpUtils {
       RestTemplateBuilder restTemplateBuilder) {
     _simBoxConfig = simUnitConfig;
     _dasProducerConfig = dasProdConfig;
+    Duration connectTimeout = defaultIfNull(dasProdConfig.getHttpConnectTimeout(), CONNECT_TIMEOUT);
+    Duration readTimeout = defaultIfNull(dasProdConfig.getHttpReadTimeout(), READ_TIMEOUT);
+    SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+    factory.setConnectTimeout((int) Math.max(1L, connectTimeout.toMillis()));
+    factory.setReadTimeout((int) Math.max(1L, readTimeout.toMillis()));
     _restTemplate = restTemplateBuilder
-        .setConnectTimeout(CONNECT_TIMEOUT)
-        .setReadTimeout(READ_TIMEOUT)
+      .requestFactory(() -> factory)
         .build();
   }
 
@@ -162,11 +169,17 @@ public class HttpUtils {
   private String requiredInitiatorApiKey() {
     String apiKey = _dasProducerConfig.getInitiatorserviceApiKey();
     if (apiKey == null || apiKey.isBlank()) {
-      throw new IllegalStateException(
+      throw new ErrorCodeException(
+          "APP-001",
+          HttpStatus.INTERNAL_SERVER_ERROR,
           "INITIATOR_API_KEY (das.producer.initiatorservice-api-key) must be set."
       );
     }
     return apiKey.trim();
+  }
+
+  private static Duration defaultIfNull(Duration value, Duration fallback) {
+    return value == null ? fallback : value;
   }
 
   /**

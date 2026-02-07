@@ -20,6 +20,7 @@
 package com.equinor.kafka;
 
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
+import com.equinor.test.TestTimeouts;
 import com.equinor.fiberoptics.das.producer.variants.PartitionKeyValueEntry;
 import com.equinor.fiberoptics.das.producer.variants.simulatorboxunit.SimulatorBoxUnit;
 import com.equinor.fiberoptics.das.producer.variants.simulatorboxunit.SimulatorBoxUnitConfiguration;
@@ -46,7 +47,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.FixedHostPortGenericContainer;
@@ -75,6 +75,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class DasProducerKafkaIntegrationTest {
@@ -84,9 +85,19 @@ class DasProducerKafkaIntegrationTest {
   private static final String KAFKA_IMAGE = "confluentinc/cp-kafka:" + CONFLUENT_VERSION;
   private static final String KAFKA_KRAFT_CLUSTER_ID = "WjQ5NkZsUVFqY2x1Z0x4a1pPQQ";
   private static final int KAFKA_EXTERNAL_PORT = readKafkaExternalPort();
+  private static final Duration CONTAINER_STARTUP_TIMEOUT = TestTimeouts.scaled(Duration.ofMinutes(3));
+  private static final Duration TEST_TIMEOUT_SHORT = TestTimeouts.scaled(Duration.ofMinutes(2));
+  private static final Duration TEST_TIMEOUT_LONG = TestTimeouts.scaled(Duration.ofMinutes(3));
+  private static final Duration PRODUCER_FINISH_TIMEOUT = TestTimeouts.scaled(Duration.ofSeconds(60));
+  private static final Duration PRODUCER_FINISH_LONG_TIMEOUT = TestTimeouts.scaled(Duration.ofSeconds(90));
+  private static final Duration COUNT_RECORDS_TIMEOUT = TestTimeouts.scaled(Duration.ofSeconds(60));
+  private static final Duration COUNT_RECORDS_LONG_TIMEOUT = TestTimeouts.scaled(Duration.ofSeconds(90));
+  private static final Duration ADMIN_TIMEOUT = TestTimeouts.scaled(Duration.ofSeconds(30));
+  private static final Duration CONSUMER_POLL_TIMEOUT = TestTimeouts.scaled(Duration.ofMillis(500));
+  private static final Duration RELAY_ENQUEUE_TIMEOUT = TestTimeouts.scaled(Duration.ofSeconds(30));
   private static final Network NETWORK = Network.newNetwork();
 
-  @SuppressWarnings("resource")
+  @SuppressWarnings({"resource", "deprecation"})
   private final FixedHostPortGenericContainer<?> KAFKA =
     new FixedHostPortGenericContainer<>(KAFKA_IMAGE)
       .withLogConsumer(new Slf4jLogConsumer(logger).withPrefix("kafka"))
@@ -110,7 +121,7 @@ class DasProducerKafkaIntegrationTest {
       .withEnv("KAFKA_KRAFT_CLUSTER_ID", KAFKA_KRAFT_CLUSTER_ID)
       .withEnv("KAFKA_CLUSTER_ID", KAFKA_KRAFT_CLUSTER_ID)
       .withEnv("CLUSTER_ID", KAFKA_KRAFT_CLUSTER_ID)
-      .waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofMinutes(3)));
+      .waitingFor(Wait.forListeningPort().withStartupTimeout(CONTAINER_STARTUP_TIMEOUT));
 
   @SuppressWarnings("resource")
   private final GenericContainer<?> SCHEMA_REGISTRY =
@@ -128,7 +139,7 @@ class DasProducerKafkaIntegrationTest {
         Wait.forHttp("/subjects")
           .forPort(8081)
           .forStatusCode(200)
-          .withStartupTimeout(Duration.ofMinutes(3))
+            .withStartupTimeout(CONTAINER_STARTUP_TIMEOUT)
       );
 
   @BeforeAll
@@ -197,8 +208,8 @@ class DasProducerKafkaIntegrationTest {
   }
 
   @Test
-  @Timeout(value = 2, unit = TimeUnit.MINUTES)
   void produces50ShotsWith500Loci_at10kHz_andWritesExpectedKafkaRecordCount() throws Exception {
+    assertTimeoutPreemptively(TEST_TIMEOUT_SHORT, () -> {
     String topic = "das-producer-it-" + UUID.randomUUID();
     int shots = 50;
     int loci = 500;
@@ -220,12 +231,12 @@ class DasProducerKafkaIntegrationTest {
     kafkaConfiguration.setPartitions(1);
     kafkaConfiguration.setProducerInstances(1);
     kafkaConfiguration.setRelayQueueCapacity(5_000);
-    kafkaConfiguration.setRelayEnqueueTimeoutMillis(30_000);
+    kafkaConfiguration.setRelayEnqueueTimeoutMillis(RELAY_ENQUEUE_TIMEOUT.toMillis());
     kafkaConfiguration.setRelayEnqueueWarnMillis(0);
 
     Map<String, Object> producerProps = kafkaConfiguration.kafkaProperties(kafkaBootstrapServers(), schemaRegistryUrl);
     try (KafkaProducer<DASMeasurementKey, DASMeasurement> kafkaProducer = new KafkaProducer<>(producerProps)) {
-      KafkaSender kafkaSender = new KafkaSender(new SimpleMeterRegistry());
+      KafkaSender kafkaSender = new KafkaSender(new SimpleMeterRegistry(), kafkaConfiguration);
       kafkaSender.setProducers(List.of(kafkaProducer));
 
       DasProducerConfiguration dasProducerConfiguration = new DasProducerConfiguration();
@@ -272,7 +283,10 @@ class DasProducerKafkaIntegrationTest {
             produced::countDown
           );
 
-        assertTrue(produced.await(60, TimeUnit.SECONDS), "Timed out waiting for producer to finish");
+        assertTrue(
+          produced.await(PRODUCER_FINISH_TIMEOUT.toSeconds(), TimeUnit.SECONDS),
+          "Timed out waiting for producer to finish"
+        );
         Throwable producedError = error.get();
         assertNull(producedError, "Unexpected error from producer: " + producedError);
       } finally {
@@ -280,13 +294,14 @@ class DasProducerKafkaIntegrationTest {
       }
     }
 
-    long actual = countRecords(topic, expectedRecords, Duration.ofSeconds(60));
+    long actual = countRecords(topic, expectedRecords, COUNT_RECORDS_TIMEOUT);
     assertEquals(expectedRecords, actual, "Unexpected record count in Kafka topic");
+    });
   }
 
   @Test
-  @Timeout(value = 3, unit = TimeUnit.MINUTES)
   void routes64LociAcross8Partitions_with4Producers_andPreservesPartitionOrdering() throws Exception {
+    assertTimeoutPreemptively(TEST_TIMEOUT_LONG, () -> {
     String topic = "das-producer-it-" + UUID.randomUUID();
     int shots = 10;
     int loci = 64;
@@ -304,7 +319,7 @@ class DasProducerKafkaIntegrationTest {
     kafkaConfiguration.setPartitions(partitions);
     kafkaConfiguration.setProducerInstances(producerInstances);
     kafkaConfiguration.setRelayQueueCapacity(5_000);
-    kafkaConfiguration.setRelayEnqueueTimeoutMillis(30_000);
+    kafkaConfiguration.setRelayEnqueueTimeoutMillis(RELAY_ENQUEUE_TIMEOUT.toMillis());
     kafkaConfiguration.setRelayEnqueueWarnMillis(0);
 
     Map<String, Object> baseProps = kafkaConfiguration.kafkaProperties(kafkaBootstrapServers(), schemaRegistryUrl);
@@ -315,7 +330,7 @@ class DasProducerKafkaIntegrationTest {
       producers.add(new KafkaProducer<>(props));
     }
 
-    KafkaSender kafkaSender = new KafkaSender(new SimpleMeterRegistry());
+    KafkaSender kafkaSender = new KafkaSender(new SimpleMeterRegistry(), kafkaConfiguration);
     kafkaSender.setProducers(producers);
 
     DasProducerConfiguration dasProducerConfiguration = new DasProducerConfiguration();
@@ -363,7 +378,10 @@ class DasProducerKafkaIntegrationTest {
           produced::countDown
         );
 
-      assertTrue(produced.await(90, TimeUnit.SECONDS), "Timed out waiting for producer to finish");
+      assertTrue(
+        produced.await(PRODUCER_FINISH_LONG_TIMEOUT.toSeconds(), TimeUnit.SECONDS),
+        "Timed out waiting for producer to finish"
+      );
       Throwable producedError = error.get();
       assertNull(producedError, "Unexpected error from producer: " + producedError);
     } finally {
@@ -374,11 +392,12 @@ class DasProducerKafkaIntegrationTest {
     long actual = consumeAndAssertRoutingAndOrdering(
       topic,
       expectedRecords,
-      Duration.ofSeconds(90),
+      COUNT_RECORDS_LONG_TIMEOUT,
       schemaRegistryUrl,
       locusToPartition
     );
     assertEquals(expectedRecords, actual, "Unexpected record count in Kafka topic");
+    });
   }
 
   private static Map<Integer, Integer> locusToSinglePartitionAssignments(int loci) {
@@ -407,7 +426,7 @@ class DasProducerKafkaIntegrationTest {
     try (AdminClient admin = AdminClient.create(props)) {
       List<TopicPartition> partitions = admin.describeTopics(List.of(topic))
         .allTopicNames()
-        .get(30, TimeUnit.SECONDS)
+        .get(ADMIN_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
         .get(topic)
         .partitions()
         .stream()
@@ -421,7 +440,7 @@ class DasProducerKafkaIntegrationTest {
 
       Map<TopicPartition, Long> latestOffsets = admin.listOffsets(latestOffsetsSpec)
         .all()
-        .get(30, TimeUnit.SECONDS)
+        .get(ADMIN_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
         .entrySet()
         .stream()
         .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().offset()));
@@ -433,7 +452,7 @@ class DasProducerKafkaIntegrationTest {
       }
 
       DeleteRecordsResult result = admin.deleteRecords(deleteBefore);
-      result.all().get(30, TimeUnit.SECONDS);
+      result.all().get(ADMIN_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
     }
   }
 
@@ -442,7 +461,8 @@ class DasProducerKafkaIntegrationTest {
     props.put("bootstrap.servers", kafkaBootstrapServers());
     try (AdminClient admin = AdminClient.create(props)) {
       try {
-        admin.createTopics(List.of(new NewTopic(topic, partitions, (short) 1))).all().get(30, TimeUnit.SECONDS);
+        admin.createTopics(List.of(new NewTopic(topic, partitions, (short) 1))).all()
+          .get(ADMIN_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
       } catch (Exception e) {
         Throwable cause = e.getCause();
         if (cause instanceof TopicExistsException) {
@@ -468,7 +488,7 @@ class DasProducerKafkaIntegrationTest {
     try (KafkaConsumer<byte[], byte[]> consumer = new KafkaConsumer<>(props)) {
       consumer.subscribe(List.of(topic));
       while (total < expected && System.nanoTime() < deadlineNanos) {
-        ConsumerRecords<byte[], byte[]> records = consumer.poll(Duration.ofMillis(500));
+        ConsumerRecords<byte[], byte[]> records = consumer.poll(CONSUMER_POLL_TIMEOUT);
         total += records.count();
       }
     }
@@ -500,7 +520,7 @@ class DasProducerKafkaIntegrationTest {
     try (KafkaConsumer<DASMeasurementKey, DASMeasurement> consumer = new KafkaConsumer<>(props)) {
       consumer.subscribe(List.of(topic));
       while (total < expected && System.nanoTime() < deadlineNanos) {
-        ConsumerRecords<DASMeasurementKey, DASMeasurement> records = consumer.poll(Duration.ofMillis(500));
+        ConsumerRecords<DASMeasurementKey, DASMeasurement> records = consumer.poll(CONSUMER_POLL_TIMEOUT);
         records.forEach(record -> {
           DASMeasurement value = record.value();
           assertNotNull(value, "Expected non-null DASMeasurement record");

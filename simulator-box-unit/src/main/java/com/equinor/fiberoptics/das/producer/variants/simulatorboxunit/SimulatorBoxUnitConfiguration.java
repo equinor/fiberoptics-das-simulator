@@ -20,6 +20,7 @@
 
 package com.equinor.fiberoptics.das.producer.variants.simulatorboxunit;
 
+import java.time.Duration;
 import java.time.Instant;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
@@ -56,6 +57,7 @@ public class SimulatorBoxUnitConfiguration {
   private boolean timePacingEnabled;
   private long timeLagWarnMillis;
   private long timeLagDropMillis;
+  private Duration timingLogInterval = Duration.ofSeconds(30);
 
   public Instant getStartTimeInstant() {
     return startTimeEpochSecond == 0

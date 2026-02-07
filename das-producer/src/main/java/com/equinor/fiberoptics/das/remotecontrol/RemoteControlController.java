@@ -21,11 +21,13 @@
 package com.equinor.fiberoptics.das.remotecontrol;
 
 import com.equinor.fiberoptics.das.producer.DasProducerConfiguration;
+import com.equinor.fiberoptics.das.error.ErrorCodeException;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Optional;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -110,7 +112,9 @@ public class RemoteControlController {
     }
     String configured = _dasProducerConfiguration.getRemoteControl().getApiKey();
     if (configured == null || configured.isBlank()) {
-      throw new IllegalStateException(
+      throw new ErrorCodeException(
+        "RC-500",
+        HttpStatus.INTERNAL_SERVER_ERROR,
         "Remote control is enabled but no API key is configured. "
           + "Set REMOTE_CONTROL_API_KEY (das.producer.remote-control.api-key)."
       );

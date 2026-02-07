@@ -47,6 +47,7 @@ public class KafkaSender {
   private final AtomicReference<List<KafkaProducer<DASMeasurementKey, DASMeasurement>>>
       _producersRef = new AtomicReference<>();
   private final MeterRegistry _meterRegistry;
+  private final KafkaConfiguration _kafkaConfiguration;
 
   private final AtomicBoolean _isRunning = new AtomicBoolean(true);
 
@@ -59,8 +60,9 @@ public class KafkaSender {
       value = "EI_EXPOSE_REP2",
       justification = "MeterRegistry is managed by Spring and shared."
   )
-  public KafkaSender(MeterRegistry meterRegistry) {
+  public KafkaSender(MeterRegistry meterRegistry, KafkaConfiguration kafkaConfiguration) {
     _meterRegistry = meterRegistry;
+    _kafkaConfiguration = kafkaConfiguration;
   }
 
   /**
@@ -161,7 +163,8 @@ public class KafkaSender {
         _logger.warn("Exception flushing producer: {}", e.getMessage());
       }
       try {
-        producer.close(Duration.ofMillis(1000));
+        Duration timeout = _kafkaConfiguration.getSenderCloseTimeout();
+        producer.close(timeout == null ? Duration.ofMillis(1000) : timeout);
       } catch (Exception e) {
         _logger.warn("Exception closing producer: {}", e.getMessage());
       }
