@@ -20,6 +20,7 @@
 
 package com.equinor.fiberoptics.das.producer.variants.util;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.concurrent.CountDownLatch;
 import org.slf4j.Logger;
@@ -45,6 +46,10 @@ public class Helpers {
   /**
    * Sleeps for the given number of milliseconds.
    */
+  @SuppressFBWarnings(
+      value = "THROWS_METHOD_THROWS_RUNTIMEEXCEPTION",
+      justification = "Callers rely on the interrupt being preserved and propagated as a runtime error."
+  )
   public static void sleepMillis(int millis) {
     try {
       Thread.sleep(millis);
@@ -58,6 +63,10 @@ public class Helpers {
   /**
    * Sleeps for the given number of nanoseconds.
    */
+  @SuppressFBWarnings(
+      value = "THROWS_METHOD_THROWS_RUNTIMEEXCEPTION",
+      justification = "Callers rely on the interrupt being preserved and propagated as a runtime error."
+  )
   public static void sleepNanos(long nanos) {
     if (nanos <= 0) {
       return;
@@ -76,6 +85,10 @@ public class Helpers {
   /**
    * Blocks until the latch reaches zero.
    */
+  @SuppressFBWarnings(
+      value = "THROWS_METHOD_THROWS_RUNTIMEEXCEPTION",
+      justification = "Callers rely on the interrupt being preserved and propagated as a runtime error."
+  )
   public static void wait(CountDownLatch waitOn) {
     try {
       waitOn.await();

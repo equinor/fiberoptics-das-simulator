@@ -83,10 +83,15 @@ public class DasProducerFactory {
    * Logs shutdown when the Spring context is destroyed.
    */
   @PreDestroy
-  public void onDestroy() throws Exception {
+  public void onDestroy() {
     _logger.info("Spring Container is destroyed!");
     Duration sleep = defaultIfNull(_dasProducerConfig.getShutdownSleep(), Duration.ofSeconds(1));
-    Thread.sleep(Math.max(1L, sleep.toMillis()));
+    try {
+      Thread.sleep(Math.max(1L, sleep.toMillis()));
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      _logger.warn("Interrupted while waiting for shutdown delay.");
+    }
   }
 
   /**
