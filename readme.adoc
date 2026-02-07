@@ -7,6 +7,8 @@
 The DAS amplitude simulator simulates a real DAS interrogators communication into an Equinor DAS streaming
 platform. This version simulates the back-end system of the streaming platform using Docker Compose.
 
+This project is not open to code contributions.
+
 
 We have implemented a simple Distributed Acoustic Sensing (DAS) simulator that queues up a configurable number of amplitudes that matches the number of loci for an
 imaginary fiber optic sensing cable. The samples are grouped in the time axis so that they represent a full "fiber vector shot".
@@ -46,8 +48,9 @@ A successful DAS acquisition is made by initially contacting the Stream initiato
 }
 ----
 *Note* that we only accept positive int values for StartLocusIndex, and that even with a StartLocusIndex > 0 the numbering of the actual channel should always start at 0.
+*Note* that AcquisitionId must be unique for each request. If you rerun the curl example, generate a new UUID value first.
 
-Here is a curl command that can be run for testing the back-end handshake (contained in the depends-on folder):
+Here is a curl command that can be run for testing the back-end handshake (contained in the dependson-services folder):
 [source,bash]
 ----
 curl -X POST http://localhost:8080/api/v2/acquisition/start \
