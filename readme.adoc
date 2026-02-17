@@ -129,11 +129,57 @@ Any environment variable that starts with 'DAS_PRODUCER_KAFKA_CONFIG_' will be a
 === Remote control profiles
 
 When remote control is enabled, a valid X-Api-Key is required (defaults-remote-control.env provides a demo key).
-APPLY ignores the request body except for Custom.das-simulator-profile.
-The simulator loads the matching profile from REMOTE_CONTROL_PROFILES_DIR and uses that configuration
-to start producing data. A new AcquisitionId and MeasurementStartTime are generated on every APPLY,
-so stored profile values are not reused. STOP sends a best-effort stop signal to streaminitiator
-for the last applied acquisition id. Example profiles are included in the remote-control-profiles folder.
+
+Remote control uses JSON "profiles" stored on disk. A profile is a full DAS acquisition JSON object stored as
+`REMOTE_CONTROL_PROFILES_DIR/<profile-id>.json`.
+
+Profile lifecycle:
+
+* Creating a new configuration starts from the interrogator unit: it produces the acquisition JSON that defines
+  the configuration. In this simulator, that configuration is represented by adding a new profile JSON file.
+* Switching back to a previously used configuration is done by sending an APPLY request that references the
+  stored profile id.
+
+APPLY behavior:
+
+* The APPLY request body must be JSON.
+* The simulator reads only `Custom.das-simulator-profile` from the request body to select a profile file.
+  All other fields in the APPLY request body are ignored.
+* The simulator loads the matching profile from `REMOTE_CONTROL_PROFILES_DIR` and uses that configuration
+  to start producing data.
+* A new `AcquisitionId` and `MeasurementStartTime` are generated on every APPLY (including switches), so stored
+  profile values are not reused.
+
+Custom JSON (vendor-owned):
+
+The `Custom` object inside a DAS acquisition payload is treated as vendor-owned, opaque JSON. The back-end system does
+not interpret or modify the contents of `Custom`, except for reading `Custom.das-simulator-profile` in the incoming
+APPLY request to resolve the profile file. This makes `Custom` the place to store stable identifiers
+and metadata that can be used to map a switch request back to a previously used configuration.
+
+The vendor can store any valid JSON under `Custom` (strings, numbers, booleans, objects, arrays).
+
+Typical examples of vendor data stored under `Custom` include:
+
+* Vendor-specific acquisition identifiers (distinct from `AcquisitionId`, which is regenerated per APPLY).
+* Fiber optic switch information (for example, switch unit id and port number), if applicable.
+* Internal profile/configuration identifiers used by the interrogator unit.
+
+Example `Custom` object in a profile file:
+[source,json]
+----
+"Custom": {
+  "vendorAcquisitionId": "ACQ-2026-000123",
+  "fiberSwitch": { "unit": "SW-1", "port": 7 },
+  "interrogatorConfigId": "profile-A"
+}
+----
+
+When a profile is applied, the simulator forwards the profile JSON to the stream initiator, leaving `Custom`
+unchanged.
+
+STOP sends a best-effort stop signal to stream initiator for the last applied acquisition id. Example profiles
+are included in the `remote-control-profiles` folder.
 
 === Remote-control walkthrough (docker-compose)
 
@@ -200,9 +246,10 @@ curl -X POST http://localhost:9091/api/acquisition/stop \
   -d '{}'
 ----
 
-Note: You can also send the full profile JSON in the APPLY request body (for convenience),
-as long as Custom.das-simulator-profile is present; the simulator will still load the profile
-from disk and ignore other fields in the request.
+Note: You can also send the full profile JSON in the APPLY request body (for convenience), but the simulator
+still loads the profile from disk and ignores all request fields other than `Custom.das-simulator-profile`
+(including any extra vendor metadata under `Custom`). To change what gets forwarded to the stream initiator,
+edit the profile JSON file in `REMOTE_CONTROL_PROFILES_DIR`.
 
 === Remote-control error responses
 
